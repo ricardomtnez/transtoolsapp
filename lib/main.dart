@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:transtools/views/login.dart';
+import 'package:transtools/views/dashboard.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,7 +23,7 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.teal,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const Login(),
+      home: const Dashboard(),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:transtools/api/login_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -6,11 +9,64 @@ class Login extends StatefulWidget {
   @override
   LoginState createState() => LoginState();
 }
+
+Future<bool> isConnectedToInternet() async {
+  final connectivityResult = await Connectivity().checkConnectivity();
+  // Para dispositivos que devuelven una lista
+  return connectivityResult.contains(ConnectivityResult.mobile) ||
+      connectivityResult.contains(ConnectivityResult.wifi);
+}
+
 class LoginState extends State<Login> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  bool _obscureText = true; 
+  bool _obscureText = true;
+  // AQUÍ VA el método _handleLogin
+  // En tu método _handleLogin en la vista
+  Future<void> _handleLogin() async {
+    final isConnected = await isConnectedToInternet();
+
+    if (!isConnected) {
+      if (!mounted) return; // Aquí está bien
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sin conexión a internet')));
+      return;
+    }
+
+    final email = emailController.text.trim();
+    final inputPassword = passwordController.text.trim();
+
+    final loginController = LoginController();
+    final userData = await loginController.loginUser(email);
+
+    if (!mounted) return; // ✅ Este es el importante después del await anterior
+
+    if (userData != null) {
+      final storedPassword = userData['password'] ?? '';
+
+      if (storedPassword == inputPassword) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('fullname', userData['fullname']);
+        await prefs.setString('departamento', userData['departamento']);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bienvenido ${userData['fullname']}')),
+        );
+
+        // Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Contraseña incorrecta')));
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Usuario no encontrado')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +103,10 @@ class LoginState extends State<Login> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[700]!, width: 2), // Borde cuando está enfocado
+                    borderSide: BorderSide(
+                      color: Colors.blue[700]!,
+                      width: 2,
+                    ), // Borde cuando está enfocado
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -65,15 +124,16 @@ class LoginState extends State<Login> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[700]!, width: 2), // Borde cuando está enfocado
+                    borderSide: BorderSide(
+                      color: Colors.blue[700]!,
+                      width: 2,
+                    ), // Borde cuando está enfocado
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  // Icono para mostrar/ocultar contraseña        
+                  // Icono para mostrar/ocultar contraseña
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureText
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+                      _obscureText ? Icons.visibility_off : Icons.visibility,
                     ),
                     onPressed: () {
                       setState(() {
@@ -83,7 +143,7 @@ class LoginState extends State<Login> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
               // Botón
               SizedBox(
@@ -93,9 +153,7 @@ class LoginState extends State<Login> {
                     backgroundColor: Colors.blue[800],
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: () {
-                    // Acción de login
-                  },
+                  onPressed: _handleLogin,
                   child: const Text(
                     'Entrar',
                     style: TextStyle(

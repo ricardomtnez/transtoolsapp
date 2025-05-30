@@ -56,6 +56,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/transtools_logo.png
+    - assets/transtools_logo_white.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

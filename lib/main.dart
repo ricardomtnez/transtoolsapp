@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:transtools/views/login.dart';
 import 'package:transtools/views/dashboard.dart';
 import 'package:transtools/views/newquote.dart';
 

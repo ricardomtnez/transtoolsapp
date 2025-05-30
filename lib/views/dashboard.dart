@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:transtools/views/newquote.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
@@ -36,6 +37,7 @@ class Dashboard extends StatelessWidget {
               leading: const Icon(Icons.receipt_long),
               title: const Text('Cotizador'),
               onTap: () {
+                Navigator.pushNamed(context, '/newquote');
                 // Navegar o hacer acción
               },
             ),
@@ -97,14 +99,17 @@ class Dashboard extends StatelessWidget {
                       const Text("0", style: TextStyle(fontSize: 30)),
                       const SizedBox(height: 15),
                       ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                      Navigator.pushNamed(context, '/newquote');
+                      },
                       style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF52A7D9),
-                      minimumSize: const Size(100, 50), 
+                      minimumSize: const Size(100, 50),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),    
-                      child: const Text("Nueva Cotización", style: TextStyle(color: Colors.white)),
                       ),
+                      child: const Text("Nueva Cotización", style: TextStyle(color: Colors.white)),
+          ),
+
 
                       const SizedBox(height: 10),
                       ElevatedButton(

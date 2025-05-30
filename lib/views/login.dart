@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:transtools/api/login_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:transtools/views/dashboard.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -27,6 +28,8 @@ class LoginState extends State<Login> {
   Future<void> _handleLogin() async {
     final isConnected = await isConnectedToInternet();
 
+    if (!mounted) return;
+
     if (!isConnected) {
       if (!mounted) return; // Aquí está bien
       ScaffoldMessenger.of(
@@ -50,12 +53,9 @@ class LoginState extends State<Login> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fullname', userData['fullname']);
         await prefs.setString('departamento', userData['departamento']);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bienvenido ${userData['fullname']}')),
-        );
-
-        // Navigator.pushReplacementNamed(context, '/home');
+        if (!mounted) return;
+        Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (context) => const Dashboard()));
       } else {
         ScaffoldMessenger.of(
           context,

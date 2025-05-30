@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:transtools/views/dashboard.dart';
+import 'package:transtools/views/login.dart';
 import 'package:transtools/views/newquote.dart';
 
 void main() {
@@ -26,8 +26,7 @@ return MaterialApp(
   debugShowCheckedModeBanner: false,
   initialRoute: '/', // punto de entrada
   routes: {
-    '/': (context) => const Dashboard(),
-    //'/login': (context) => const Login(),
+    '/': (context) => const Login(),
     '/newquote': (context) => const NewQuote(),
   },
 );

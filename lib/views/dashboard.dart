@@ -59,7 +59,7 @@ class Dashboard extends StatelessWidget {
         foregroundColor: const Color.fromARGB(255, 255, 255, 255),
         elevation: 0,
       ),
-      backgroundColor: const Color(0xFF52A7D9),
+      backgroundColor: Colors.blue[800],
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -101,7 +101,7 @@ class Dashboard extends StatelessWidget {
                       Navigator.pushNamed(context, '/newquote');
                       },
                       style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF52A7D9),
+                      backgroundColor: Colors.blue[800],
                       minimumSize: const Size(100, 50),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -113,7 +113,7 @@ class Dashboard extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF52A7D9),
+                          backgroundColor: Colors.blue[800],
                           minimumSize: const Size(163, 50),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
@@ -156,7 +156,7 @@ class Dashboard extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF52A7D9),
+                          backgroundColor: Colors.blue[800],
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         child: const Text(

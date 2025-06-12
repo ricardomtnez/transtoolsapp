@@ -54,8 +54,16 @@ class LoginState extends State<Login> {
         await prefs.setString('fullname', userData['fullname']);
         await prefs.setString('departamento', userData['departamento']);
         if (!mounted) return;
-        Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (context) => const Dashboard()));
+        Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+        builder: (context) => Dashboard(
+        nombre: userData['fullname'],
+        departamento: userData['departamento'],
+        email: email,
+    ),
+  ),
+);
       } else {
         ScaffoldMessenger.of(
           context,
@@ -143,7 +151,6 @@ class LoginState extends State<Login> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
               // Botón
               SizedBox(

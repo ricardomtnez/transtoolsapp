@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
 class Dashboard extends StatelessWidget {
-  const Dashboard({super.key});
+  final String nombre;
+  final String departamento;
+  final String email;
+
+  const Dashboard({
+    super.key,
+    required this.nombre,
+    required this.departamento,
+    required this.email,
+  });
+  
+
 
   @override
   Widget build(BuildContext context) {
@@ -26,16 +37,19 @@ class Dashboard extends StatelessWidget {
               child: Icon(Icons.person, size: 50, color: Colors.white),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Ing. Ricardo Martinez',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+            nombre,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             ListTile(
               leading: const Icon(Icons.receipt_long),
               title: const Text('Cotizador'),
               onTap: () {
-                Navigator.pushNamed(context, '/newquote');
+                Navigator.pushNamed(context, '/seccion1', arguments: { 
+                  'nombre': nombre,'departamento': departamento,'email': email,
+  },
+);
                 // Navegar o hacer acción
               },
             ),
@@ -67,9 +81,14 @@ class Dashboard extends StatelessWidget {
               children: [
                 const SizedBox(height: 10),
                 const Text(
+                  
                   "Bienvenido",
                   style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
                 ),
+                Text(
+            nombre,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white,),
+                  ),
                 const SizedBox(height: 10),
                 Container(
                 padding: const EdgeInsets.all(10),
@@ -98,7 +117,10 @@ class Dashboard extends StatelessWidget {
                       const SizedBox(height: 15),
                       ElevatedButton(
                       onPressed: () {
-                      Navigator.pushNamed(context, '/newquote');
+                      Navigator.pushNamed(context, '/seccion1',arguments: {
+                        'nombre': nombre, 'departamento': departamento, 'email': email,
+                      },
+                      );
                       },
                       style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[800],
@@ -107,7 +129,6 @@ class Dashboard extends StatelessWidget {
                       ),
                       child: const Text("Nueva Cotización", style: TextStyle(color: Colors.white)),
           ),
-
 
                       const SizedBox(height: 10),
                       ElevatedButton(
@@ -175,3 +196,4 @@ class Dashboard extends StatelessWidget {
     );
   }
 }
+

@@ -66,7 +66,7 @@ class _Seccion2State extends State<Seccion2> {
 
 
   //Map<String, bool> _expandedCategorias = {};
-  List<String> _adicionalesSeleccionados = [];
+  final List<String> _adicionalesSeleccionados = [];
   final Map<String, Set<String>> _excludedFeatures = {};
   final List<String> adicionales = [];
   final TextEditingController _adicionalesController = TextEditingController();
@@ -392,7 +392,7 @@ Widget _buildMenuAdicionalesSimplificado() {
             });
           },
         );
-      }).toList(),
+      }),
     ],
   );
 }

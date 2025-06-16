@@ -176,7 +176,7 @@ class _Seccion1State extends State<Seccion1> {
                     leading: const Icon(Icons.dashboard),
                     title: const Text('Menu Principal'),
                     onTap: () {
-                      Navigator.pushNamed(
+                       Navigator.pushReplacementNamed(
                         context,
                         '/dashboard',
                         arguments: {
@@ -191,7 +191,7 @@ class _Seccion1State extends State<Seccion1> {
                     leading: const Icon(Icons.receipt_long),
                     title: const Text('Cotizador'),
                     onTap: () {
-                      Navigator.pushNamed(
+                       Navigator.pushReplacementNamed(
                         context,
                         '/seccion1',
                         arguments: {
@@ -312,10 +312,13 @@ class _Seccion1State extends State<Seccion1> {
                   _buildSection(
                     title: 'Modelo',
                     children: [
-                      _ModeloDropdown(
-                        value: modeloSeleccionado,
-                        onChanged: (v) =>
-                            setState(() => modeloSeleccionado = v),
+                      _YearPickerField(
+                        initialYear: modeloSeleccionado,
+                        onYearSelected: (year) {
+                          setState(() {
+                            modeloSeleccionado = year;
+                          });
+                        },
                       ),
                     ],
                   ),
@@ -340,7 +343,7 @@ class _Seccion1State extends State<Seccion1> {
                       _NavigationButton(
                         label: 'Atras',
                         onPressed: () {
-                          Navigator.pushNamed(
+                           Navigator.pushReplacementNamed(
                             context,
                             '/dashboard',
                             arguments: {
@@ -489,19 +492,7 @@ class _LineaDropdown extends StatelessWidget {
   }
 }
 
-class _ModeloDropdown extends StatelessWidget {
-  final String? value;
-  final void Function(String?) onChanged;
-  const _ModeloDropdown({required this.value, required this.onChanged});
-  @override
-  Widget build(BuildContext context) {
-    return _buildDropdown(context, value, onChanged, [
-      'Volteo 30 m³',
-      'Volteo 35 m³',
-      'Volteo 40 m³',
-    ]);
-  }
-}
+
 
 class _VigenciaDropdown extends StatelessWidget {
   final String? valorSeleccionado;
@@ -556,6 +547,53 @@ class _NavigationButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+    );
+  }
+}
+
+/// Widget para seleccionar un año (modelo)
+class _YearPickerField extends StatelessWidget {
+  final String? initialYear;
+  final void Function(String) onYearSelected;
+
+  const _YearPickerField({
+    required this.initialYear,
+    required this.onYearSelected,
+  });
+
+  List<String> _getYears() {
+    final currentYear = DateTime.now().year;
+    return List.generate(30, (i) => (currentYear - i).toString());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: initialYear,
+          hint: const Text('Selecciona el año del modelo'),
+          menuMaxHeight: 200,
+          onChanged: (value) {
+            if (value != null) {
+              onYearSelected(value);
+            }
+          },
+          items: _getYears()
+              .map((year) => DropdownMenuItem(
+                    value: year,
+                    child: Text(year),
+                  ))
+              .toList(),
+        ),
+      ),
     );
   }
 }

@@ -55,6 +55,7 @@ query {
 
         String departamento = '';
         String password = '';
+        String initials = '';
 
         for (var col in columnValues) {
           final title = col['column']?['title'];
@@ -62,6 +63,8 @@ query {
             departamento = col['text'] ?? '';
           } else if (title == 'Contraseña') {
             password = col['text'] ?? '';
+          } else if (title == 'Iniciales') {
+            initials = col['text'] ?? '';
           }
         }
 
@@ -70,6 +73,7 @@ query {
           'fullname': name,
           'departamento': departamento,
           'password': password,
+          'iniciales': initials,
         };
       } else {
         // No se encontró usuario

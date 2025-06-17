@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:transtools/api/login_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:transtools/models/usuario.dart';
 import 'package:transtools/views/dashboard.dart';
 
 class Login extends StatefulWidget {
@@ -31,7 +32,6 @@ class LoginState extends State<Login> {
     if (!mounted) return;
 
     if (!isConnected) {
-      if (!mounted) return; // Aquí está bien
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Sin conexión a internet')));
@@ -44,26 +44,30 @@ class LoginState extends State<Login> {
     final loginController = LoginController();
     final userData = await loginController.loginUser(email);
 
-    if (!mounted) return; // ✅ Este es el importante después del await anterior
+    if (!mounted) return;
 
     if (userData != null) {
       final storedPassword = userData['password'] ?? '';
-
       if (storedPassword == inputPassword) {
+        // Creamos objeto Usuario
+        Usuario usuario = Usuario(
+          fullname: userData['fullname'] ?? '',
+          departamento: userData['departamento'] ?? '',
+          password: storedPassword,
+          email: email,
+          initials: userData['iniciales'] ?? '',
+        );
+
+        // Serializamos a json
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('fullname', userData['fullname']);
-        await prefs.setString('departamento', userData['departamento']);
+        await prefs.setString('usuario', usuario.toJson());
+
         if (!mounted) return;
+
         Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => Dashboard(
-        nombre: userData['fullname'],
-        departamento: userData['departamento'],
-        email: email,
-    ),
-  ),
-);
+          context,
+          MaterialPageRoute(builder: (context) => const Dashboard()),
+        );
       } else {
         ScaffoldMessenger.of(
           context,

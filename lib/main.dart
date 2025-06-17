@@ -31,35 +31,14 @@ class _MyAppState extends State<MyApp> {
           case '/':
             return MaterialPageRoute(builder: (_) => const Login());
 
-          case '/dashboard':
-            final args = settings.arguments as Map<String, String>;
-            return MaterialPageRoute(
-              builder: (_) => Dashboard(
-                nombre: args['nombre']!,
-                departamento: args['departamento']!,
-                email: args['email']!,
-              ),
-            );
+          case "/dashboard":
+            return MaterialPageRoute(builder: (_) => const Dashboard());
 
-          case '/seccion1':
-            final args = settings.arguments as Map<String, String>;
-            return MaterialPageRoute(
-              builder: (_) => Seccion1(
-                nombre: args['nombre']!,
-                departamento: args['departamento']!,
-                email: args['email']!,
-              ),
-            );
+          case "/seccion1":
+            return MaterialPageRoute(builder: (_) => const Seccion1());
 
-          case '/seccion2':
-            //final args = settings.arguments as Map<String, String>;
-            return MaterialPageRoute(
-              builder: (_) => Seccion2(
-                //nombre: args['nombre']!,
-               // departamento: args['departamento']!,
-                //email: args['email']!,
-              ),
-            );
+          case "/seccion2":
+            return MaterialPageRoute(builder: (_) => const Seccion2());
 
           default:
             return MaterialPageRoute(

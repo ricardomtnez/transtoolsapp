@@ -2,25 +2,19 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transtools/models/usuario.dart';
 
 class Seccion1 extends StatefulWidget {
-  final String nombre;
-  final String departamento;
-  final String email;
-
-  const Seccion1({
-    super.key,
-    required this.nombre,
-    required this.departamento,
-    required this.email,
-  });
+  const Seccion1({super.key});
 
   @override
   State<Seccion1> createState() => _Seccion1State();
 }
 
 class _Seccion1State extends State<Seccion1> {
-  final cotizacionCtrl = TextEditingController();
+  Usuario? _usuario; // Variable para guardar el usuario cargado
+  var cotizacionCtrl = TextEditingController();
   final nombreCtrl = TextEditingController();
   final empresaCtrl = TextEditingController();
   final telefonoCtrl = TextEditingController();
@@ -39,6 +33,7 @@ class _Seccion1State extends State<Seccion1> {
   @override
   void initState() {
     super.initState();
+    _cargarUsuario();
     fechaCtrl.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
   }
 
@@ -67,15 +62,7 @@ class _Seccion1State extends State<Seccion1> {
       );
       return;
     }
-    Navigator.pushNamed(
-      context,
-      '/seccion2',
-      arguments: {
-        'nombre': widget.nombre,
-        'departamento': widget.departamento,
-        'email': widget.email,
-      },
-    );
+    Navigator.pushNamed(context, '/seccion2');
   }
 
   void mostrarAlertaError(BuildContext context, String mensaje) {
@@ -113,6 +100,20 @@ class _Seccion1State extends State<Seccion1> {
           ],
         ),
       );
+    }
+  }
+
+  Future<void> _cargarUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString('usuario');
+    if (jsonString != null) {
+      setState(() {
+        _usuario = Usuario.fromJson(
+          jsonString,
+        ); // Ya devuelve un objeto Usuario
+        final mesActual = DateTime.now().month.toString().padLeft(2, '0');
+        cotizacionCtrl.text  = 'COT-${_usuario!.initials}$mesActual-';
+      });
     }
   }
 
@@ -165,7 +166,7 @@ class _Seccion1State extends State<Seccion1> {
                   const SizedBox(height: 10),
                   // Nombre del usuario
                   Text(
-                    widget.nombre,
+                    _usuario!.fullname,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -176,30 +177,14 @@ class _Seccion1State extends State<Seccion1> {
                     leading: const Icon(Icons.dashboard),
                     title: const Text('Menu Principal'),
                     onTap: () {
-                       Navigator.pushReplacementNamed(
-                        context,
-                        '/dashboard',
-                        arguments: {
-                          'nombre': widget.nombre,
-                          'departamento': widget.departamento,
-                          'email': widget.email,
-                        },
-                      );
+                      Navigator.pushNamed(context, '/dashboard');
                     },
                   ),
                   ListTile(
                     leading: const Icon(Icons.receipt_long),
                     title: const Text('Cotizador'),
                     onTap: () {
-                       Navigator.pushReplacementNamed(
-                        context,
-                        '/seccion1',
-                        arguments: {
-                          'nombre': widget.nombre,
-                          'departamento': widget.departamento,
-                          'email': widget.email,
-                        },
-                      );
+                      Navigator.pushNamed(context, '/seccion1');
                     },
                   ),
                 ],
@@ -245,7 +230,8 @@ class _Seccion1State extends State<Seccion1> {
                     children: [
                       _CustomTextField(
                         controller: cotizacionCtrl,
-                        hint: 'Número de cotización',
+                        hint: 'Número de Cotización',
+                        enabled: false,
                       ),
                       _CustomTextField(
                         controller: fechaCtrl,
@@ -343,15 +329,7 @@ class _Seccion1State extends State<Seccion1> {
                       _NavigationButton(
                         label: 'Atras',
                         onPressed: () {
-                           Navigator.pushReplacementNamed(
-                            context,
-                            '/dashboard',
-                            arguments: {
-                              'nombre': widget.nombre,
-                              'departamento': widget.departamento,
-                              'email': widget.email,
-                            },
-                          );
+                          Navigator.pushNamed(context, '/dashboard');
                         },
                       ),
                       _NavigationButton(

@@ -6,12 +6,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/models/usuario.dart';
 
 class Seccion1 extends StatefulWidget {
-  const Seccion1({super.key});
+  final String nombre;
+  final String departamento;
+  final String email;
+
+  const Seccion1({
+    super.key,
+    required this.nombre,
+    required this.departamento,
+    required this.email,
+  });
 
   @override
   State<Seccion1> createState() => _Seccion1State();
 }
-
 class _Seccion1State extends State<Seccion1> {
   Usuario? _usuario; // Variable para guardar el usuario cargado
   var cotizacionCtrl = TextEditingController();
@@ -47,7 +55,6 @@ class _Seccion1State extends State<Seccion1> {
     fechaCtrl.dispose();
     super.dispose();
   }
-
   void _irASiguiente() {
     if (cotizacionCtrl.text.isEmpty ||
         fechaCtrl.text.isEmpty ||
@@ -78,7 +85,7 @@ class _Seccion1State extends State<Seccion1> {
               textStyle: TextStyle(color: CupertinoColors.systemBlue),
               child: const Text(
                 'Aceptar',
-              ), // child debe ser el último argumento
+              ),
             ),
           ],
         ),
@@ -277,17 +284,7 @@ class _Seccion1State extends State<Seccion1> {
                     ],
                   ),
                   _buildSection(
-                    title: 'Categoria',
-                    children: [
-                      _CategoriaDropdown(
-                        value: categoriaSeleccionada,
-                        onChanged: (v) =>
-                            setState(() => categoriaSeleccionada = v),
-                      ),
-                    ],
-                  ),
-                  _buildSection(
-                    title: 'Linea/Clase',
+                    title: 'Modelo/Gama',
                     children: [
                       _LineaDropdown(
                         value: lineaSeleccionada,
@@ -296,7 +293,7 @@ class _Seccion1State extends State<Seccion1> {
                     ],
                   ),
                   _buildSection(
-                    title: 'Modelo',
+                    title: 'Edición',
                     children: [
                       _YearPickerField(
                         initialYear: modeloSeleccionado,
@@ -306,20 +303,6 @@ class _Seccion1State extends State<Seccion1> {
                           });
                         },
                       ),
-                    ],
-                  ),
-                  _buildSection(
-                    title: 'Dimensiones',
-                    children: [
-                      _CustomTextField(
-                        controller: largoCtrl,
-                        hint: 'Largo (m)',
-                      ),
-                      _CustomTextField(
-                        controller: anchoCtrl,
-                        hint: 'Ancho (m)',
-                      ),
-                      _CustomTextField(controller: altoCtrl, hint: 'Alto (m)'),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -383,7 +366,7 @@ class _CustomTextField extends StatelessWidget {
   const _CustomTextField({
     required this.hint,
     required this.controller,
-    this.enabled = true, // Por defecto está habilitado
+    this.enabled = true, 
   });
   @override
   Widget build(BuildContext context) {
@@ -433,32 +416,241 @@ Widget _buildDropdown(
   );
 }
 
-class _ProductoDropdown extends StatelessWidget {
+class _ProductoDropdown extends StatefulWidget {
   final String? value;
   final void Function(String?) onChanged;
+
   const _ProductoDropdown({required this.value, required this.onChanged});
+
+  @override
+  State<_ProductoDropdown> createState() => _ProductoDropdownState();
+}
+
+class _ProductoDropdownState extends State<_ProductoDropdown> {
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  List<String> _filteredProductos = [];
+
+  static const List<String> _productos = [
+    'Plataforma Estandar',
+    'Plataforma Slim Deck',
+    'Plataformas Especiales',
+    'Dolly A',
+    'Volteo Estandar',
+    'Volteo Automotriz',
+    'Volteo Especiales',
+    'Lowboy Cuello Fijo',
+    'Lowboy Cuello Desmontable',
+    'Lowboy Cuello Desmontable Extendible',
+    'Jeep Dolly',
+    'Chasis Porta Contenedor',
+    'Chasis Porta Contenedor Extendible',
+    'Encortinado Tipo Tunel',
+    'Encortinado Tipo Cervecero',
+    'Dolly H',
+    'Encortinado Automototriz/Especiales',
+    'Jaula',
+    'Isotanque',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredProductos = _productos;
+    if (widget.value != null) {
+      _controller.text = widget.value!;
+    }
+
+    _focusNode.addListener(_handleFocusChange);
+    _controller.addListener(_handleTextChange);
+  }
+
+  void _handleFocusChange() {
+    if (_focusNode.hasFocus) {
+      _showOverlay();
+    } else {
+      _removeOverlay();
+    }
+  }
+
+  void _handleTextChange() {
+    _filterOptions(_controller.text);
+  }
+
+  void _filterOptions(String query) {
+    setState(() {
+      _filteredProductos = _productos.where((producto) {
+        return producto.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
+    
+    // Actualizar el overlay si existe
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _showOverlay() {
+    // Asegurarse de remover cualquier overlay existente
+    _removeOverlay();
+    
+    // Obtener el render box después de que el widget esté construido
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox == null || !mounted) return;
+
+      _overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          width: renderBox.size.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: Offset(0, renderBox.size.height + 5),
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    )
+                  ],
+                ),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
+                child: _filteredProductos.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No se encontraron coincidencias',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: _filteredProductos.length,
+                        itemBuilder: (context, index) {
+                          final option = _filteredProductos[index];
+                          return InkWell(
+                            onTap: () {
+                              _controller.text = option;
+                              widget.onChanged(option);
+                              _focusNode.unfocus();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _controller.text == option
+                                    ? Theme.of(context).primaryColor.withOpacity(0.1)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                option,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: _controller.text == option 
+                                      ? Theme.of(context).primaryColor 
+                                      : Colors.black,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      if (mounted) {
+        Overlay.of(context).insert(_overlayEntry!);
+      }
+    });
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    _controller.removeListener(_handleTextChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    _removeOverlay();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _buildDropdown(context, value, onChanged, [
-      'Volteo',
-      'Plataforma',
-      'Caja Seca',
-    ]);
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: () {
+          if (_focusNode.hasFocus) {
+            _focusNode.unfocus();
+          } else {
+            _focusNode.requestFocus();
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(29),
+            border: Border.all(
+              color: _focusNode.hasFocus 
+                  ? Theme.of(context).primaryColor 
+                  : Colors.grey[300]!,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  decoration: const InputDecoration(
+                    hintText: 'Selecciona un producto',
+                    hintStyle: TextStyle(color: Color.fromARGB(255, 64, 64, 64)),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              Icon(
+                _focusNode.hasFocus ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                color: const Color.fromARGB(255, 86, 86, 86),
+                size: 28,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
-class _CategoriaDropdown extends StatelessWidget {
-  final String? value;
-  final void Function(String?) onChanged;
-  const _CategoriaDropdown({required this.value, required this.onChanged});
-  @override
-  Widget build(BuildContext context) {
-    return _buildDropdown(context, value, onChanged, [
-      'Semiremolque',
-      'Carroceria',
-    ]);
-  }
-}
 
 class _LineaDropdown extends StatelessWidget {
   final String? value;
@@ -466,7 +658,12 @@ class _LineaDropdown extends StatelessWidget {
   const _LineaDropdown({required this.value, required this.onChanged});
   @override
   Widget build(BuildContext context) {
-    return _buildDropdown(context, value, onChanged, ['Titanium', 'AMForce']);
+    return _buildDropdown(context, value, onChanged, [
+    'Titanium FleetMax', 
+    'Titanium AMForce', 
+    'Titanium Elite', 
+    'Titanium HRP',
+    ]);
   }
 }
 

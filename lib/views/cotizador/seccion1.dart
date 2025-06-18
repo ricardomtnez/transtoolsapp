@@ -5,22 +5,15 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/models/usuario.dart';
 
+
 class Seccion1 extends StatefulWidget {
-  final String nombre;
-  final String departamento;
-  final String email;
-
-  const Seccion1({
-    super.key,
-    required this.nombre,
-    required this.departamento,
-    required this.email,
-  });
-
+  // ignore: use_super_parameters
+  const Seccion1({Key? key}) : super(key: key);
   @override
-  State<Seccion1> createState() => _Seccion1State();
+  State<Seccion1> createState() => _Seccion1();
 }
-class _Seccion1State extends State<Seccion1> {
+
+class _Seccion1 extends State<Seccion1> {
   Usuario? _usuario; // Variable para guardar el usuario cargado
   var cotizacionCtrl = TextEditingController();
   final nombreCtrl = TextEditingController();
@@ -37,6 +30,14 @@ class _Seccion1State extends State<Seccion1> {
   String? categoriaSeleccionada;
   String? lineaSeleccionada;
   String? modeloSeleccionado;
+  String? yearSeleccionado;
+  String? ejesSeleccionados;
+
+  bool get _modeloDisponible {
+  return productoSeleccionado != null &&
+         lineaSeleccionada != null &&
+         ejesSeleccionados != null;
+}
 
   @override
   void initState() {
@@ -274,17 +275,19 @@ class _Seccion1State extends State<Seccion1> {
                     ],
                   ),
                   _buildSection(
-                    title: 'Producto',
-                    children: [
-                      _ProductoDropdown(
-                        value: productoSeleccionado,
-                        onChanged: (v) =>
-                            setState(() => productoSeleccionado = v),
-                      ),
-                    ],
-                  ),
+  title: 'Producto',
+  children: [
+    _ProductoDropdown(
+      value: productoSeleccionado,
+      onChanged: (v) => setState(() {
+        productoSeleccionado = v;
+        modeloSeleccionado = null; 
+      }),
+    ),
+  ],
+),
                   _buildSection(
-                    title: 'Modelo/Gama',
+                    title: 'Linea',
                     children: [
                       _LineaDropdown(
                         value: lineaSeleccionada,
@@ -293,13 +296,34 @@ class _Seccion1State extends State<Seccion1> {
                     ],
                   ),
                   _buildSection(
+                      title: 'Ejes',
+                      children: [
+                        NumeroEjesDropdown(
+                          value: ejesSeleccionados,
+                          onChanged: (v) => setState(() => ejesSeleccionados = v),
+                        ),
+                      ],
+                    ),
+                  // Aquí se determina si el modelo está disponible
+
+                    _buildSection(
+                    title: 'Modelo/Gama',
+                    children: [
+                      _ModeloDropdown(
+                        value: modeloSeleccionado,
+                        enabled: _modeloDisponible, // ← activa o desactiva el dropdown
+                        onChanged: (v) => setState(() => modeloSeleccionado = v),
+                      ),
+                    ],
+                  ),
+                  _buildSection(
                     title: 'Edición',
                     children: [
                       _YearPickerField(
-                        initialYear: modeloSeleccionado,
+                        initialYear: yearSeleccionado,
                         onYearSelected: (year) {
                           setState(() {
-                            modeloSeleccionado = year;
+                            yearSeleccionado = year;
                           });
                         },
                       ),
@@ -433,27 +457,27 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
   OverlayEntry? _overlayEntry;
   List<String> _filteredProductos = [];
 
-  static const List<String> _productos = [
-    'Plataforma Estandar',
-    'Plataforma Slim Deck',
-    'Plataformas Especiales',
-    'Dolly A',
-    'Volteo Estandar',
-    'Volteo Automotriz',
-    'Volteo Especiales',
-    'Lowboy Cuello Fijo',
-    'Lowboy Cuello Desmontable',
-    'Lowboy Cuello Desmontable Extendible',
-    'Jeep Dolly',
-    'Chasis Porta Contenedor',
-    'Chasis Porta Contenedor Extendible',
-    'Encortinado Tipo Tunel',
-    'Encortinado Tipo Cervecero',
-    'Dolly H',
-    'Encortinado Automototriz/Especiales',
-    'Jaula',
-    'Isotanque',
-  ];
+static const List<String> _productos = [
+  'PLATAFORMA ESTANDAR',
+  'PLATAFORMA SLIM DECK',
+  'PLATAFORMAS ESPECIALES',
+  'DOLLY A',
+  'VOLTEO ESTANDAR',
+  'VOLTEO AUTOMOTRIZ',
+  'VOLTEOS ESPECIALES',
+  'LOWBOY CUELLO FIJO',
+  'LOWBOY CUELLO DESMONTABLE',
+  'LOWBOY CUELLO DESMONTABLE EXTENDIBLE',
+  'JEEP DOLLY',
+  'CHASIS PORTA CONTENEDOR',
+  'CHASIS PORTA CONTENEDOR EXTENDIBLE',
+  'ENCORTINADO TIPO TUNEL',
+  'ENCORTINADO TIPO CERVECERO',
+  'ENCORTINADO AUTOMOTRIZ/ESPECIALES',
+  'DOLLY H',
+  'JAULA',
+  'ISOTANQUE',
+];
 
   @override
   void initState() {
@@ -522,7 +546,7 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
                   ],
                 ),
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  maxHeight: 200, // En pixeles
                 ),
                 child: _filteredProductos.isEmpty
                     ? Padding(
@@ -659,7 +683,7 @@ class _LineaDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _buildDropdown(context, value, onChanged, [
-    'Titanium FleetMax', 
+    'Titanium Fleet Max', 
     'Titanium AMForce', 
     'Titanium Elite', 
     'Titanium HRP',
@@ -668,6 +692,110 @@ class _LineaDropdown extends StatelessWidget {
 }
 
 
+class NumeroEjesDropdown extends StatelessWidget {
+  final String? value;
+  final void Function(String?) onChanged;
+
+  const NumeroEjesDropdown({super.key, 
+    required this.value,
+    required this.onChanged,
+  });
+
+  static const List<String> _opciones = [
+    '1 Eje',
+    '2 Eje',
+    '3 Eje',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(29),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _opciones.contains(value) ? value : null,
+          isExpanded: true,
+          hint: const Text(
+            'Selecciona una opción',
+            style: TextStyle(color: Color(0xFF404040)),
+          ),
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            color: Color(0xFF565656),
+          ),
+          items: _opciones.map((opcion) {
+            return DropdownMenuItem<String>(
+              value: opcion,
+              child: Text(opcion),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeloDropdown extends StatelessWidget {
+  final String? value;
+  final void Function(String?)? onChanged;
+  final bool enabled;
+
+  const _ModeloDropdown({
+    required this.value,
+    required this.onChanged,
+    this.enabled = true,
+  });
+
+  static const List<String> _modelos = [
+    'MODELO A', 
+    'MODELO B', 
+    'MODELO C', 
+    'MODELO D',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: IgnorePointer(
+        ignoring: !enabled,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(29),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _modelos.any((item) => item == value) ? value : null,
+              isExpanded: true,
+              hint: const Text(
+                'Selecciona una opción',
+                style: TextStyle(color: Color(0xFF404040)),
+              ),
+              icon: const Icon(
+                Icons.arrow_drop_down,
+                color: Color(0xFF565656),
+              ),
+              items: _modelos.map((modelo) {
+                return DropdownMenuItem<String>(
+                  value: modelo,
+                  child: Text(modelo),
+                );
+              }).toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _VigenciaDropdown extends StatelessWidget {
   final String? valorSeleccionado;

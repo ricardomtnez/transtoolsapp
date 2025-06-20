@@ -1,10 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/models/usuario.dart';
-
 
 class Seccion1 extends StatefulWidget {
   // ignore: use_super_parameters
@@ -25,25 +27,26 @@ class _Seccion1 extends State<Seccion1> {
   final anchoCtrl = TextEditingController();
   final altoCtrl = TextEditingController();
   String? vigenciaSeleccionada;
-
+  List<Map<String, String>> _grupos = [];
   String? productoSeleccionado;
-  String? categoriaSeleccionada;
   String? lineaSeleccionada;
+  String? ejesSeleccionados;
+  List<Map<String, String>> _modelos = [];
   String? modeloSeleccionado;
   String? yearSeleccionado;
-  String? ejesSeleccionados;
 
   bool get _modeloDisponible {
-  return productoSeleccionado != null &&
-         lineaSeleccionada != null &&
-         ejesSeleccionados != null;
-}
+    return productoSeleccionado != null &&
+        lineaSeleccionada != null &&
+        ejesSeleccionados != null;
+  }
 
   @override
   void initState() {
     super.initState();
     _cargarUsuario();
     fechaCtrl.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    _cargarGruposMonday(); // 🔄 llamada automática al abrir
   }
 
   @override
@@ -56,6 +59,7 @@ class _Seccion1 extends State<Seccion1> {
     fechaCtrl.dispose();
     super.dispose();
   }
+
   void _irASiguiente() {
     if (cotizacionCtrl.text.isEmpty ||
         fechaCtrl.text.isEmpty ||
@@ -84,9 +88,7 @@ class _Seccion1 extends State<Seccion1> {
             CupertinoDialogAction(
               onPressed: () => Navigator.of(context).pop(),
               textStyle: TextStyle(color: CupertinoColors.systemBlue),
-              child: const Text(
-                'Aceptar',
-              ),
+              child: const Text('Aceptar'),
             ),
           ],
         ),
@@ -111,6 +113,18 @@ class _Seccion1 extends State<Seccion1> {
     }
   }
 
+  void _verificarYConsultarGrupo() {
+    if (productoSeleccionado != null &&
+        lineaSeleccionada != null &&
+        ejesSeleccionados != null) {
+      _cargarModelosPorGrupo(
+        productoSeleccionado,
+        lineaSeleccionada,
+        ejesSeleccionados,
+      );
+    }
+  }
+
   Future<void> _cargarUsuario() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString('usuario');
@@ -120,8 +134,81 @@ class _Seccion1 extends State<Seccion1> {
           jsonString,
         ); // Ya devuelve un objeto Usuario
         final mesActual = DateTime.now().month.toString().padLeft(2, '0');
-        cotizacionCtrl.text  = 'COT-${_usuario!.initials}$mesActual-';
+        cotizacionCtrl.text = 'COT-${_usuario!.initials}$mesActual-';
       });
+    }
+  }
+
+  Future<void> _cargarGruposMonday() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Borra la cache para forzar recarga de datos nuevos
+    await prefs.remove('grupos');
+
+    final gruposCacheString = prefs.getString('grupos');
+
+    if (gruposCacheString != null) {
+      // Parsear cache y mapear claves a 'value' y 'text'
+      final List<dynamic> gruposJson = jsonDecode(gruposCacheString);
+      setState(() {
+        _grupos = gruposJson.map<Map<String, String>>((g) {
+          return {
+            'value': g['value']?.toString() ?? '',
+            'text': g['text']?.toString() ?? '',
+          };
+        }).toList();
+      });
+    } else {
+      try {
+        final gruposApi = await QuoteController.obtenerGrupos();
+        await prefs.setString('grupos', jsonEncode(gruposApi));
+
+        setState(() {
+          _grupos = gruposApi.map<Map<String, String>>((g) {
+            return {
+              'value': g['value']?.toString() ?? '',
+              'text': g['text']?.toString() ?? '',
+            };
+          }).toList();
+        });
+      } catch (e) {
+        // Manejar error
+      }
+    }
+  }
+
+  Future<void> _cargarModelosPorGrupo(
+    String? producto,
+    String? linea,
+    String? ejes,
+  ) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    try {
+      final modelos = await QuoteController.obtenerModelosPorGrupo(
+        producto!,
+        linea!,
+        ejes!,
+      );
+      print(modelos);
+      if (!mounted) return;
+
+      setState(() {
+        _modelos =
+            modelos; // Asegúrate de tener esta lista definida en tu State
+      });
+    } catch (e) {
+      if (!mounted) return;
+      mostrarAlertaError(context, 'Error al cargar modelos');
+    } finally {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
     }
   }
 
@@ -174,7 +261,7 @@ class _Seccion1 extends State<Seccion1> {
                   const SizedBox(height: 10),
                   // Nombre del usuario
                   Text(
-                    _usuario!.fullname,
+                    _usuario?.fullname ?? 'Nombre no disponible',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -229,123 +316,141 @@ class _Seccion1 extends State<Seccion1> {
 
           // El contenido scrollable
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildSection(
-                    title: 'Información Inicial',
-                    children: [
-                      _CustomTextField(
-                        controller: cotizacionCtrl,
-                        hint: 'Número de Cotización',
-                        enabled: false,
-                      ),
-                      _CustomTextField(
-                        controller: fechaCtrl,
-                        hint: 'Fecha de cotización',
-                        enabled: false,
-                      ),
-                      _VigenciaDropdown(
-                        valorSeleccionado: vigenciaSeleccionada,
-                        onChanged: (value) {
-                          setState(() {
-                            vigenciaSeleccionada = value;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  _buildSection(
-                    title: 'Información del Cliente',
-                    children: [
-                      _CustomTextField(controller: nombreCtrl, hint: 'Nombre'),
-                      _CustomTextField(
-                        controller: empresaCtrl,
-                        hint: 'Empresa',
-                      ),
-                      _CustomTextField(
-                        controller: telefonoCtrl,
-                        hint: 'Telefono',
-                      ),
-                      _CustomTextField(
-                        controller: correoCtrl,
-                        hint: 'Correo Electronico',
-                      ),
-                    ],
-                  ),
-                  _buildSection(
-  title: 'Producto',
-  children: [
-    _ProductoDropdown(
-      value: productoSeleccionado,
-      onChanged: (v) => setState(() {
-        productoSeleccionado = v;
-        modeloSeleccionado = null; 
-      }),
-    ),
-  ],
-),
-                  _buildSection(
-                    title: 'Linea',
-                    children: [
-                      _LineaDropdown(
-                        value: lineaSeleccionada,
-                        onChanged: (v) => setState(() => lineaSeleccionada = v),
-                      ),
-                    ],
-                  ),
-                  _buildSection(
+            child: RefreshIndicator(
+              onRefresh: _cargarGruposMonday,
+              child: SingleChildScrollView(
+                physics:
+                    const AlwaysScrollableScrollPhysics(), // Habilita pull incluso cuando no hay scroll
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildSection(
+                      title: 'Información Inicial',
+                      children: [
+                        _CustomTextField(
+                          controller: cotizacionCtrl,
+                          hint: 'Número de Cotización',
+                          enabled: false,
+                        ),
+                        _CustomTextField(
+                          controller: fechaCtrl,
+                          hint: 'Fecha de cotización',
+                          enabled: false,
+                        ),
+                        _VigenciaDropdown(
+                          valorSeleccionado: vigenciaSeleccionada,
+                          onChanged: (value) {
+                            setState(() {
+                              vigenciaSeleccionada = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    _buildSection(
+                      title: 'Información del Cliente',
+                      children: [
+                        _CustomTextField(
+                          controller: nombreCtrl,
+                          hint: 'Nombre',
+                        ),
+                        _CustomTextField(
+                          controller: empresaCtrl,
+                          hint: 'Empresa',
+                        ),
+                        _CustomTextField(
+                          controller: telefonoCtrl,
+                          hint: 'Telefono',
+                        ),
+                        _CustomTextField(
+                          controller: correoCtrl,
+                          hint: 'Correo Electronico',
+                        ),
+                      ],
+                    ),
+                    _buildSection(
+                      title: 'Producto',
+                      children: [
+                        _ProductoDropdown(
+                          productos: _grupos,
+                          value: productoSeleccionado,
+                          onChanged: (v) => setState(() {
+                            productoSeleccionado = v;
+                            modeloSeleccionado = null;
+                            _verificarYConsultarGrupo(); // ✅ Aquí está bien
+                          }),
+                        ),
+                      ],
+                    ),
+                    _buildSection(
+                      title: 'Linea',
+                      children: [
+                        _LineaDropdown(
+                          value: lineaSeleccionada,
+                          onChanged: (v) => setState(() {
+                            lineaSeleccionada = v;
+                            _verificarYConsultarGrupo(); // ✅ Aquí está bien
+                          }),
+                        ),
+                      ],
+                    ),
+                    _buildSection(
                       title: 'Ejes',
                       children: [
                         NumeroEjesDropdown(
                           value: ejesSeleccionados,
-                          onChanged: (v) => setState(() => ejesSeleccionados = v),
+                          onChanged: (v) => setState(() {
+                            ejesSeleccionados = v;
+                            _verificarYConsultarGrupo();
+                          }),
                         ),
                       ],
                     ),
-                  // Aquí se determina si el modelo está disponible
 
+                    // Aquí se determina si el modelo está disponible
                     _buildSection(
-                    title: 'Modelo/Gama',
-                    children: [
-                      _ModeloDropdown(
-                        value: modeloSeleccionado,
-                        enabled: _modeloDisponible, // ← activa o desactiva el dropdown
-                        onChanged: (v) => setState(() => modeloSeleccionado = v),
-                      ),
-                    ],
-                  ),
-                  _buildSection(
-                    title: 'Edición',
-                    children: [
-                      _YearPickerField(
-                        initialYear: yearSeleccionado,
-                        onYearSelected: (year) {
-                          setState(() {
-                            yearSeleccionado = year;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _NavigationButton(
-                        label: 'Atras',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/dashboard');
-                        },
-                      ),
-                      _NavigationButton(
-                        label: 'Siguiente',
-                        onPressed: _irASiguiente,
-                      ),
-                    ],
-                  ),
-                ],
+                      title: 'Modelo/Gama',
+                      children: [
+                        _ModeloDropdown(
+                          value: modeloSeleccionado,
+                          enabled: _modeloDisponible,
+                          modelos: _modelos, //  se pasa la lista dinámica
+                          onChanged: (v) =>
+                              setState(() => modeloSeleccionado = v),
+                        ),
+                      ],
+                    ),
+                    _buildSection(
+                      title: 'Edición',
+                      children: [
+                        _YearPickerField(
+                          initialYear: yearSeleccionado,
+                          onYearSelected: (year) {
+                            setState(() {
+                              yearSeleccionado = year;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _NavigationButton(
+                          label: 'Atras',
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/dashboard');
+                          },
+                        ),
+                        _NavigationButton(
+                          label: 'Siguiente',
+                          onPressed: _irASiguiente,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -390,7 +495,7 @@ class _CustomTextField extends StatelessWidget {
   const _CustomTextField({
     required this.hint,
     required this.controller,
-    this.enabled = true, 
+    this.enabled = true,
   });
   @override
   Widget build(BuildContext context) {
@@ -441,54 +546,60 @@ Widget _buildDropdown(
 }
 
 class _ProductoDropdown extends StatefulWidget {
+  final List<Map<String, String>> productos;
   final String? value;
   final void Function(String?) onChanged;
 
-  const _ProductoDropdown({required this.value, required this.onChanged});
+  const _ProductoDropdown({
+    required this.productos,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   State<_ProductoDropdown> createState() => _ProductoDropdownState();
 }
 
 class _ProductoDropdownState extends State<_ProductoDropdown> {
+  late List<Map<String, String>> _filteredProductos;
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
-  List<String> _filteredProductos = [];
-
-static const List<String> _productos = [
-  'PLATAFORMA ESTANDAR',
-  'PLATAFORMA SLIM DECK',
-  'PLATAFORMAS ESPECIALES',
-  'DOLLY A',
-  'VOLTEO ESTANDAR',
-  'VOLTEO AUTOMOTRIZ',
-  'VOLTEOS ESPECIALES',
-  'LOWBOY CUELLO FIJO',
-  'LOWBOY CUELLO DESMONTABLE',
-  'LOWBOY CUELLO DESMONTABLE EXTENDIBLE',
-  'JEEP DOLLY',
-  'CHASIS PORTA CONTENEDOR',
-  'CHASIS PORTA CONTENEDOR EXTENDIBLE',
-  'ENCORTINADO TIPO TUNEL',
-  'ENCORTINADO TIPO CERVECERO',
-  'ENCORTINADO AUTOMOTRIZ/ESPECIALES',
-  'DOLLY H',
-  'JAULA',
-  'ISOTANQUE',
-];
 
   @override
   void initState() {
     super.initState();
-    _filteredProductos = _productos;
-    if (widget.value != null) {
-      _controller.text = widget.value!;
-    }
+    _filteredProductos = widget.productos;
+
+    // Si hay valor seleccionado, buscar el texto para mostrarlo en el TextField
+    final seleccionado = widget.productos.firstWhere(
+      (p) => p['value'] == widget.value,
+      orElse: () => {'text': '', 'value': ''},
+    );
+    _controller.text = seleccionado['text'] ?? '';
 
     _focusNode.addListener(_handleFocusChange);
     _controller.addListener(_handleTextChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProductoDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Si la lista de productos cambia, actualizar filtro
+    if (oldWidget.productos != widget.productos) {
+      _filteredProductos = widget.productos;
+    }
+
+    // Si cambia el value, actualizar texto
+    if (oldWidget.value != widget.value) {
+      final seleccionado = widget.productos.firstWhere(
+        (p) => p['value'] == widget.value,
+        orElse: () => {'text': '', 'value': ''},
+      );
+      _controller.text = seleccionado['text'] ?? '';
+    }
   }
 
   void _handleFocusChange() {
@@ -500,25 +611,20 @@ static const List<String> _productos = [
   }
 
   void _handleTextChange() {
-    _filterOptions(_controller.text);
-  }
-
-  void _filterOptions(String query) {
+    final query = _controller.text.toLowerCase();
     setState(() {
-      _filteredProductos = _productos.where((producto) {
-        return producto.toLowerCase().contains(query.toLowerCase());
+      _filteredProductos = widget.productos.where((producto) {
+        final text = producto['text']?.toLowerCase() ?? '';
+        return text.contains(query);
       }).toList();
     });
-    
-    // Actualizar el overlay si existe
+
     _overlayEntry?.markNeedsBuild();
   }
 
   void _showOverlay() {
-    // Asegurarse de remover cualquier overlay existente
     _removeOverlay();
-    
-    // Obtener el render box después de que el widget esté construido
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final renderBox = context.findRenderObject() as RenderBox?;
       if (renderBox == null || !mounted) return;
@@ -539,15 +645,13 @@ static const List<String> _productos = [
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withAlpha((0.1 * 255).round()),
                       blurRadius: 10,
                       spreadRadius: 2,
-                    )
+                    ),
                   ],
                 ),
-                constraints: BoxConstraints(
-                  maxHeight: 200, // En pixeles
-                ),
+                constraints: BoxConstraints(maxHeight: 200),
                 child: _filteredProductos.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(16),
@@ -564,8 +668,8 @@ static const List<String> _productos = [
                           final option = _filteredProductos[index];
                           return InkWell(
                             onTap: () {
-                              _controller.text = option;
-                              widget.onChanged(option);
+                              _controller.text = option['text'] ?? '';
+                              widget.onChanged(option['value']);
                               _focusNode.unfocus();
                             },
                             child: Container(
@@ -574,17 +678,19 @@ static const List<String> _productos = [
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: _controller.text == option
-                                    ? Theme.of(context).primaryColor.withOpacity(0.1)
+                                color: _controller.text == option['text']
+                                    ? Theme.of(context).primaryColor.withAlpha(
+                                        (0.1 * 255).round(),
+                                      )
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                option,
+                                option['text'] ?? '',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: _controller.text == option 
-                                      ? Theme.of(context).primaryColor 
+                                  color: _controller.text == option['text']
+                                      ? Theme.of(context).primaryColor
                                       : Colors.black,
                                 ),
                               ),
@@ -638,8 +744,8 @@ static const List<String> _productos = [
             color: Colors.grey[100],
             borderRadius: BorderRadius.circular(29),
             border: Border.all(
-              color: _focusNode.hasFocus 
-                  ? Theme.of(context).primaryColor 
+              color: _focusNode.hasFocus
+                  ? Theme.of(context).primaryColor
                   : Colors.grey[300]!,
               width: 1.5,
             ),
@@ -652,18 +758,19 @@ static const List<String> _productos = [
                   focusNode: _focusNode,
                   decoration: const InputDecoration(
                     hintText: 'Selecciona un producto',
-                    hintStyle: TextStyle(color: Color.fromARGB(255, 64, 64, 64)),
+                    hintStyle: TextStyle(
+                      color: Color.fromARGB(255, 64, 64, 64),
+                    ),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 16),
                   ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
                 ),
               ),
               Icon(
-                _focusNode.hasFocus ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                _focusNode.hasFocus
+                    ? Icons.arrow_drop_up
+                    : Icons.arrow_drop_down,
                 color: const Color.fromARGB(255, 86, 86, 86),
                 size: 28,
               ),
@@ -675,7 +782,6 @@ static const List<String> _productos = [
   }
 }
 
-
 class _LineaDropdown extends StatelessWidget {
   final String? value;
   final void Function(String?) onChanged;
@@ -683,28 +789,28 @@ class _LineaDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _buildDropdown(context, value, onChanged, [
-    'Titanium Fleet Max', 
-    'Titanium AMForce', 
-    'Titanium Elite', 
-    'Titanium HRP',
+      'Titanium Fleet Max',
+      'Titanium AMForce',
+      'Titanium Elite',
+      'Titanium HRP',
     ]);
   }
 }
-
 
 class NumeroEjesDropdown extends StatelessWidget {
   final String? value;
   final void Function(String?) onChanged;
 
-  const NumeroEjesDropdown({super.key, 
+  const NumeroEjesDropdown({
+    super.key,
     required this.value,
     required this.onChanged,
   });
 
-  static const List<String> _opciones = [
-    '1 Eje',
-    '2 Eje',
-    '3 Eje',
+  static const List<Map<String, String>> _opciones = [
+    {'value': '1', 'text': '1 Eje'},
+    {'value': '2', 'text': '2 Eje'},
+    {'value': '3', 'text': '3 Eje'},
   ];
 
   @override
@@ -717,20 +823,17 @@ class NumeroEjesDropdown extends StatelessWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _opciones.contains(value) ? value : null,
+          value: _opciones.any((item) => item['value'] == value) ? value : null,
           isExpanded: true,
           hint: const Text(
             'Selecciona una opción',
             style: TextStyle(color: Color(0xFF404040)),
           ),
-          icon: const Icon(
-            Icons.arrow_drop_down,
-            color: Color(0xFF565656),
-          ),
+          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF565656)),
           items: _opciones.map((opcion) {
             return DropdownMenuItem<String>(
-              value: opcion,
-              child: Text(opcion),
+              value: opcion['value'],
+              child: Text(opcion['text']!),
             );
           }).toList(),
           onChanged: onChanged,
@@ -744,19 +847,14 @@ class _ModeloDropdown extends StatelessWidget {
   final String? value;
   final void Function(String?)? onChanged;
   final bool enabled;
+  final List<Map<String, String>> modelos; // 👈 nueva propiedad
 
   const _ModeloDropdown({
     required this.value,
     required this.onChanged,
+    required this.modelos,
     this.enabled = true,
   });
-
-  static const List<String> _modelos = [
-    'MODELO A', 
-    'MODELO B', 
-    'MODELO C', 
-    'MODELO D',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -772,20 +870,19 @@ class _ModeloDropdown extends StatelessWidget {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: _modelos.any((item) => item == value) ? value : null,
+              value: modelos.any((item) => item['value'] == value)
+                  ? value
+                  : null,
               isExpanded: true,
               hint: const Text(
                 'Selecciona una opción',
                 style: TextStyle(color: Color(0xFF404040)),
               ),
-              icon: const Icon(
-                Icons.arrow_drop_down,
-                color: Color(0xFF565656),
-              ),
-              items: _modelos.map((modelo) {
+              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF565656)),
+              items: modelos.map((modelo) {
                 return DropdownMenuItem<String>(
-                  value: modelo,
-                  child: Text(modelo),
+                  value: modelo['value'],
+                  child: Text(modelo['text'] ?? ''),
                 );
               }).toList(),
               onChanged: onChanged,
@@ -890,10 +987,7 @@ class _YearPickerField extends StatelessWidget {
             }
           },
           items: _getYears()
-              .map((year) => DropdownMenuItem(
-                    value: year,
-                    child: Text(year),
-                  ))
+              .map((year) => DropdownMenuItem(value: year, child: Text(year)))
               .toList(),
         ),
       ),

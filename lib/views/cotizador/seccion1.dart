@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/cupertino.dart';
@@ -7,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/models/usuario.dart';
+import 'package:loading_indicator/loading_indicator.dart';
 
 class Seccion1 extends StatefulWidget {
   // ignore: use_super_parameters
@@ -144,6 +144,23 @@ class _Seccion1 extends State<Seccion1> {
     // Borra la cache para forzar recarga de datos nuevos
     await prefs.remove('grupos');
 
+    // Limpia todos los campos del formulario
+    setState(() {
+      cotizacionCtrl.clear();
+      nombreCtrl.clear();
+      empresaCtrl.clear();
+      telefonoCtrl.clear();
+      correoCtrl.clear();
+      fechaCtrl.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
+      vigenciaSeleccionada = null;
+      productoSeleccionado = null;
+      lineaSeleccionada = null;
+      ejesSeleccionados = null;
+      modeloSeleccionado = null;
+      yearSeleccionado = null;
+      _modelos = [];
+    });
+
     final gruposCacheString = prefs.getString('grupos');
 
     if (gruposCacheString != null) {
@@ -181,13 +198,54 @@ class _Seccion1 extends State<Seccion1> {
     String? linea,
     String? ejes,
   ) async {
+    
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const Center(child: CircularProgressIndicator());
-      },
+  context: context,  
+  barrierDismissible: false,
+  builder: (BuildContext dialogContext) { 
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 60,
+              height: 60,
+              child: LoadingIndicator(
+                indicatorType: Indicator.ballRotateChase,
+                colors: [Color(0xFF1565C0)],
+                strokeWidth: 2,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Cargando Modelos',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1565C0),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  },
+);
+
+
+
 
     try {
       final modelos = await QuoteController.obtenerModelosPorGrupo(
@@ -317,10 +375,10 @@ class _Seccion1 extends State<Seccion1> {
           // El contenido scrollable
           Expanded(
             child: RefreshIndicator(
+              color: Colors.blue, 
               onRefresh: _cargarGruposMonday,
               child: SingleChildScrollView(
-                physics:
-                    const AlwaysScrollableScrollPhysics(), // Habilita pull incluso cuando no hay scroll
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
@@ -352,7 +410,7 @@ class _Seccion1 extends State<Seccion1> {
                       children: [
                         _CustomTextField(
                           controller: nombreCtrl,
-                          hint: 'Nombre',
+                          hint: 'Nombre Completo',
                         ),
                         _CustomTextField(
                           controller: empresaCtrl,
@@ -360,7 +418,7 @@ class _Seccion1 extends State<Seccion1> {
                         ),
                         _CustomTextField(
                           controller: telefonoCtrl,
-                          hint: 'Telefono',
+                          hint: 'Número de Celular',
                         ),
                         _CustomTextField(
                           controller: correoCtrl,
@@ -377,7 +435,7 @@ class _Seccion1 extends State<Seccion1> {
                           onChanged: (v) => setState(() {
                             productoSeleccionado = v;
                             modeloSeleccionado = null;
-                            _verificarYConsultarGrupo(); // ✅ Aquí está bien
+                            _verificarYConsultarGrupo();
                           }),
                         ),
                       ],
@@ -389,7 +447,7 @@ class _Seccion1 extends State<Seccion1> {
                           value: lineaSeleccionada,
                           onChanged: (v) => setState(() {
                             lineaSeleccionada = v;
-                            _verificarYConsultarGrupo(); // ✅ Aquí está bien
+                            _verificarYConsultarGrupo(); 
                           }),
                         ),
                       ],
@@ -413,11 +471,24 @@ class _Seccion1 extends State<Seccion1> {
                       children: [
                         _ModeloDropdown(
                           value: modeloSeleccionado,
-                          enabled: _modeloDisponible,
-                          modelos: _modelos, //  se pasa la lista dinámica
-                          onChanged: (v) =>
-                              setState(() => modeloSeleccionado = v),
+                          enabled: _modeloDisponible && _modelos.isNotEmpty,
+                          modelos: _modelos,
+                          onChanged: (v) => setState(() => modeloSeleccionado = v),
                         ),
+                        if (_modeloDisponible && _modelos.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Center(
+                              child: Text(
+                                'Sin modelos disponibles',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     _buildSection(
@@ -507,7 +578,7 @@ class _CustomTextField extends StatelessWidget {
           hintText: hint,
           enabled: enabled,
           filled: true,
-          fillColor: Colors.grey[200],
+          fillColor: const Color.fromARGB(255, 237, 237, 237),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
         ),
@@ -526,24 +597,58 @@ Widget _buildDropdown(
     margin: const EdgeInsets.symmetric(vertical: 6),
     padding: const EdgeInsets.symmetric(horizontal: 16),
     decoration: BoxDecoration(
-      color: Colors.grey[200],
-      borderRadius: BorderRadius.circular(30),
+      color: const Color.fromARGB(255, 240, 240, 240),
+      borderRadius: BorderRadius.circular(38), // Bordes redondeados
+      border: Border.all(
+        color: Colors.grey[300]!, // Contorno visible (gris claro)
+        width: 1.5,
+      ),
     ),
     child: DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         isExpanded: true,
         value: value,
-        hint: const Text('Selecciona una opción'),
+        hint: const Text(
+          'Selecciona la línea',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.black, // Texto negro
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         onChanged: onChanged,
+        dropdownColor: Colors.white, // Fondo del menú desplegable
+        borderRadius: BorderRadius.circular(16),
+        style: const TextStyle(
+          fontSize: 16,
+          color: Colors.black,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.4,
+        ),
+        icon: const Icon(
+          Icons.arrow_drop_down,
+          color: Color(0xFF565656),
+          size: 28,
+        ),
         items: options
             .map(
-              (option) => DropdownMenuItem(value: option, child: Text(option)),
+              (option) => DropdownMenuItem(
+                value: option,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text(
+                    option.toUpperCase(),
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+              ),
             )
             .toList(),
       ),
     ),
   );
 }
+
 
 class _ProductoDropdown extends StatefulWidget {
   final List<Map<String, String>> productos;
@@ -741,7 +846,7 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
           margin: const EdgeInsets.symmetric(vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: const Color.fromARGB(255, 240, 240, 240),
             borderRadius: BorderRadius.circular(29),
             border: Border.all(
               color: _focusNode.hasFocus
@@ -756,26 +861,40 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Selecciona un producto',
-                    hintStyle: TextStyle(
-                      color: Color.fromARGB(255, 64, 64, 64),
+                    hintStyle: const TextStyle(
+                      color: Color.fromARGB(255, 0, 0, 0),
                     ),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    suffixIcon: _controller.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            color: Colors.grey,
+                            onPressed: () {
+                              _controller.clear();
+                              widget.onChanged(null);
+                              setState(() {
+                                _filteredProductos = widget.productos;
+                              });
+                              _focusNode.requestFocus();
+                            },
+                          )
+                        : null,
                   ),
                   style: const TextStyle(fontSize: 16, color: Colors.black),
                 ),
               ),
               Icon(
                 _focusNode.hasFocus
-                    ? Icons.arrow_drop_up
+                    ? Icons.arrow_drop_down
                     : Icons.arrow_drop_down,
                 color: const Color.fromARGB(255, 86, 86, 86),
                 size: 28,
               ),
             ],
-          ),
+          )
         ),
       ),
     );
@@ -785,7 +904,9 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
 class _LineaDropdown extends StatelessWidget {
   final String? value;
   final void Function(String?) onChanged;
+
   const _LineaDropdown({required this.value, required this.onChanged});
+
   @override
   Widget build(BuildContext context) {
     return _buildDropdown(context, value, onChanged, [
@@ -813,41 +934,60 @@ class NumeroEjesDropdown extends StatelessWidget {
     {'value': '3', 'text': '3 Eje'},
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(29),
+@override
+Widget build(BuildContext context) {
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: const Color.fromARGB(255, 240, 240, 240),
+      borderRadius: BorderRadius.circular(38), // Bordes redondeados
+      border: Border.all(
+        color: Colors.grey[300]!,
+        width: 1.5,
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _opciones.any((item) => item['value'] == value) ? value : null,
-          isExpanded: true,
-          hint: const Text(
-            'Selecciona una opción',
-            style: TextStyle(color: Color(0xFF404040)),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: _opciones.any((item) => item['value'] == value) ? value : null,
+        isExpanded: true,
+        hint: const Text(
+          'Selecciona el número de ejes',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
           ),
-          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF565656)),
-          items: _opciones.map((opcion) {
-            return DropdownMenuItem<String>(
-              value: opcion['value'],
-              child: Text(opcion['text']!),
-            );
-          }).toList(),
-          onChanged: onChanged,
         ),
+        icon: const Icon(
+          Icons.arrow_drop_down,
+          color: Color(0xFF565656),
+          size: 28,
+        ),
+        dropdownColor: Colors.white, // Color blanco del menú
+        style: const TextStyle(
+          fontSize: 16,
+          color: Colors.black, // Texto negro
+          fontWeight: FontWeight.w500,
+        ),
+        borderRadius: BorderRadius.circular(16), // Bordes redondeados del menú
+        items: _opciones.map((opcion) {
+          return DropdownMenuItem<String>(
+            value: opcion['value'],
+            child: Text(opcion['text']!),
+          );
+        }).toList(),
+        onChanged: onChanged,
       ),
-    );
-  }
+    ),
+  );
 }
-
-class _ModeloDropdown extends StatelessWidget {
+}
+class _ModeloDropdown extends StatefulWidget {
   final String? value;
   final void Function(String?)? onChanged;
   final bool enabled;
-  final List<Map<String, String>> modelos; // 👈 nueva propiedad
+  final List<Map<String, String>> modelos;
 
   const _ModeloDropdown({
     required this.value,
@@ -857,35 +997,212 @@ class _ModeloDropdown extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.5,
-      child: IgnorePointer(
-        ignoring: !enabled,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(29),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: modelos.any((item) => item['value'] == value)
-                  ? value
-                  : null,
-              isExpanded: true,
-              hint: const Text(
-                'Selecciona una opción',
-                style: TextStyle(color: Color(0xFF404040)),
+  State<_ModeloDropdown> createState() => _ModeloDropdownState();
+}
+
+class _ModeloDropdownState extends State<_ModeloDropdown> {
+  late List<Map<String, String>> _filteredModelos;
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredModelos = widget.modelos;
+    final seleccionado = widget.modelos.firstWhere(
+      (m) => m['value'] == widget.value,
+      orElse: () => {'text': '', 'value': ''},
+    );
+    _controller.text = seleccionado['text'] ?? '';
+    _focusNode.addListener(_handleFocusChange);
+    _controller.addListener(_handleTextChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ModeloDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.modelos != widget.modelos) {
+      _filteredModelos = widget.modelos;
+    }
+    if (oldWidget.value != widget.value) {
+      final seleccionado = widget.modelos.firstWhere(
+        (m) => m['value'] == widget.value,
+        orElse: () => {'text': '', 'value': ''},
+      );
+      _controller.text = seleccionado['text'] ?? '';
+    }
+  }
+
+  void _handleFocusChange() {
+    if (_focusNode.hasFocus && widget.enabled) {
+      _showOverlay();
+    } else {
+      _removeOverlay();
+    }
+  }
+
+  void _handleTextChange() {
+    final query = _controller.text.toLowerCase();
+    setState(() {
+      _filteredModelos = widget.modelos.where((modelo) {
+        final text = modelo['text']?.toLowerCase() ?? '';
+        return text.contains(query);
+      }).toList();
+    });
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _showOverlay() {
+    _removeOverlay();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox == null || !mounted) return;
+      _overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          width: renderBox.size.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: Offset(0, renderBox.size.height + 5),
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha((0.1 * 255).round()),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                constraints: BoxConstraints(maxHeight: 200),
+                child: _filteredModelos.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No se encontraron coincidencias',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: _filteredModelos.length,
+                        itemBuilder: (context, index) {
+                          final option = _filteredModelos[index];
+                          return InkWell(
+                            onTap: () {
+                              _controller.text = option['text'] ?? '';
+                              widget.onChanged?.call(option['value']);
+                              _focusNode.unfocus();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _controller.text == option['text']
+                                    ? Theme.of(context).primaryColor.withAlpha(
+                                        (0.1 * 255).round(),
+                                      )
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                option['text'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: _controller.text == option['text']
+                                      ? Theme.of(context).primaryColor
+                                      : Colors.black,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
-              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF565656)),
-              items: modelos.map((modelo) {
-                return DropdownMenuItem<String>(
-                  value: modelo['value'],
-                  child: Text(modelo['text'] ?? ''),
-                );
-              }).toList(),
-              onChanged: onChanged,
+            ),
+          ),
+        ),
+      );
+      if (mounted) {
+        Overlay.of(context).insert(_overlayEntry!);
+      }
+    });
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    _controller.removeListener(_handleTextChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    _removeOverlay();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: IgnorePointer(
+        ignoring: !widget.enabled,
+        child: Opacity(
+          opacity: widget.enabled ? 1.0 : 0.5,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 240, 240, 240),
+              borderRadius: BorderRadius.circular(29),
+              border: Border.all(
+                color: _focusNode.hasFocus
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey[300]!,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    enabled: widget.enabled,
+                    decoration: const InputDecoration(
+                      hintText: 'Selecciona el modelo',
+                      hintStyle: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    style: const TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                ),
+                Icon(
+                  _focusNode.hasFocus
+                      ? Icons.arrow_drop_down
+                      : Icons.arrow_drop_down,
+                  color: const Color.fromARGB(255, 86, 86, 86),
+                  size: 28,
+                ),
+              ],
             ),
           ),
         ),
@@ -893,7 +1210,6 @@ class _ModeloDropdown extends StatelessWidget {
     );
   }
 }
-
 class _VigenciaDropdown extends StatelessWidget {
   final String? valorSeleccionado;
   final void Function(String?) onChanged;
@@ -903,32 +1219,56 @@ class _VigenciaDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(30),
+@override
+Widget build(BuildContext context) {
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: Color.fromARGB(255, 237, 237, 237),
+      borderRadius: BorderRadius.circular(30), 
+      border: Border.all(
+        color: Colors.grey[300]!, 
+        width: 1.5,
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: valorSeleccionado,
-          hint: const Text('Selecciona vigencia (días)'),
-          onChanged: onChanged,
-          items: const [
-            DropdownMenuItem(value: '1', child: Text('1 día')),
-            DropdownMenuItem(value: '7', child: Text('7 días')),
-            DropdownMenuItem(value: '15', child: Text('15 días')),
-            DropdownMenuItem(value: '30', child: Text('30 días')),
-          ],
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        isExpanded: true,
+        value: valorSeleccionado,
+        hint: const Text(
+          'Selecciona vigencia (días)',
+          style: TextStyle(
+            color: Colors.black, // Texto del hint negro
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+          ),
         ),
+        icon: const Icon(
+          Icons.arrow_drop_down,
+          color: Color(0xFF565656),
+          size: 28,
+        ),
+        dropdownColor: Colors.white, // Fondo blanco del menú
+        style: const TextStyle(
+          color: Colors.black, // Texto negro de los ítems
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+        borderRadius: BorderRadius.circular(16), // Bordes del menú
+        onChanged: onChanged,
+        items: const [
+          DropdownMenuItem(value: '1', child: Text('1 día')),
+          DropdownMenuItem(value: '7', child: Text('7 días')),
+          DropdownMenuItem(value: '15', child: Text('15 días')),
+          DropdownMenuItem(value: '30', child: Text('30 días')),
+        ],
       ),
-    );
-  }
+    ),
+  );
+ }
 }
+
 
 class _NavigationButton extends StatelessWidget {
   final String label;
@@ -967,30 +1307,57 @@ class _YearPickerField extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(30),
+Widget build(BuildContext context) {
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: const Color.fromARGB(255, 240, 240, 240),
+      borderRadius: BorderRadius.circular(30), // Bordes redondeados
+      border: Border.all(
+        color: Colors.grey[300]!,
+        width: 1.5,
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: initialYear,
-          hint: const Text('Selecciona el año del modelo'),
-          menuMaxHeight: 200,
-          onChanged: (value) {
-            if (value != null) {
-              onYearSelected(value);
-            }
-          },
-          items: _getYears()
-              .map((year) => DropdownMenuItem(value: year, child: Text(year)))
-              .toList(),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        isExpanded: true,
+        value: initialYear,
+        hint: const Text(
+          'Selecciona el año del modelo',
+          style: TextStyle(
+            color: Colors.black, // Texto negro para el hint
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+          ),
         ),
+        icon: const Icon(
+          Icons.arrow_drop_down,
+          color: Color(0xFF565656),
+          size: 28,
+        ),
+        dropdownColor: Colors.white, // Fondo blanco del menú
+        style: const TextStyle(
+          color: Colors.black, // Texto negro para los ítems
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+        menuMaxHeight: 200,
+        borderRadius: BorderRadius.circular(16), // Bordes redondeados del menú
+        onChanged: (value) {
+          if (value != null) {
+            onYearSelected(value);
+          }
+        },
+        items: _getYears()
+            .map((year) => DropdownMenuItem(
+                  value: year,
+                  child: Text(year),
+                ))
+            .toList(),
       ),
-    );
-  }
+    ),
+  );
+ }
 }
+

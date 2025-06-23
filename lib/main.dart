@@ -38,7 +38,10 @@ class _MyAppState extends State<MyApp> {
             return MaterialPageRoute(builder: (_) => const Seccion1());
 
           case "/seccion2":
-            return MaterialPageRoute(builder: (_) => const Seccion2());
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => Seccion2(modeloNombre: args['modeloNombre']),
+            );
 
           default:
             return MaterialPageRoute(

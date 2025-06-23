@@ -73,8 +73,17 @@ class _Seccion1 extends State<Seccion1> {
         'Por favor llena todos los campos obligatorios',
       );
       return;
+    } else {
+      final modeloSeleccionadoText = _modelos.firstWhere(
+        (modelo) => modelo['value'] == modeloSeleccionado,
+      )['text']!;
+
+      Navigator.pushNamed(
+        context,
+        "/seccion2",
+        arguments: {'modeloNombre': modeloSeleccionadoText},
+      );
     }
-    Navigator.pushNamed(context, '/seccion2');
   }
 
   void mostrarAlertaError(BuildContext context, String mensaje) {
@@ -159,7 +168,8 @@ class _Seccion1 extends State<Seccion1> {
       });
     } else {
       try {
-        final gruposApi = await QuoteController.obtenerGrupos();
+        final boardId = 4863963204;
+        final gruposApi = await QuoteController.obtenerGrupos(boardId);
         await prefs.setString('grupos', jsonEncode(gruposApi));
 
         setState(() {
@@ -195,7 +205,6 @@ class _Seccion1 extends State<Seccion1> {
         linea!,
         ejes!,
       );
-      print(modelos);
       if (!mounted) return;
 
       setState(() {

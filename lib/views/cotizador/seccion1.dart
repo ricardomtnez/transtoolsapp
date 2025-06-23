@@ -272,260 +272,266 @@ class _Seccion1 extends State<Seccion1> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue[800],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu, color: Colors.black),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
-        ),
-        title: const Text(
-          'Nueva cotización',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-        ),
-        centerTitle: true,
-      ),
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color.fromARGB(255, 233, 227, 227),
-                Color.fromARGB(255, 212, 206, 206),
-              ],
-            ),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.blue[800],
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: const Icon(Icons.menu, color: Colors.black),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              );
+            },
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                children: [
-                  const SizedBox(height: 60),
-                  const CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.grey,
-                    child: Icon(Icons.person, size: 50, color: Colors.white),
-                  ),
-                  // Espacio entre el avatar y el nombre
-                  const SizedBox(height: 10),
-                  // Nombre del usuario
-                  Text(
-                    _usuario?.fullname ?? 'Nombre no disponible',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ListTile(
-                    leading: const Icon(Icons.dashboard),
-                    title: const Text('Menu Principal'),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/dashboard');
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.receipt_long),
-                    title: const Text('Cotizador'),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/seccion1');
-                    },
-                  ),
+          title: const Text(
+            'Nueva cotización',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          ),
+          centerTitle: true,
+        ),
+        drawer: Drawer(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color.fromARGB(255, 233, 227, 227),
+                  Color.fromARGB(255, 212, 206, 206),
                 ],
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 35),
-                child: Text(
-                  'Versión 1.0',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-
-      body: Column(
-        children: [
-          // Barra de progreso
-          LinearProgressIndicator(
-            value: 1 / 3, //
-            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              const Color.fromARGB(255, 210, 198, 59),
             ),
-            minHeight: 6,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Paso 1 de 3',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-
-          // El contenido scrollable
-          Expanded(
-            child: RefreshIndicator(
-              color: Colors.blue, 
-              onRefresh: _cargarGruposMonday,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
                   children: [
-                    _buildSection(
-                      title: 'Información Inicial',
-                      children: [
-                        _CustomTextField(
-                          controller: cotizacionCtrl,
-                          hint: 'Número de Cotización',
-                          enabled: false,
-                        ),
-                        _CustomTextField(
-                          controller: fechaCtrl,
-                          hint: 'Fecha de cotización',
-                          enabled: false,
-                        ),
-                        _VigenciaDropdown(
-                          valorSeleccionado: vigenciaSeleccionada,
-                          onChanged: (value) {
-                            setState(() {
-                              vigenciaSeleccionada = value;
-                            });
-                          },
-                        ),
-                      ],
+                    const SizedBox(height: 60),
+                    const CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.grey,
+                      child: Icon(Icons.person, size: 50, color: Colors.white),
                     ),
-                    _buildSection(
-                      title: 'Información del Cliente',
-                      children: [
-                        _CustomTextField(
-                          controller: nombreCtrl,
-                          hint: 'Nombre Completo',
-                        ),
-                        _CustomTextField(
-                          controller: empresaCtrl,
-                          hint: 'Empresa',
-                        ),
-                        _CustomTextField(
-                          controller: telefonoCtrl,
-                          hint: 'Número de Celular',
-                        ),
-                        _CustomTextField(
-                          controller: correoCtrl,
-                          hint: 'Correo Electronico',
-                        ),
-                      ],
+                    // Espacio entre el avatar y el nombre
+                    const SizedBox(height: 10),
+                    // Nombre del usuario
+                    Text(
+                      _usuario?.fullname ?? 'Nombre no disponible',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    _buildSection(
-                      title: 'Producto',
-                      children: [
-                        _ProductoDropdown(
-                          productos: _grupos,
-                          value: productoSeleccionado,
-                          onChanged: (v) => setState(() {
-                            productoSeleccionado = v;
-                            modeloSeleccionado = null;
-                            _verificarYConsultarGrupo();
-                          }),
-                        ),
-                      ],
+                    const SizedBox(height: 20),
+                    ListTile(
+                      leading: const Icon(Icons.dashboard),
+                      title: const Text('Menu Principal'),
+                      onTap: () {
+                        Navigator.pushNamed(context, '/dashboard');
+                      },
                     ),
-                    _buildSection(
-                      title: 'Linea',
-                      children: [
-                        _LineaDropdown(
-                          value: lineaSeleccionada,
-                          onChanged: (v) => setState(() {
-                            lineaSeleccionada = v;
-                            _verificarYConsultarGrupo(); 
-                          }),
-                        ),
-                      ],
-                    ),
-                    _buildSection(
-                      title: 'Ejes',
-                      children: [
-                        NumeroEjesDropdown(
-                          value: ejesSeleccionados,
-                          onChanged: (v) => setState(() {
-                            ejesSeleccionados = v;
-                            _verificarYConsultarGrupo();
-                          }),
-                        ),
-                      ],
-                    ),
-
-                    // Aquí se determina si el modelo está disponible
-                    _buildSection(
-                      title: 'Modelo/Gama',
-                      children: [
-                        _ModeloDropdown(
-                          value: modeloSeleccionado,
-                          enabled: _modeloDisponible && _modelos.isNotEmpty,
-                          modelos: _modelos,
-                          onChanged: (v) => setState(() => modeloSeleccionado = v),
-                        ),
-                        if (_modeloDisponible && _modelos.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: Center(
-                              child: Text(
-                                'Sin modelos disponibles',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    _buildSection(
-                      title: 'Edición',
-                      children: [
-                        _YearPickerField(
-                          initialYear: yearSeleccionado,
-                          onYearSelected: (year) {
-                            setState(() {
-                              yearSeleccionado = year;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _NavigationButton(
-                          label: 'Atras',
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/dashboard');
-                          },
-                        ),
-                        _NavigationButton(
-                          label: 'Siguiente',
-                          onPressed: _irASiguiente,
-                        ),
-                      ],
+                    ListTile(
+                      leading: const Icon(Icons.receipt_long),
+                      title: const Text('Cotizador'),
+                      onTap: () {
+                        Navigator.pushNamed(context, '/seccion1');
+                      },
                     ),
                   ],
                 ),
-              ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 35),
+                  child: Text(
+                    'Versión 1.0',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+
+        body: Column(
+          children: [
+            // Barra de progreso
+            LinearProgressIndicator(
+              value: 1 / 3, //
+              backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                const Color.fromARGB(255, 210, 198, 59),
+              ),
+              minHeight: 6,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Paso 1 de 3',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            // El contenido scrollable
+            Expanded(
+              child: RefreshIndicator(
+                color: Colors.blue, 
+                onRefresh: _cargarGruposMonday,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildSection(
+                        title: 'Información Inicial',
+                        children: [
+                          _CustomTextField(
+                            controller: cotizacionCtrl,
+                            hint: 'Número de Cotización',
+                            enabled: false,
+                          ),
+                          _CustomTextField(
+                            controller: fechaCtrl,
+                            hint: 'Fecha de cotización',
+                            enabled: false,
+                          ),
+                          _VigenciaDropdown(
+                            valorSeleccionado: vigenciaSeleccionada,
+                            onChanged: (value) {
+                              setState(() {
+                                vigenciaSeleccionada = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Información del Cliente',
+                        children: [
+                          _CustomTextField(
+                            controller: nombreCtrl,
+                            hint: 'Nombre Completo',
+                          ),
+                          _CustomTextField(
+                            controller: empresaCtrl,
+                            hint: 'Empresa',
+                          ),
+                          _CustomTextField(
+                            controller: telefonoCtrl,
+                            hint: 'Número de Celular',
+                          ),
+                          _CustomTextField(
+                            controller: correoCtrl,
+                            hint: 'Correo Electronico',
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Producto',
+                        children: [
+                          _ProductoDropdown(
+                            productos: _grupos,
+                            value: productoSeleccionado,
+                            onChanged: (v) => setState(() {
+                              productoSeleccionado = v;
+                              modeloSeleccionado = null;
+                              _verificarYConsultarGrupo();
+                            }),
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Linea',
+                        children: [
+                          _LineaDropdown(
+                            value: lineaSeleccionada,
+                            onChanged: (v) => setState(() {
+                              lineaSeleccionada = v;
+                              _verificarYConsultarGrupo(); 
+                            }),
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Ejes',
+                        children: [
+                          NumeroEjesDropdown(
+                            value: ejesSeleccionados,
+                            onChanged: (v) => setState(() {
+                              ejesSeleccionados = v;
+                              _verificarYConsultarGrupo();
+                            }),
+                          ),
+                        ],
+                      ),
+
+                      // Aquí se determina si el modelo está disponible
+                      _buildSection(
+                        title: 'Modelo/Gama',
+                        children: [
+                          _ModeloDropdown(
+                            value: modeloSeleccionado,
+                            enabled: _modeloDisponible && _modelos.isNotEmpty,
+                            modelos: _modelos,
+                            onChanged: (v) => setState(() => modeloSeleccionado = v),
+                          ),
+                          if (_modeloDisponible && _modelos.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Center(
+                                child: Text(
+                                  'Sin modelos disponibles',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Edición',
+                        children: [
+                          _YearPickerField(
+                            initialYear: yearSeleccionado,
+                            onYearSelected: (year) {
+                              setState(() {
+                                yearSeleccionado = year;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _NavigationButton(
+                            label: 'Atras',
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/dashboard');
+                            },
+                          ),
+                          _NavigationButton(
+                            label: 'Siguiente',
+                            onPressed: _irASiguiente,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -587,67 +593,6 @@ class _CustomTextField extends StatelessWidget {
   }
 }
 
-Widget _buildDropdown(
-  BuildContext context,
-  String? value,
-  void Function(String?) onChanged,
-  List<String> options,
-) {
-  return Container(
-    margin: const EdgeInsets.symmetric(vertical: 6),
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: const Color.fromARGB(255, 240, 240, 240),
-      borderRadius: BorderRadius.circular(38), // Bordes redondeados
-      border: Border.all(
-        color: Colors.grey[300]!, // Contorno visible (gris claro)
-        width: 1.5,
-      ),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        isExpanded: true,
-        value: value,
-        hint: const Text(
-          'Selecciona la línea',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black, // Texto negro
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        onChanged: onChanged,
-        dropdownColor: Colors.white, // Fondo del menú desplegable
-        borderRadius: BorderRadius.circular(16),
-        style: const TextStyle(
-          fontSize: 16,
-          color: Colors.black,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.4,
-        ),
-        icon: const Icon(
-          Icons.arrow_drop_down,
-          color: Color(0xFF565656),
-          size: 28,
-        ),
-        items: options
-            .map(
-              (option) => DropdownMenuItem(
-                value: option,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Text(
-                    option.toUpperCase(),
-                    textAlign: TextAlign.left,
-                  ),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    ),
-  );
-}
 
 
 class _ProductoDropdown extends StatefulWidget {
@@ -835,6 +780,7 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
     return CompositedTransformTarget(
       link: _layerLink,
       child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
         onTap: () {
           if (_focusNode.hasFocus) {
             _focusNode.unfocus();
@@ -901,23 +847,94 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
   }
 }
 
-class _LineaDropdown extends StatelessWidget {
+class _LineaDropdown extends StatefulWidget {
   final String? value;
   final void Function(String?) onChanged;
 
   const _LineaDropdown({required this.value, required this.onChanged});
 
   @override
-  Widget build(BuildContext context) {
-    return _buildDropdown(context, value, onChanged, [
-      'Titanium Fleet Max',
-      'Titanium AMForce',
-      'Titanium Elite',
-      'Titanium HRP',
-    ]);
-  }
+  State<_LineaDropdown> createState() => _LineaDropdownState();
 }
 
+class _LineaDropdownState extends State<_LineaDropdown> {
+  static const List<String> _lineas = [
+    'Titanium Fleet Max',
+    'Titanium AMForce',
+    'Titanium Elite',
+    'Titanium HRP',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 240, 240, 240),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 1.5,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: widget.value,
+          hint: const Text(
+            'Selecciona la línea',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          onChanged: widget.onChanged,
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+          icon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.value != null)
+                GestureDetector(
+                  onTap: () => widget.onChanged(null),
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                  ),
+                ),
+              const Icon(
+                Icons.arrow_drop_down,
+                color: Color(0xFF565656),
+                size: 28,
+              ),
+            ],
+          ),
+          items: _lineas
+              .map(
+                (option) => DropdownMenuItem(
+                  value: option,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      option,
+                      textAlign: TextAlign.left,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
 class NumeroEjesDropdown extends StatelessWidget {
   final String? value;
   final void Function(String?) onChanged;
@@ -934,54 +951,68 @@ class NumeroEjesDropdown extends StatelessWidget {
     {'value': '3', 'text': '3 Eje'},
   ];
 
-@override
-Widget build(BuildContext context) {
-  return Container(
-    margin: const EdgeInsets.symmetric(vertical: 6),
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: const Color.fromARGB(255, 240, 240, 240),
-      borderRadius: BorderRadius.circular(38), // Bordes redondeados
-      border: Border.all(
-        color: Colors.grey[300]!,
-        width: 1.5,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 240, 240, 240),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 1.5,
+        ),
       ),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: _opciones.any((item) => item['value'] == value) ? value : null,
-        isExpanded: true,
-        hint: const Text(
-          'Selecciona el número de ejes',
-          style: TextStyle(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: _opciones.any((item) => item['value'] == value) ? value : null,
+          hint: const Text(
+            'Selecciona el número de ejes',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+            ),
+          ),
+          // Aquí la X y la flecha, igual que en Línea
+          icon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (value != null)
+                GestureDetector(
+                  onTap: () => onChanged(null),
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                  ),
+                ),
+              const Icon(
+                Icons.arrow_drop_down,
+                color: Color(0xFF565656),
+                size: 28,
+              ),
+            ],
+          ),
+          dropdownColor: Colors.white,
+          style: const TextStyle(
+            fontSize: 16,
             color: Colors.black,
             fontWeight: FontWeight.w500,
-            fontSize: 16,
           ),
+          borderRadius: BorderRadius.circular(16),
+          onChanged: onChanged,
+          items: _opciones.map((opcion) {
+            return DropdownMenuItem<String>(
+              value: opcion['value'],
+              child: Text(opcion['text']!),
+            );
+          }).toList(),
         ),
-        icon: const Icon(
-          Icons.arrow_drop_down,
-          color: Color(0xFF565656),
-          size: 28,
-        ),
-        dropdownColor: Colors.white, // Color blanco del menú
-        style: const TextStyle(
-          fontSize: 16,
-          color: Colors.black, // Texto negro
-          fontWeight: FontWeight.w500,
-        ),
-        borderRadius: BorderRadius.circular(16), // Bordes redondeados del menú
-        items: _opciones.map((opcion) {
-          return DropdownMenuItem<String>(
-            value: opcion['value'],
-            child: Text(opcion['text']!),
-          );
-        }).toList(),
-        onChanged: onChanged,
       ),
-    ),
-  );
-}
+    );
+  }
 }
 class _ModeloDropdown extends StatefulWidget {
   final String? value;
@@ -1158,52 +1189,77 @@ class _ModeloDropdownState extends State<_ModeloDropdown> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: IgnorePointer(
-        ignoring: !widget.enabled,
-        child: Opacity(
-          opacity: widget.enabled ? 1.0 : 0.5,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 240, 240, 240),
-              borderRadius: BorderRadius.circular(29),
-              border: Border.all(
-                color: _focusNode.hasFocus
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey[300]!,
-                width: 1.5,
-              ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (_focusNode.hasFocus) {
+            _focusNode.unfocus();
+          } else {
+            _focusNode.requestFocus();
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 240, 240, 240),
+            borderRadius: BorderRadius.circular(29),
+            border: Border.all(
+              color: _focusNode.hasFocus
+                  ? Theme.of(context).primaryColor
+                  : Colors.grey[300]!,
+              width: 1.5,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    enabled: widget.enabled,
-                    decoration: const InputDecoration(
-                      hintText: 'Selecciona el modelo',
-                      hintStyle: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Opacity(
+                  opacity: widget.enabled ? 1.0 : 0.5,
+                  child: IgnorePointer(
+                    ignoring: !widget.enabled,
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      enabled: widget.enabled,
+                      decoration: InputDecoration(
+                        hintText: 'Selecciona el modelo',
+                        hintStyle: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        suffixIcon: _controller.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                color: Colors.grey,
+                                onPressed: () {
+                                  _controller.clear();
+                                  widget.onChanged?.call(null);
+                                  setState(() {
+                                    _filteredModelos = widget.modelos;
+                                  });
+                                  _focusNode.requestFocus();
+                                },
+                              )
+                            : null,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 16),
+                      style: const TextStyle(fontSize: 16, color: Colors.black),
                     ),
-                    style: const TextStyle(fontSize: 16, color: Colors.black),
                   ),
                 ),
-                Icon(
-                  _focusNode.hasFocus
-                      ? Icons.arrow_drop_down
-                      : Icons.arrow_drop_down,
+              ),
+              Opacity(
+                opacity: widget.enabled ? 1.0 : 0.5,
+                child: Icon(
+                  Icons.arrow_drop_down,
                   color: const Color.fromARGB(255, 86, 86, 86),
                   size: 28,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1294,7 +1350,7 @@ class _NavigationButton extends StatelessWidget {
 /// Widget para seleccionar un año (modelo)
 class _YearPickerField extends StatelessWidget {
   final String? initialYear;
-  final void Function(String) onYearSelected;
+  final void Function(String?) onYearSelected;
 
   const _YearPickerField({
     required this.initialYear,
@@ -1307,57 +1363,70 @@ class _YearPickerField extends StatelessWidget {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Container(
-    margin: const EdgeInsets.symmetric(vertical: 6),
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: const Color.fromARGB(255, 240, 240, 240),
-      borderRadius: BorderRadius.circular(30), // Bordes redondeados
-      border: Border.all(
-        color: Colors.grey[300]!,
-        width: 1.5,
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 240, 240, 240),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 1.5,
+        ),
       ),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        isExpanded: true,
-        value: initialYear,
-        hint: const Text(
-          'Selecciona el año del modelo',
-          style: TextStyle(
-            color: Colors.black, // Texto negro para el hint
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: initialYear,
+          hint: const Text(
+            'Selecciona el año del modelo',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+            ),
+          ),
+          // Aquí la X y la flecha, igual que en Línea y Ejes
+          icon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (initialYear != null)
+                GestureDetector(
+                  onTap: () => onYearSelected(null),
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                  ),
+                ),
+              const Icon(
+                Icons.arrow_drop_down,
+                color: Color(0xFF565656),
+                size: 28,
+              ),
+            ],
+          ),
+          dropdownColor: Colors.white,
+          style: const TextStyle(
+            color: Colors.black,
             fontWeight: FontWeight.w500,
             fontSize: 16,
           ),
+          menuMaxHeight: 200,
+          borderRadius: BorderRadius.circular(16),
+          onChanged: onYearSelected,
+          items: _getYears()
+              .map((year) => DropdownMenuItem(
+                    value: year,
+                    child: Text(year),
+                  ))
+              .toList(),
         ),
-        icon: const Icon(
-          Icons.arrow_drop_down,
-          color: Color(0xFF565656),
-          size: 28,
-        ),
-        dropdownColor: Colors.white, // Fondo blanco del menú
-        style: const TextStyle(
-          color: Colors.black, // Texto negro para los ítems
-          fontWeight: FontWeight.w500,
-          fontSize: 16,
-        ),
-        menuMaxHeight: 200,
-        borderRadius: BorderRadius.circular(16), // Bordes redondeados del menú
-        onChanged: (value) {
-          if (value != null) {
-            onYearSelected(value);
-          }
-        },
-        items: _getYears()
-            .map((year) => DropdownMenuItem(
-                  value: year,
-                  child: Text(year),
-                ))
-            .toList(),
       ),
-    ),
-  );
- }
+    );
+  }
 }
+
+
+
 

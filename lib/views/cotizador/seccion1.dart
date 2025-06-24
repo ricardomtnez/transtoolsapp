@@ -16,7 +16,7 @@ class Seccion1 extends StatefulWidget {
 }
 
 class _Seccion1 extends State<Seccion1> {
-  Usuario? _usuario; // Variable para guardar el usuario cargado
+  Usuario? _usuario; 
   var cotizacionCtrl = TextEditingController();
   final nombreCtrl = TextEditingController();
   final empresaCtrl = TextEditingController();
@@ -73,8 +73,17 @@ class _Seccion1 extends State<Seccion1> {
         'Por favor llena todos los campos obligatorios',
       );
       return;
+    } else {
+      final modeloSeleccionadoText = _modelos.firstWhere(
+        (modelo) => modelo['value'] == modeloSeleccionado,
+      )['text']!;
+
+      Navigator.pushNamed(
+        context,
+        "/seccion2",
+        arguments: {'modeloNombre': modeloSeleccionadoText},
+      );
     }
-    Navigator.pushNamed(context, '/seccion2');
   }
 
   void mostrarAlertaError(BuildContext context, String mensaje) {
@@ -146,7 +155,6 @@ class _Seccion1 extends State<Seccion1> {
 
     // Limpia todos los campos del formulario
     setState(() {
-      cotizacionCtrl.clear();
       nombreCtrl.clear();
       empresaCtrl.clear();
       telefonoCtrl.clear();
@@ -176,7 +184,8 @@ class _Seccion1 extends State<Seccion1> {
       });
     } else {
       try {
-        final gruposApi = await QuoteController.obtenerGrupos();
+        final boardId = 4863963204;
+        final gruposApi = await QuoteController.obtenerGrupos(boardId);
         await prefs.setString('grupos', jsonEncode(gruposApi));
 
         setState(() {
@@ -253,7 +262,6 @@ class _Seccion1 extends State<Seccion1> {
         linea!,
         ejes!,
       );
-      print(modelos);
       if (!mounted) return;
 
       setState(() {
@@ -439,7 +447,7 @@ class _Seccion1 extends State<Seccion1> {
                             value: productoSeleccionado,
                             onChanged: (v) => setState(() {
                               productoSeleccionado = v;
-                              modeloSeleccionado = null;
+                              modeloSeleccionado = null; 
                               _verificarYConsultarGrupo();
                             }),
                           ),
@@ -452,7 +460,8 @@ class _Seccion1 extends State<Seccion1> {
                             value: lineaSeleccionada,
                             onChanged: (v) => setState(() {
                               lineaSeleccionada = v;
-                              _verificarYConsultarGrupo(); 
+                              modeloSeleccionado = null; // Limpia modelo
+                              _verificarYConsultarGrupo();
                             }),
                           ),
                         ],
@@ -464,6 +473,7 @@ class _Seccion1 extends State<Seccion1> {
                             value: ejesSeleccionados,
                             onChanged: (v) => setState(() {
                               ejesSeleccionados = v;
+                              modeloSeleccionado = null; // Limpia modelo
                               _verificarYConsultarGrupo();
                             }),
                           ),
@@ -1426,6 +1436,7 @@ class _YearPickerField extends StatelessWidget {
     );
   }
 }
+
 
 
 

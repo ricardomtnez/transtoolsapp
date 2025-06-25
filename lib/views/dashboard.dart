@@ -202,7 +202,7 @@ class DashboardState extends State<Dashboard> {
                           1: FlexColumnWidth(),
                           2: FlexColumnWidth(),
                         },
-                        border: TableBorder.symmetric(
+                        border: const TableBorder.symmetric(
                           inside: BorderSide(width: 0.5, color: Colors.grey),
                         ),
                         children: const [

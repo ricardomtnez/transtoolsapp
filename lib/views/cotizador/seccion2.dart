@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
+import 'package:transtools/models/usuario.dart';
 
 class Seccion2 extends StatefulWidget {
   final String modeloNombre; // 👈 Aquí defines la propiedad
+  final String modeloValue;
+  final String configuracionProducto;
 
   const Seccion2({
     super.key,
     required this.modeloNombre, // 👈 Aquí lo asignas
+    required this.modeloValue,
+    required this.configuracionProducto,
   });
   @override
   State<Seccion2> createState() => _Seccion2State();
 }
 
 class _Seccion2State extends State<Seccion2> {
+  Usuario? _usuario;
   String titulo =
       'Semirremolque tipo Plataforma'; // O puedes cambiarlo por el que venga desde la API si lo deseas
   Map<String, dynamic> especificaciones = {}; // Aquí se cargan los datos reales
@@ -47,6 +54,7 @@ class _Seccion2State extends State<Seccion2> {
   @override
   void initState() {
     super.initState();
+    _cargarUsuario();
     _cargarDatosModeloSeleccionado();
   }
 
@@ -54,6 +62,18 @@ class _Seccion2State extends State<Seccion2> {
   void dispose() {
     _adicionalesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString('usuario');
+    if (jsonString != null) {
+      setState(() {
+        _usuario = Usuario.fromJson(
+          jsonString,
+        ); // Ya devuelve un objeto Usuario
+      });
+    }
   }
 
   void _cargarDatosModeloSeleccionado() async {
@@ -165,17 +185,78 @@ class _Seccion2State extends State<Seccion2> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(titulo),
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _showExcludedSummary,
-            tooltip: 'Ver resumen de exclusiones',
-          ),
-        ],
+        backgroundColor: Colors.white,
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(Icons.menu, color: Colors.black),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
+        title: const Text(
+          'Estructura del Producto',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        centerTitle: true,
       ),
+      drawer: Drawer(
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.fromARGB(255, 233, 227, 227),
+                Color.fromARGB(255, 212, 206, 206),
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                children: [
+                  const SizedBox(height: 60),
+                  const CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.grey,
+                    child: Icon(Icons.person, size: 50, color: Colors.white),
+                  ),
+                  // Espacio entre el avatar y el nombre
+                  const SizedBox(height: 10),
+                  // Nombre del usuario
+                  Text(
+                    _usuario?.fullname ?? 'Nombre no disponible',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ListTile(
+                    leading: const Icon(Icons.dashboard),
+                    title: const Text('Menu Principal'),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/dashboard');
+                    },
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 35),
+                child: Text(
+                  'Versión 1.0',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+
       body: especificaciones.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -183,7 +264,7 @@ class _Seccion2State extends State<Seccion2> {
               child: Column(
                 children: [
                   _buildMainSection(
-                    title: 'Especificaciones Técnicas',
+                    title: widget.configuracionProducto,
                     content: especificaciones,
                   ),
                   _buildAdicionalesCarrito(),
@@ -207,12 +288,17 @@ class _Seccion2State extends State<Seccion2> {
             _expandedMainSections[title] = expanded;
           });
         },
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
+        title: SizedBox(
+          width: double.infinity, // Ocupa todo el ancho disponible
+          child: Text(
+            title,
+            textAlign: TextAlign.justify,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.blue,
+              height: 1.4, // Más espacio entre líneas
+            ),
           ),
         ),
         children: [
@@ -429,7 +515,7 @@ class _Seccion2State extends State<Seccion2> {
     );
   }
 
-  // Mantener el mismo _buildMenuAdicionalesSimplificado() que ya tenías
+  // ADICIONALES
   Widget _buildMenuAdicionalesSimplificado() {
     // Mostrar categorías principales
     if (_categoriaExpandida == '') {
@@ -499,43 +585,6 @@ class _Seccion2State extends State<Seccion2> {
           );
         }),
       ],
-    );
-  }
-
-  void _showExcludedSummary() {
-    final excludedItems = <String>[];
-
-    _excludedFeatures.forEach((section, features) {
-      if (features.isNotEmpty) {
-        excludedItems.add('$section:');
-        excludedItems.addAll(features.map((feature) => '  • $feature'));
-      }
-    });
-
-    if (excludedItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay características excluidas')),
-      );
-      return;
-    }
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Características excluidas'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: excludedItems.map((item) => Text(item)).toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
     );
   }
 }

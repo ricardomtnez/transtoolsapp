@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
@@ -16,7 +17,7 @@ class Seccion1 extends StatefulWidget {
 }
 
 class _Seccion1 extends State<Seccion1> {
-  Usuario? _usuario; 
+  Usuario? _usuario;
   var cotizacionCtrl = TextEditingController();
   final nombreCtrl = TextEditingController();
   final empresaCtrl = TextEditingController();
@@ -74,14 +75,26 @@ class _Seccion1 extends State<Seccion1> {
       );
       return;
     } else {
-      final modeloSeleccionadoText = _modelos.firstWhere(
+      final modeloSeleccionadoMap = _modelos.firstWhere(
         (modelo) => modelo['value'] == modeloSeleccionado,
+      );
+
+      final modeloSeleccionadoText = modeloSeleccionadoMap['text']!;
+      final modeloSeleccionadoValue = modeloSeleccionadoMap['value']!;
+      final productoText = _grupos.firstWhere(
+        (producto) => producto['value'] == productoSeleccionado,
       )['text']!;
+      final configuracionProducto =
+          '$productoText, Linea: ${lineaSeleccionada ?? ""}, ${ejesSeleccionados ?? ""} Ejes, Modelo: $modeloSeleccionadoText, Generación: ${yearSeleccionado ?? ""}';
 
       Navigator.pushNamed(
         context,
         "/seccion2",
-        arguments: {'modeloNombre': modeloSeleccionadoText},
+        arguments: {
+          'modeloNombre': modeloSeleccionadoText,
+          'modeloValue': modeloSeleccionadoValue,
+          'configuracionProducto': configuracionProducto.trim(),
+        },
       );
     }
   }
@@ -96,7 +109,7 @@ class _Seccion1 extends State<Seccion1> {
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(context).pop(),
-              textStyle: TextStyle(color: CupertinoColors.systemBlue),
+              textStyle: const TextStyle(color: CupertinoColors.systemBlue),
               child: const Text('Aceptar'),
             ),
           ],
@@ -184,7 +197,7 @@ class _Seccion1 extends State<Seccion1> {
       });
     } else {
       try {
-        final boardId = 4863963204;
+        const boardId = 4863963204;
         final gruposApi = await QuoteController.obtenerGrupos(boardId);
         await prefs.setString('grupos', jsonEncode(gruposApi));
 
@@ -207,54 +220,47 @@ class _Seccion1 extends State<Seccion1> {
     String? linea,
     String? ejes,
   ) async {
-    
     showDialog(
-  context: context,  
-  barrierDismissible: false,
-  builder: (BuildContext dialogContext) { 
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 10),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 60,
-              height: 60,
-              child: LoadingIndicator(
-                indicatorType: Indicator.ballRotateChase,
-                colors: [Color(0xFF1565C0)],
-                strokeWidth: 2,
-              ),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: LoadingIndicator(
+                    indicatorType: Indicator.ballRotateChase,
+                    colors: [Color(0xFF1565C0)],
+                    strokeWidth: 2,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Cargando Modelos',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1565C0),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Cargando Modelos',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1565C0),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
-  },
-);
-
-
-
 
     try {
       final modelos = await QuoteController.obtenerModelosPorGrupo(
@@ -300,7 +306,7 @@ class _Seccion1 extends State<Seccion1> {
             },
           ),
           title: const Text(
-            'Nueva cotización',
+            'Datos Iniciales',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
           ),
           centerTitle: true,
@@ -346,13 +352,6 @@ class _Seccion1 extends State<Seccion1> {
                         Navigator.pushNamed(context, '/dashboard');
                       },
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.receipt_long),
-                      title: const Text('Cotizador'),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/seccion1');
-                      },
-                    ),
                   ],
                 ),
                 const Padding(
@@ -370,25 +369,28 @@ class _Seccion1 extends State<Seccion1> {
         body: Column(
           children: [
             // Barra de progreso
-            LinearProgressIndicator(
+            const LinearProgressIndicator(
               value: 1 / 3, //
-              backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+              backgroundColor: Color.fromARGB(255, 0, 0, 0),
               valueColor: AlwaysStoppedAnimation<Color>(
-                const Color.fromARGB(255, 210, 198, 59),
+                Color.fromARGB(255, 210, 198, 59),
               ),
               minHeight: 6,
             ),
             const SizedBox(height: 8),
             const Text(
               'Paso 1 de 3',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
 
             // El contenido scrollable
             Expanded(
               child: RefreshIndicator(
-                color: Colors.blue, 
+                color: Colors.blue,
                 onRefresh: _cargarGruposMonday,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -402,11 +404,15 @@ class _Seccion1 extends State<Seccion1> {
                             controller: cotizacionCtrl,
                             hint: 'Número de Cotización',
                             enabled: false,
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
                           ),
                           _CustomTextField(
                             controller: fechaCtrl,
                             hint: 'Fecha de cotización',
                             enabled: false,
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
                           ),
                           _VigenciaDropdown(
                             valorSeleccionado: vigenciaSeleccionada,
@@ -424,18 +430,30 @@ class _Seccion1 extends State<Seccion1> {
                           _CustomTextField(
                             controller: nombreCtrl,
                             hint: 'Nombre Completo',
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
                           ),
                           _CustomTextField(
                             controller: empresaCtrl,
                             hint: 'Empresa',
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
                           ),
                           _CustomTextField(
                             controller: telefonoCtrl,
                             hint: 'Número de Celular',
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9+\-]'),
+                              ),
+                            ],
                           ),
                           _CustomTextField(
                             controller: correoCtrl,
                             hint: 'Correo Electronico',
+                            keyboardType: TextInputType.emailAddress,
+                            inputFormatters: const [],
                           ),
                         ],
                       ),
@@ -447,7 +465,7 @@ class _Seccion1 extends State<Seccion1> {
                             value: productoSeleccionado,
                             onChanged: (v) => setState(() {
                               productoSeleccionado = v;
-                              modeloSeleccionado = null; 
+                              modeloSeleccionado = null;
                               _verificarYConsultarGrupo();
                             }),
                           ),
@@ -488,7 +506,8 @@ class _Seccion1 extends State<Seccion1> {
                             value: modeloSeleccionado,
                             enabled: _modeloDisponible && _modelos.isNotEmpty,
                             modelos: _modelos,
-                            onChanged: (v) => setState(() => modeloSeleccionado = v),
+                            onChanged: (v) =>
+                                setState(() => modeloSeleccionado = v),
                           ),
                           if (_modeloDisponible && _modelos.isEmpty)
                             const Padding(
@@ -507,13 +526,14 @@ class _Seccion1 extends State<Seccion1> {
                         ],
                       ),
                       _buildSection(
-                        title: 'Edición',
+                        title: 'Generación',
                         children: [
                           _YearPickerField(
-                            initialYear: yearSeleccionado,
+                            initialYear:
+                                yearSeleccionado, // yearSeleccionado debe ser String? (nullable)
                             onYearSelected: (year) {
                               setState(() {
-                                yearSeleccionado = year;
+                                yearSeleccionado = year; // Aquí puede ser null
                               });
                             },
                           ),
@@ -578,11 +598,15 @@ class _CustomTextField extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
   final bool enabled;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _CustomTextField({
     required this.hint,
     required this.controller,
     this.enabled = true,
+    this.keyboardType,
+    this.inputFormatters,
   });
   @override
   Widget build(BuildContext context) {
@@ -590,6 +614,8 @@ class _CustomTextField extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           hintText: hint,
           enabled: enabled,
@@ -602,8 +628,6 @@ class _CustomTextField extends StatelessWidget {
     );
   }
 }
-
-
 
 class _ProductoDropdown extends StatefulWidget {
   final List<Map<String, String>> productos;
@@ -711,7 +735,7 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
                     ),
                   ],
                 ),
-                constraints: BoxConstraints(maxHeight: 200),
+                constraints: const BoxConstraints(maxHeight: 200),
                 child: _filteredProductos.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(16),
@@ -850,7 +874,7 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
                 size: 28,
               ),
             ],
-          )
+          ),
         ),
       ),
     );
@@ -883,10 +907,7 @@ class _LineaDropdownState extends State<_LineaDropdown> {
       decoration: BoxDecoration(
         color: const Color.fromARGB(255, 240, 240, 240),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: Colors.grey[300]!,
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.grey[300]!, width: 1.5),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -932,10 +953,7 @@ class _LineaDropdownState extends State<_LineaDropdown> {
                   value: option,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      option,
-                      textAlign: TextAlign.left,
-                    ),
+                    child: Text(option, textAlign: TextAlign.left),
                   ),
                 ),
               )
@@ -945,6 +963,7 @@ class _LineaDropdownState extends State<_LineaDropdown> {
     );
   }
 }
+
 class NumeroEjesDropdown extends StatelessWidget {
   final String? value;
   final void Function(String?) onChanged;
@@ -969,10 +988,7 @@ class NumeroEjesDropdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color.fromARGB(255, 240, 240, 240),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: Colors.grey[300]!,
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.grey[300]!, width: 1.5),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -1024,6 +1040,7 @@ class NumeroEjesDropdown extends StatelessWidget {
     );
   }
 }
+
 class _ModeloDropdown extends StatefulWidget {
   final String? value;
   final void Function(String?)? onChanged;
@@ -1122,7 +1139,7 @@ class _ModeloDropdownState extends State<_ModeloDropdown> {
                     ),
                   ],
                 ),
-                constraints: BoxConstraints(maxHeight: 200),
+                constraints: const BoxConstraints(maxHeight: 200),
                 child: _filteredModelos.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(16),
@@ -1240,7 +1257,9 @@ class _ModeloDropdownState extends State<_ModeloDropdown> {
                           fontSize: 16,
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
                         suffixIcon: _controller.text.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear),
@@ -1263,9 +1282,9 @@ class _ModeloDropdownState extends State<_ModeloDropdown> {
               ),
               Opacity(
                 opacity: widget.enabled ? 1.0 : 0.5,
-                child: Icon(
+                child: const Icon(
                   Icons.arrow_drop_down,
-                  color: const Color.fromARGB(255, 86, 86, 86),
+                  color: Color.fromARGB(255, 86, 86, 86),
                   size: 28,
                 ),
               ),
@@ -1276,6 +1295,7 @@ class _ModeloDropdownState extends State<_ModeloDropdown> {
     );
   }
 }
+
 class _VigenciaDropdown extends StatelessWidget {
   final String? valorSeleccionado;
   final void Function(String?) onChanged;
@@ -1285,56 +1305,52 @@ class _VigenciaDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
-@override
-Widget build(BuildContext context) {
-  return Container(
-    margin: const EdgeInsets.symmetric(vertical: 6),
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: Color.fromARGB(255, 237, 237, 237),
-      borderRadius: BorderRadius.circular(30), 
-      border: Border.all(
-        color: Colors.grey[300]!, 
-        width: 1.5,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 237, 237, 237),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.grey[300]!, width: 1.5),
       ),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        isExpanded: true,
-        value: valorSeleccionado,
-        hint: const Text(
-          'Selecciona vigencia (días)',
-          style: TextStyle(
-            color: Colors.black, // Texto del hint negro
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: valorSeleccionado,
+          hint: const Text(
+            'Selecciona vigencia (días)',
+            style: TextStyle(
+              color: Colors.black, // Texto del hint negro
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+            ),
+          ),
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            color: Color(0xFF565656),
+            size: 28,
+          ),
+          dropdownColor: Colors.white, // Fondo blanco del menú
+          style: const TextStyle(
+            color: Colors.black, // Texto negro de los ítems
             fontWeight: FontWeight.w500,
             fontSize: 16,
           ),
+          borderRadius: BorderRadius.circular(16), // Bordes del menú
+          onChanged: onChanged,
+          items: const [
+            DropdownMenuItem(value: '1', child: Text('1 día')),
+            DropdownMenuItem(value: '7', child: Text('7 días')),
+            DropdownMenuItem(value: '15', child: Text('15 días')),
+            DropdownMenuItem(value: '30', child: Text('30 días')),
+          ],
         ),
-        icon: const Icon(
-          Icons.arrow_drop_down,
-          color: Color(0xFF565656),
-          size: 28,
-        ),
-        dropdownColor: Colors.white, // Fondo blanco del menú
-        style: const TextStyle(
-          color: Colors.black, // Texto negro de los ítems
-          fontWeight: FontWeight.w500,
-          fontSize: 16,
-        ),
-        borderRadius: BorderRadius.circular(16), // Bordes del menú
-        onChanged: onChanged,
-        items: const [
-          DropdownMenuItem(value: '1', child: Text('1 día')),
-          DropdownMenuItem(value: '7', child: Text('7 días')),
-          DropdownMenuItem(value: '15', child: Text('15 días')),
-          DropdownMenuItem(value: '30', child: Text('30 días')),
-        ],
       ),
-    ),
-  );
- }
+    );
+  }
 }
-
 
 class _NavigationButton extends StatelessWidget {
   final String label;
@@ -1369,7 +1385,13 @@ class _YearPickerField extends StatelessWidget {
 
   List<String> _getYears() {
     final currentYear = DateTime.now().year;
-    return List.generate(30, (i) => (currentYear - i).toString());
+    final startYear = currentYear - 5;
+    final endYear = currentYear + 1;
+
+    return List.generate(
+      endYear - startYear + 1,
+      (i) => (startYear + i).toString(),
+    );
   }
 
   @override
@@ -1380,10 +1402,7 @@ class _YearPickerField extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color.fromARGB(255, 240, 240, 240),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: Colors.grey[300]!,
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.grey[300]!, width: 1.5),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -1397,24 +1416,10 @@ class _YearPickerField extends StatelessWidget {
               fontSize: 16,
             ),
           ),
-          // Aquí la X y la flecha, igual que en Línea y Ejes
-          icon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (initialYear != null)
-                GestureDetector(
-                  onTap: () => onYearSelected(null),
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 4),
-                    child: Icon(Icons.clear, color: Colors.grey, size: 22),
-                  ),
-                ),
-              const Icon(
-                Icons.arrow_drop_down,
-                color: Color(0xFF565656),
-                size: 28,
-              ),
-            ],
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            color: Color(0xFF565656),
+            size: 28,
           ),
           dropdownColor: Colors.white,
           style: const TextStyle(
@@ -1426,18 +1431,10 @@ class _YearPickerField extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onChanged: onYearSelected,
           items: _getYears()
-              .map((year) => DropdownMenuItem(
-                    value: year,
-                    child: Text(year),
-                  ))
+              .map((year) => DropdownMenuItem(value: year, child: Text(year)))
               .toList(),
         ),
       ),
     );
   }
 }
-
-
-
-
-

@@ -105,11 +105,11 @@ class LoginState extends State<Login> {
               ),
               const SizedBox(height: 24),
 
-              // Correo
+              // Usuario
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
-                  labelText: 'Correo',
+                  labelText: 'Usuario',
                   prefixIcon: const Icon(Icons.person_outline),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

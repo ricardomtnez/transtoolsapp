@@ -501,7 +501,6 @@ class _Seccion2State extends State<Seccion2> {
       ],
     );
   }
-
   void _showExcludedSummary() {
     final excludedItems = <String>[];
 

@@ -176,8 +176,11 @@ class DashboardState extends State<Dashboard> {
                         ),
                       ),
                       const SizedBox(height: 10),
+
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                        Navigator.pushNamed(context, "/seccion3");
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue[800],
                           minimumSize: const Size(163, 50),
@@ -194,6 +197,7 @@ class DashboardState extends State<Dashboard> {
                       const Text(
                         "Cotizaciones Recientes",
                         style: TextStyle(fontWeight: FontWeight.bold),
+                        
                       ),
                       const SizedBox(height: 10),
                       Table(

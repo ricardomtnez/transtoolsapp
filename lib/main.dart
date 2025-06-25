@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:transtools/views/cotizador/seccion2.dart';
+import 'package:transtools/views/cotizador/seccion3.dart';
 import 'package:transtools/views/dashboard.dart';
 import 'package:transtools/views/login.dart';
 import 'package:transtools/views/cotizador/seccion1.dart';
@@ -42,6 +43,9 @@ class _MyAppState extends State<MyApp> {
             return MaterialPageRoute(
               builder: (_) => Seccion2(modeloNombre: args['modeloNombre']),
             );
+         
+          case "/seccion3":
+            return MaterialPageRoute(builder: (_) => Seccion3());
 
           default:
             return MaterialPageRoute(

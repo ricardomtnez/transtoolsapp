@@ -4,6 +4,8 @@ import 'dart:io' show Platform;
 import 'package:flutter/cupertino.dart';
 
 class Seccion3 extends StatefulWidget {
+  const Seccion3({super.key});
+
   @override
   _Seccion3State createState() => _Seccion3State();
 }

@@ -393,7 +393,7 @@ class _Seccion1 extends State<Seccion1> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Paso 1 de 3',
+              'Paso 1 de 4',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

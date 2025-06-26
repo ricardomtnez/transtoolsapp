@@ -27,14 +27,17 @@ class LoginState extends State<Login> {
   // AQUÍ VA el método _handleLogin
   // En tu método _handleLogin en la vista
   Future<void> _handleLogin() async {
+    _showLoader(context);
+
     final isConnected = await isConnectedToInternet();
 
     if (!mounted) return;
 
     if (!isConnected) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Sin conexión a internet')));
+      Navigator.pop(context); // Oculta loader
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sin conexión a internet')),
+      );
       return;
     }
 
@@ -64,20 +67,53 @@ class LoginState extends State<Login> {
 
         if (!mounted) return;
 
+        Navigator.pop(context); // Oculta loader
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Dashboard()),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Contraseña incorrecta')));
+        Navigator.pop(context); // Oculta loader
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Contraseña incorrecta')),
+        );
       }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Usuario no encontrado')));
+      Navigator.pop(context); // Oculta loader
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario no encontrado')),
+      );
     }
+  }
+
+  void _showLoader(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1565C0)),
+              ),
+              SizedBox(height: 16),
+              Text(
+                "Iniciando sesión...",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1565C0),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -164,7 +200,9 @@ class LoginState extends State<Login> {
                     backgroundColor: Colors.blue[800],
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: _handleLogin,
+                  onPressed: () {
+                    _handleLogin();
+                  },
                   child: const Text(
                     'Entrar',
                     style: TextStyle(

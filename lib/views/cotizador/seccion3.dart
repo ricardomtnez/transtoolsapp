@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io' show Platform;
-import 'package:flutter/cupertino.dart';
 
 class Seccion3 extends StatefulWidget {
-  const Seccion3({super.key});
+  final String? unidades;
+  final String? formaPago;
+
+
+  const Seccion3({
+    super.key,
+    this.unidades,
+    this.formaPago,
+
+  });
 
   @override
+  // ignore: library_private_types_in_public_api
   _Seccion3State createState() => _Seccion3State();
 }
 
@@ -163,7 +171,7 @@ class _Seccion3State extends State<Seccion3> {
                         onChanged: (value) {
                           setState(() {
                             moneda = value;
-                            cuentaSeleccionada = null;
+                            cuentaSeleccionada = null; 
                           });
                         },
                       ),
@@ -172,8 +180,7 @@ class _Seccion3State extends State<Seccion3> {
                           label: 'Cuenta para Transferencia',
                           value: cuentaSeleccionada,
                           items: moneda == 'MXN' ? cuentasMXN : cuentasUSD,
-                          onChanged: (value) {
-                          },
+                          onChanged: (value) => setState(() => cuentaSeleccionada = value),
                           validator: (value) => value == null ? 'Seleccione una cuenta' : null,
                         ),
                     ],
@@ -185,101 +192,25 @@ class _Seccion3State extends State<Seccion3> {
                         title: const Text('Seleccionar rango de entrega'),
                         subtitle: semanasEntrega != null && fechaInicio != null && fechaFin != null
                             ? Text(
-                          'Inicio: ${fechaInicio!.day}/${fechaInicio!.month}/${fechaInicio!.year}\n'
-                              'Fin: ${fechaFin!.day}/${fechaFin!.month}/${fechaFin!.year}\n'
+                          'Fecha de Inicio: ${fechaInicio!.day}/${fechaInicio!.month}/${fechaInicio!.year}\n'
+                              'Fecha de Termino: ${fechaFin!.day}/${fechaFin!.month}/${fechaFin!.year}\n'
                               'Tiempo de entrega: $semanasEntrega semanas a partir de su anticipo',
                         )
                             : const Text('No se ha seleccionado un rango'),
                         trailing: const Icon(Icons.calendar_today),
                         onTap: () async {
-                          if (Platform.isIOS) {
-                            // Muestra un CupertinoDatePicker en pantalla completa para iOS
-                            DateTime? start;
-                            DateTime? end;
-                            await showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (context) {
-                                DateTime now = DateTime.now();
-                                DateTime minDate = DateTime(now.year, now.month, now.day);
-
-                                DateTime tempStart = fechaInicio ?? minDate;
-                                DateTime tempEnd = fechaFin ?? minDate.add(const Duration(days: 7));
-
-                                return SafeArea(
-                                  child: Container(
-                                    height: MediaQuery.of(context).size.height * 0.85,
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text('Selecciona la fecha de inicio'),
-                                        CupertinoDatePicker(
-                                          mode: CupertinoDatePickerMode.date,
-                                          initialDateTime: tempStart,
-                                          minimumDate: minDate,
-                                          maximumDate: minDate.add(const Duration(days: 365)),
-                                          onDateTimeChanged: (date) {
-                                            tempStart = DateTime(date.year, date.month, date.day);
-                                          },
-                                        ),
-                                        const SizedBox(height: 16),
-                                        const Text('Selecciona la fecha de fin'),
-                                        CupertinoDatePicker(
-                                          mode: CupertinoDatePickerMode.date,
-                                          initialDateTime: tempEnd,
-                                          minimumDate: minDate,
-                                          maximumDate: minDate.add(const Duration(days: 365)),
-                                          onDateTimeChanged: (date) {
-                                            tempEnd = DateTime(date.year, date.month, date.day);
-                                          },
-                                        ),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blue[800],
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(30),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                                          ),
-                                          onPressed: () {
-                                            Navigator.pop(context, [tempStart, tempEnd]);
-                                          },
-                                          child: const Text('Aceptar'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ).then((result) {
-                              if (result != null && result is List<DateTime> && result.length == 2) {
-                                setState(() {
-                                  fechaInicio = result[0];
-                                  fechaFin = result[1];
-                                  final dias = fechaFin!.difference(fechaInicio!).inDays;
-                                  semanasEntrega = (dias / 7).ceil().toString();
-                                });
-                              }
+                          final rango = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (rango != null) {
+                            setState(() {
+                              fechaInicio = rango.start;
+                              fechaFin = rango.end;
+                              final dias = fechaFin!.difference(fechaInicio!).inDays;
+                              semanasEntrega = (dias / 7).ceil().toString();
                             });
-                          } else {
-                            // Android y otros: showDateRangePicker
-                            final rango = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (rango != null) {
-                              setState(() {
-                                fechaInicio = rango.start;
-                                fechaFin = rango.end;
-                                final dias = fechaFin!.difference(fechaInicio!).inDays;
-                                semanasEntrega = (dias / 7).ceil().toString();
-                              });
-                            }
                           }
                         },
                       ),
@@ -372,7 +303,7 @@ class _Seccion3State extends State<Seccion3> {
             ),
           ),
           const SizedBox(height: 12),
-          ...children, // <--- Solo los children, sin Form aquí
+          ...children, 
         ],
       ),
     );
@@ -385,7 +316,6 @@ class _Seccion3State extends State<Seccion3> {
     required void Function(String?) onChanged,
     FormFieldValidator<String>? validator,
   }) {
-    // Detecta si es el dropdown de cuentas por el label
     final bool isCuentas = label.contains('Cuenta');
 
     return Container(
@@ -407,7 +337,6 @@ class _Seccion3State extends State<Seccion3> {
           border: InputBorder.none,
         ),
         selectedItemBuilder: (context) => items.map((item) {
-          // Solo aplica el Tooltip y ellipsis para cuentas
           return Tooltip(
             message: item,
             child: Container(

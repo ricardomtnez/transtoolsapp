@@ -261,7 +261,7 @@ class _Seccion2State extends State<Seccion2> {
           ? _buildLoader() 
          : Column(
               children: [
-                StepHeaderBar(pasoActual: 2, totalPasos: 4), // <-- Fuera del scroll
+                StepHeaderBar(pasoActual: 2, totalPasos: 4), 
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
@@ -275,7 +275,7 @@ class _Seccion2State extends State<Seccion2> {
                         _buildAdicionalesCarrito(),
                         const SizedBox(height: 24),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center, // Centra los botones
+                          mainAxisAlignment: MainAxisAlignment.center, 
                           children: [
                             SizedBox(
                               width: 140,
@@ -296,7 +296,7 @@ class _Seccion2State extends State<Seccion2> {
                                 child: const Text('Atrás'),
                               ),
                             ),
-                            const SizedBox(width: 32), // Espacio entre los botones
+                            const SizedBox(width: 32), 
                             SizedBox(
                               width: 140,
                               child: ElevatedButton(
@@ -643,15 +643,43 @@ class _Seccion2State extends State<Seccion2> {
   }
 
 
-  Widget _buildLoader() {
-    return Center(
-      child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+Widget _buildLoader() {
+  return Center(
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 255, 255, 255),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            // ignore: deprecated_member_use
+            color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-    );
-  }
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1565C0),),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            "Cargando Estructura...",
+            style: TextStyle(
+              color: Color(0xFF1565C0),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+ }
 }
-
 // Progress bar widget for steps
 class StepHeaderBar extends StatelessWidget {
   final int pasoActual;
@@ -683,15 +711,15 @@ class StepHeaderBar extends StatelessWidget {
         ),
         Container(
           width: double.infinity,
-          color: const Color(0xFF386AC7),
+          color: Colors.blue.shade800,
           padding: const EdgeInsets.symmetric(vertical: 8), // Menos padding
           child: Center(
             child: Text(
               'Paso $pasoActual de $totalPasos',
               style: const TextStyle(
-                color: Colors.white,
+                color: Color.fromARGB(255, 255, 255, 255),
                 fontWeight: FontWeight.w700,
-                fontSize: 18, 
+                fontSize: 14, 
                 letterSpacing: 0.5,
               ),
             ),

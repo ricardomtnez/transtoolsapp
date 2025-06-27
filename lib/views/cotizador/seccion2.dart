@@ -163,6 +163,7 @@ class _Seccion2State extends State<Seccion2> {
       setState(() {
         especificaciones = {'Estructura': estructura};
       });
+      _cargarAdicionales();
     } catch (e) {
       if (!mounted) return;
       showDialog(
@@ -170,6 +171,35 @@ class _Seccion2State extends State<Seccion2> {
         builder: (_) => AlertDialog(
           title: const Text('Error'),
           content: Text('Error cargando ficha técnica:\n$e'),
+          actions: [
+            TextButton(
+              child: const Text('Cerrar'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _cargarAdicionales() async {
+    try {
+      final idItemInt = int.tryParse(widget.modeloValue) ?? 0;
+
+      final adicionales = await QuoteController.obtenerKitsAdicionales(
+        idItemInt,
+      );
+
+      setState(() {
+        especificaciones['Adicionales de Línea'] = adicionales;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Error cargando kits adicionales:\n$e'),
           actions: [
             TextButton(
               child: const Text('Cerrar'),
@@ -256,12 +286,12 @@ class _Seccion2State extends State<Seccion2> {
           ),
         ),
       ),
-      backgroundColor: Colors.blue[800], 
+      backgroundColor: Colors.blue[800],
       body: especificaciones.isEmpty
-          ? _buildLoader() 
-         : Column(
+          ? _buildLoader()
+          : Column(
               children: [
-                StepHeaderBar(pasoActual: 2, totalPasos: 4), 
+                StepHeaderBar(pasoActual: 2, totalPasos: 4),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
@@ -275,7 +305,7 @@ class _Seccion2State extends State<Seccion2> {
                         _buildAdicionalesCarrito(),
                         const SizedBox(height: 24),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center, 
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             SizedBox(
                               width: 140,
@@ -286,17 +316,21 @@ class _Seccion2State extends State<Seccion2> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   ),
-                                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   elevation: 0,
                                 ),
                                 child: const Text('Atrás'),
                               ),
                             ),
-                            const SizedBox(width: 32), 
+                            const SizedBox(width: 32),
                             SizedBox(
                               width: 140,
                               child: ElevatedButton(
@@ -304,13 +338,19 @@ class _Seccion2State extends State<Seccion2> {
                                   Navigator.pushNamed(context, '/seccion3');
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white, // <-- Igual que "Atrás"
-                                  foregroundColor: Colors.black, // <-- Igual que "Atrás"
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor:
+                                      Colors.white, // <-- Igual que "Atrás"
+                                  foregroundColor:
+                                      Colors.black, // <-- Igual que "Atrás"
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   ),
-                                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   elevation: 0,
                                 ),
                                 child: const Text('Siguiente'),
@@ -389,7 +429,9 @@ class _Seccion2State extends State<Seccion2> {
         ),
       );
 
-      if (sectionContent is Map<String, dynamic>) {
+      if (sectionName == 'Kits Adicionales' && sectionContent is List) {
+        rows.addAll(_buildKitsAdicionalesRows(sectionContent));
+      } else if (sectionContent is Map<String, dynamic>) {
         sectionContent.forEach((key, value) {
           final isExcluded =
               _excludedFeatures[sectionName]?.contains(key) ?? false;
@@ -462,6 +504,66 @@ class _Seccion2State extends State<Seccion2> {
       ),
       children: rows,
     );
+  }
+
+  List<TableRow> _buildKitsAdicionalesRows(List<dynamic> kits) {
+    return kits.map<TableRow>((kit) {
+      final name = kit['name'] ?? '';
+      final adicionales = kit['adicionales'] ?? '';
+
+      // Verificamos si está excluido en _excludedFeatures
+      final isExcluded =
+          _excludedFeatures['Kits Adicionales']?.contains(name) ?? false;
+
+      return TableRow(
+        decoration: BoxDecoration(
+          color: isExcluded ? Colors.red.shade50 : null,
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              name,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isExcluded ? Colors.red : null,
+                decoration: isExcluded ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              adicionales,
+              style: TextStyle(
+                color: isExcluded ? Colors.red : null,
+                decoration: isExcluded ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+          Center(
+            child: IconButton(
+              icon: Icon(
+                isExcluded ? Icons.add : Icons.remove,
+                color: isExcluded ? Colors.green : Colors.red,
+              ),
+              onPressed: () {
+                setState(() {
+                  if (isExcluded) {
+                    _excludedFeatures['Kits Adicionales']?.remove(name);
+                  } else {
+                    _excludedFeatures
+                        .putIfAbsent('Kits Adicionales', () => <String>{})
+                        .add(name);
+                  }
+                });
+              },
+              tooltip: isExcluded ? 'Incluir' : 'Excluir',
+            ),
+          ),
+        ],
+      );
+    }).toList();
   }
 
   String? _categoriaExpandida; // Controla qué categoría está abierta
@@ -642,50 +744,54 @@ class _Seccion2State extends State<Seccion2> {
     );
   }
 
-
-Widget _buildLoader() {
-  return Center(
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 255, 255, 255),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1565C0),),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "Cargando Estructura...",
-            style: TextStyle(
-              color: Color(0xFF1565C0),
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+  Widget _buildLoader() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(255, 255, 255, 255),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              // ignore: deprecated_member_use
+              color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1565C0)),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Cargando Estructura...",
+              style: TextStyle(
+                color: Color(0xFF1565C0),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
- }
+    );
+  }
 }
+
 // Progress bar widget for steps
 class StepHeaderBar extends StatelessWidget {
   final int pasoActual;
   final int totalPasos;
 
-  const StepHeaderBar({required this.pasoActual, required this.totalPasos, super.key});
+  const StepHeaderBar({
+    required this.pasoActual,
+    required this.totalPasos,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -694,18 +800,11 @@ class StepHeaderBar extends StatelessWidget {
         // Línea amarilla sobre fondo negro
         Stack(
           children: [
-            Container(
-              width: double.infinity,
-              height: 6,
-              color: Colors.black,
-            ),
+            Container(width: double.infinity, height: 6, color: Colors.black),
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: pasoActual / totalPasos,
-              child: Container(
-                height: 6,
-                color: const Color(0xFFD9CF6A),
-              ),
+              child: Container(height: 6, color: const Color(0xFFD9CF6A)),
             ),
           ],
         ),
@@ -719,7 +818,7 @@ class StepHeaderBar extends StatelessWidget {
               style: const TextStyle(
                 color: Color.fromARGB(255, 255, 255, 255),
                 fontWeight: FontWeight.w700,
-                fontSize: 14, 
+                fontSize: 14,
                 letterSpacing: 0.5,
               ),
             ),

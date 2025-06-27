@@ -200,4 +200,79 @@ query {
       throw Exception('Error en la petición: ${response.statusCode}');
     }
   }
+
+  static Future<List<Map<String, dynamic>>> obtenerKitsAdicionales(
+    int itemId,
+  ) async {
+    final query =
+        """
+      query {
+  items (ids: $itemId) {
+    subitems {
+      name
+      column_values(ids:["board_relation_mknywcmq", "numeric_mknyht35", "lookup_mknyt0v4"]) {
+        column{
+          title
+        }
+        text
+        ... on BoardRelationValue {
+        display_value
+        
+      }
+        ... on MirrorValue {
+        display_value
+      }
+      }
+    }
+  }
+}
+    """;
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      final subitems = data['data']['items'][0]['subitems'] as List<dynamic>;
+
+      return subitems.map<Map<String, dynamic>>((subitem) {
+        final name = subitem['name'] ?? '';
+        final columnValues = subitem['column_values'] as List<dynamic>;
+
+        String adicional = '';
+        int cantidad = 0;
+        double precio = 0;
+
+        for (var col in columnValues) {
+          final title = col['column']['title'];
+          final displayValue = col['display_value'];
+          final textValue = col['text'];
+
+          if (title == 'ADICIONALES') {
+            adicional = displayValue ?? '';
+          } else if (title == 'CANTIDAD') {
+            cantidad = int.tryParse(textValue ?? '0') ?? 0;
+          } else if (title == 'COSTO X UNIDAD') {
+            precio = double.tryParse(textValue ?? '0') ?? 0;
+          }
+        }
+        final descripcionCompleta = "$cantidad KIT DE $adicional";
+
+        return {
+          'name': name,
+          'adicionales': descripcionCompleta,
+          'cantidad': cantidad,
+          'precio': precio,
+        };
+      }).toList();
+    } else {
+      throw Exception(
+        'Error al obtener los kits adicionales: ${response.body}',
+      );
+    }
+  }
 }

@@ -5,6 +5,8 @@ class QuoteController {
   static const token =
       'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjM4MDk5MjcyMiwiYWFpIjoxMSwidWlkIjo0MDY5NzEwMSwiaWFkIjoiMjAyNC0wNy0wNVQyMTowMjozMi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MTA5Mjg0OTUsInJnbiI6InVzZTEifQ.55PVw2YfNZ7d7DUgqfEOl4vLHlh3MU5QGnwReMl-NpQ'; // Pon tu token de Monday aquí
   static final url = Uri.parse('https://api.monday.com/v2');
+
+  //
   static Future<List<Map<String, dynamic>>> obtenerGrupos(int boardId) async {
     final query =
         """
@@ -274,5 +276,132 @@ query {
         'Error al obtener los kits adicionales: ${response.body}',
       );
     }
+  }
+
+  //
+  static Future<List<Map<String, dynamic>>> obtenerCategoriasAdicionales(
+    int boardId,
+  ) async {
+    final query =
+        """
+query {
+  boards(ids: $boardId) {
+    groups {
+      id
+      title
+    }
+  }
+}
+""";
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data['data'] != null &&
+          data['data']['boards'] != null &&
+          data['data']['boards'].isNotEmpty) {
+        final grupos = data['data']['boards'][0]['groups'] as List<dynamic>;
+        return grupos
+            .map<Map<String, dynamic>>(
+              (g) => {'value': g['id'], 'text': g['title']},
+            )
+            .toList();
+      } else {
+        throw Exception('No se encontraron categorías en el board');
+      }
+    } else {
+      throw Exception('Error al consultar categorías: ${response.body}');
+    }
+  }
+
+  //
+  static Future<List<Map<String, String>>> obtenerAdicionalesPorCategoria(
+    String grupoId,
+  ) async {
+    const boardId = 8890947131;
+    final query =
+        '''
+    query {
+      boards(ids: $boardId) {
+        groups(ids: ["$grupoId"]) {
+            items_page {
+              items{
+              name
+              column_values(ids: ["reflejo3", "n_meros81", "numeric_mkp11qxn", "n_meros5", "estado33"]){
+                column {
+                  title
+                }
+                text
+                ... on MirrorValue {
+                  display_value
+                }
+              }
+            }
+          }
+    }
+        }
+    }
+  ''';
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      final groups = data['data']['boards'][0]['groups'] as List<dynamic>?;
+      if (groups == null || groups.isEmpty) return [];
+
+      final items = groups[0]['items_page']['items'] as List<dynamic>;
+
+      return items.map<Map<String, String>>((item) {
+        final columnValues = item['column_values'] as List<dynamic>;
+
+        String? costoMateriales;
+        String? rentabilidad;
+        String? manoObra;
+        String? ponderacion;
+        String? estado;
+
+        for (var col in columnValues) {
+          final title = col['column']['title'];
+          if (title == 'Costo de Materiales') {
+            costoMateriales = col['display_value'] ?? '0';
+          } else if (title == 'Rentabilidad/Ganancia Esperada') {
+            rentabilidad = col['text'] ?? '0';
+          } else if (title == 'Mano de Obra Estandár') {
+            manoObra = col['text'] ?? '0';
+          } else if (title == 'Ponderación') {
+            ponderacion = col['text'] ?? '0';
+          } else if (title == 'Estado del costeo') {
+            estado = col['text'] ?? '';
+          }
+        }
+
+        // Cálculo seguro
+        final costo = double.tryParse(costoMateriales ?? '0') ?? 0;
+        final manoObraVal = double.tryParse(manoObra ?? '0') ?? 0;
+        final ponderacionVal = double.tryParse(ponderacion ?? '0') ?? 0;
+        final rentabilidadVal = double.tryParse(rentabilidad ?? '0') ?? 0;
+
+        final base = costo + (manoObraVal * ponderacionVal);
+        final precioFinal = (base/(1 - (rentabilidadVal / 100)))/1.16;
+
+        return {
+          'name': item['name'] ?? '',
+          'precio': precioFinal.toStringAsFixed(3),
+          'estado': estado ?? '',
+        };
+      }).toList();
+    }
+
+    throw Exception('Error al obtener modelos');
   }
 }

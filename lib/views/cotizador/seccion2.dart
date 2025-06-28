@@ -28,39 +28,25 @@ class _Seccion2State extends State<Seccion2> {
     'Especificaciones Técnicas': true,
     'Adicionales': true,
   };
-
-  final Map<String, List<String>> categorias = {
-    'SERVICIOS GENERALES': [
-      'PAQUETERIA DE UN SISTEMA DE AUTOINFLADO P/2 EJES',
-      'SERVICIO DE CORTE DE BARRASPARA LWCD',
-      'SERVICIO DE CORTE KIT DE BARRAS PARA TOLVA 16M3 SERVIACERO',
-      'BUJES SOBRE SOVREMOTOR',
-      'BIRLOS Y TUERCAS FLOTANTES P7MONTACARGAS',
-    ],
-    'MAQUINADO BARRAS TOLVA 30M3': [
-      'CORTE, CALIBRAR DIAM. INT. 2 1/8" BH LONG 200MM',
-      'CORTE, CALIBRAR DIAM. INT. 2" BH LONG 200MM',
-      'CORTE, CALIBRAR DIAM. INT. 3" BH LONG 150MM GRASERA',
-      'CORTE, CALIBRAR DIAM. INT. 1" BH LONG 50MM',
-    ],
-  };
-
-  //Map<String, bool> _expandedCategorias = {};
-  final List<String> _adicionalesSeleccionados = [];
   final Map<String, Set<String>> _excludedFeatures = {};
-  final List<String> adicionales = [];
-  final TextEditingController _adicionalesController = TextEditingController();
+
+  // VARIABLES
+  final List<Map<String, String>> _gruposAdicionales =
+      []; // [{value: id, text: titulo}]
+  String? _grupoSeleccionadoId;
+  final List<Map<String, String>> _itemsDelGrupo = [];
+  final List<String> _adicionalesSeleccionados = [];
 
   @override
   void initState() {
     super.initState();
     _cargarUsuario();
     _cargarDatosModeloSeleccionado();
+    _cargarCategoriasAdicionales();
   }
 
   @override
   void dispose() {
-    _adicionalesController.dispose();
     super.dispose();
   }
 
@@ -208,6 +194,48 @@ class _Seccion2State extends State<Seccion2> {
           ],
         ),
       );
+    }
+  }
+
+  //Cargar categorias de adicionales seleccionados
+  Future<void> _cargarCategoriasAdicionales() async {
+    try {
+      const boardId = 8890947131;
+      final gruposApi = await QuoteController.obtenerCategoriasAdicionales(
+        boardId,
+      );
+      // print(gruposApi);
+      setState(() {
+        _gruposAdicionales.clear();
+        _gruposAdicionales.addAll(
+          gruposApi.map<Map<String, String>>((g) {
+            return {
+              'value': g['value']?.toString() ?? '',
+              'text': g['text']?.toString() ?? '',
+            };
+          }),
+        );
+      });
+      //print('Grupos adicionales cargados: $_gruposAdicionales');
+    } catch (e) {
+      // Manejar error
+    }
+  }
+
+  //Cargar adicionales de la categoria seleccionada.
+  Future<void> _cargarItemsDelGrupo(String grupoId) async {
+    try {
+      final itemsApi = await QuoteController.obtenerAdicionalesPorCategoria(
+        grupoId,
+      );
+      //print(itemsApi);
+      setState(() {
+        _itemsDelGrupo.clear();
+        _itemsDelGrupo.addAll(itemsApi);
+      });
+    } catch (e) {
+      // Maneja error
+      //print('Error cargando adicionales: $e');
     }
   }
 
@@ -566,13 +594,12 @@ class _Seccion2State extends State<Seccion2> {
     }).toList();
   }
 
-  String? _categoriaExpandida; // Controla qué categoría está abierta
   Widget _buildAdicionalesCarrito() {
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 24),
       child: ExpansionTile(
-        initiallyExpanded: true, // Inicialmente expandido
+        initiallyExpanded: true,
         title: Text(
           "Adicionales",
           style: TextStyle(
@@ -587,50 +614,74 @@ class _Seccion2State extends State<Seccion2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Contenedor único para el menú
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
+                // DROPDOWN
+                DropdownButtonFormField<String>(
+                  value: _grupoSeleccionadoId,
+                  decoration: const InputDecoration(
+                    labelText: "Selecciona una categoría",
+                    border: OutlineInputBorder(),
                   ),
-                  child: Column(
-                    children: [
-                      // Botón principal
-                      ListTile(
-                        title: Text(
-                          _categoriaExpandida == null
-                              ? "Agregar adicionales"
-                              : _categoriaExpandida!.isEmpty
-                              ? "Seleccionar categoría"
-                              : _categoriaExpandida!,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue.shade800,
-                          ),
-                        ),
-                        trailing: Icon(
-                          _categoriaExpandida == null
-                              ? Icons.expand_more
-                              : Icons.expand_less,
-                          color: Colors.blue.shade800,
-                        ),
-                        onTap: () {
-                          setState(() {
-                            _categoriaExpandida = _categoriaExpandida == null
-                                ? ''
-                                : null;
-                          });
-                        },
-                      ),
-
-                      // Menú desplegable
-                      if (_categoriaExpandida != null)
-                        _buildMenuAdicionalesSimplificado(),
-                    ],
-                  ),
+                  items: _gruposAdicionales.map((grupo) {
+                    return DropdownMenuItem<String>(
+                      value: grupo['value'],
+                      child: Text(grupo['text'] ?? ''),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue == null) return;
+                    final grupo = _gruposAdicionales.firstWhere(
+                      (g) => g['value'] == newValue,
+                    );
+                    setState(() {
+                      _grupoSeleccionadoId = grupo['value'];
+                    });
+                    _cargarItemsDelGrupo(grupo['value']!);
+                  },
                 ),
 
-                // Lista de seleccionados (solo si hay elementos)
+                const SizedBox(height: 16),
+
+                // LISTA DE ADICIONALES DEL GRUPO
+                if (_grupoSeleccionadoId != null &&
+                    _itemsDelGrupo.isNotEmpty) ...[
+                  const Text(
+                    "Adicionales disponibles:",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._itemsDelGrupo.map((item) {
+                    final nombre = item['name'] ?? '';
+                    final precio = item['precio'] ?? '';
+                    final estado = item['estado'] ?? '';
+
+                    final displayText = '$nombre - \$$precio - $estado';
+
+                    final isSelected = _adicionalesSeleccionados.contains(
+                      nombre,
+                    );
+
+                    return ListTile(
+                      title: Text(displayText),
+                      trailing: Icon(
+                        isSelected
+                            ? Icons.check_circle
+                            : Icons.add_circle_outline,
+                        color: isSelected ? Colors.green : Colors.grey,
+                      ),
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _adicionalesSeleccionados.remove(nombre);
+                          } else {
+                            _adicionalesSeleccionados.add(nombre);
+                          }
+                        });
+                      },
+                    );
+                  }),
+                ],
+
+                // LISTA DE SELECCIONADOS
                 if (_adicionalesSeleccionados.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   const Text(
@@ -640,27 +691,19 @@ class _Seccion2State extends State<Seccion2> {
                       color: Colors.blue,
                     ),
                   ),
-                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _adicionalesSeleccionados
-                        .map(
-                          (item) => Chip(
-                            label: Text(
-                              item,
-                              style: const TextStyle(fontSize: 12),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            deleteIcon: const Icon(Icons.close, size: 16),
-                            onDeleted: () {
-                              setState(
-                                () => _adicionalesSeleccionados.remove(item),
-                              );
-                            },
-                          ),
-                        )
-                        .toList(),
+                    children: _adicionalesSeleccionados.map((item) {
+                      return Chip(
+                        label: Text(item),
+                        onDeleted: () {
+                          setState(() {
+                            _adicionalesSeleccionados.remove(item);
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                 ],
               ],
@@ -668,79 +711,6 @@ class _Seccion2State extends State<Seccion2> {
           ),
         ],
       ),
-    );
-  }
-
-  // ADICIONALES
-  Widget _buildMenuAdicionalesSimplificado() {
-    // Mostrar categorías principales
-    if (_categoriaExpandida == '') {
-      return Column(
-        children: categorias.keys.map((categoria) {
-          return ListTile(
-            contentPadding: const EdgeInsets.only(left: 32, right: 16),
-            title: Text(categoria),
-            trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () {
-              setState(() {
-                _categoriaExpandida = categoria;
-              });
-            },
-          );
-        }).toList(),
-      );
-    }
-
-    // Mostrar items de la categoría seleccionada
-    return Column(
-      children: [
-        // Botón de retroceso
-        ListTile(
-          contentPadding: const EdgeInsets.only(left: 16, right: 16),
-          leading: const Icon(Icons.arrow_back, size: 20),
-          title: Text(
-            'Volver a categorías',
-            style: TextStyle(
-              color: Colors.blue.shade800,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          onTap: () {
-            setState(() {
-              _categoriaExpandida = '';
-            });
-          },
-        ),
-
-        // Items de la categoría
-        ...categorias[_categoriaExpandida]!.map((item) {
-          final isSelected = _adicionalesSeleccionados.contains(item);
-          return ListTile(
-            contentPadding: const EdgeInsets.only(left: 32, right: 16),
-            title: Text(
-              item,
-              style: TextStyle(
-                fontSize: 14,
-                color: isSelected ? Colors.blue.shade800 : Colors.black87,
-              ),
-            ),
-            trailing: Icon(
-              isSelected ? Icons.check_circle : Icons.add_circle_outline,
-              color: isSelected ? Colors.green : Colors.grey,
-              size: 20,
-            ),
-            onTap: () {
-              setState(() {
-                if (isSelected) {
-                  _adicionalesSeleccionados.remove(item);
-                } else {
-                  _adicionalesSeleccionados.add(item);
-                }
-              });
-            },
-          );
-        }),
-      ],
     );
   }
 

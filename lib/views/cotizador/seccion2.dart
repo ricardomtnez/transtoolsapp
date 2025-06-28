@@ -189,10 +189,10 @@ class _Seccion2State extends State<Seccion2> {
       final adicionales = await QuoteController.obtenerKitsAdicionales(
         idItemInt,
       );
-
       setState(() {
-        especificaciones['Adicionales de Línea'] = adicionales;
-      });
+  especificaciones = Map<String, dynamic>.from(especificaciones)
+    ..['Adicionales de Línea'] = adicionales;
+});
     } catch (e) {
       if (!mounted) return;
       showDialog(
@@ -429,7 +429,7 @@ class _Seccion2State extends State<Seccion2> {
         ),
       );
 
-      if (sectionName == 'Kits Adicionales' && sectionContent is List) {
+      if (sectionName == 'Adicionales de Línea' && sectionContent is List) {
         rows.addAll(_buildKitsAdicionalesRows(sectionContent));
       } else if (sectionContent is Map<String, dynamic>) {
         sectionContent.forEach((key, value) {
@@ -461,10 +461,24 @@ class _Seccion2State extends State<Seccion2> {
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: value
-                              .map<Widget>((item) => Text('• $item'))
+                              .map<Widget>((item) => Text(
+                                    '• $item',
+                                    textAlign: TextAlign.justify,
+                                    style: TextStyle(
+                                      color: isExcluded ? Colors.red : null,
+                                      decoration: isExcluded ? TextDecoration.lineThrough : null,
+                                    ),
+                                  ))
                               .toList(),
                         )
-                      : Text(value.toString()),
+                      : Text(
+                          value.toString(),
+                          textAlign: TextAlign.justify, // <-- Justifica el texto
+                          style: TextStyle(
+                            color: isExcluded ? Colors.red : null,
+                            decoration: isExcluded ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
                 ),
                 Center(
                   child: IconButton(
@@ -513,7 +527,7 @@ class _Seccion2State extends State<Seccion2> {
 
       // Verificamos si está excluido en _excludedFeatures
       final isExcluded =
-          _excludedFeatures['Kits Adicionales']?.contains(name) ?? false;
+          _excludedFeatures['Adicionales de Línea']?.contains(name) ?? false;
 
       return TableRow(
         decoration: BoxDecoration(
@@ -535,6 +549,7 @@ class _Seccion2State extends State<Seccion2> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               adicionales,
+              textAlign: TextAlign.justify, // <-- Agrega esto
               style: TextStyle(
                 color: isExcluded ? Colors.red : null,
                 decoration: isExcluded ? TextDecoration.lineThrough : null,
@@ -550,10 +565,10 @@ class _Seccion2State extends State<Seccion2> {
               onPressed: () {
                 setState(() {
                   if (isExcluded) {
-                    _excludedFeatures['Kits Adicionales']?.remove(name);
+                    _excludedFeatures['Adicionales de Línea']?.remove(name);
                   } else {
                     _excludedFeatures
-                        .putIfAbsent('Kits Adicionales', () => <String>{})
+                        .putIfAbsent('Adicionales de Línea', () => <String>{})
                         .add(name);
                   }
                 });

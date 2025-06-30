@@ -19,6 +19,7 @@ class Seccion2 extends StatefulWidget {
 }
 
 class _Seccion2State extends State<Seccion2> {
+  final ScrollController _scrollController = ScrollController();
   Usuario? _usuario;
   String titulo =
       'Semirremolque tipo Plataforma'; // O puedes cambiarlo por el que venga desde la API si lo deseas
@@ -36,6 +37,9 @@ class _Seccion2State extends State<Seccion2> {
   String? _grupoSeleccionadoId;
   final List<Map<String, String>> _itemsDelGrupo = [];
   final List<String> _adicionalesSeleccionados = [];
+  bool _cargandoAdicionales = false;
+
+  final Map<String, int> _cantidadesAdicionales = {};
 
   @override
   void initState() {
@@ -170,6 +174,9 @@ class _Seccion2State extends State<Seccion2> {
 
   void _cargarAdicionales() async {
     try {
+      setState(() {
+        _cargandoAdicionales = true;
+      });
       final idItemInt = int.tryParse(widget.modeloValue) ?? 0;
 
       final adicionales = await QuoteController.obtenerKitsAdicionales(
@@ -194,6 +201,10 @@ class _Seccion2State extends State<Seccion2> {
           ],
         ),
       );
+    } finally {
+      setState(() {
+        _cargandoAdicionales = false;
+      });
     }
   }
 
@@ -224,18 +235,23 @@ class _Seccion2State extends State<Seccion2> {
 
   //Cargar adicionales de la categoria seleccionada.
   Future<void> _cargarItemsDelGrupo(String grupoId) async {
+    setState(() {
+      _cargandoAdicionales = true;
+    });
     try {
       final itemsApi = await QuoteController.obtenerAdicionalesPorCategoria(
         grupoId,
       );
-      //print(itemsApi);
       setState(() {
         _itemsDelGrupo.clear();
         _itemsDelGrupo.addAll(itemsApi);
       });
     } catch (e) {
       // Maneja error
-      //print('Error cargando adicionales: $e');
+    } finally {
+      setState(() {
+        _cargandoAdicionales = false;
+      });
     }
   }
 
@@ -331,7 +347,8 @@ class _Seccion2State extends State<Seccion2> {
                           content: especificaciones,
                         ),
                         _buildAdicionalesCarrito(),
-                        const SizedBox(height: 24),
+                        
+                        const SizedBox(height: 6),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -457,7 +474,7 @@ class _Seccion2State extends State<Seccion2> {
         ),
       );
 
-      if (sectionName == 'Kits Adicionales' && sectionContent is List) {
+      if (sectionName == 'Adicionales de Línea' && sectionContent is List) {
         rows.addAll(_buildKitsAdicionalesRows(sectionContent));
       } else if (sectionContent is Map<String, dynamic>) {
         sectionContent.forEach((key, value) {
@@ -489,10 +506,24 @@ class _Seccion2State extends State<Seccion2> {
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: value
-                              .map<Widget>((item) => Text('• $item'))
+                              .map<Widget>((item) => Text(
+                                    '• $item',
+                                    textAlign: TextAlign.justify, // <-- Justifica listas también
+                                    style: TextStyle(
+                                      color: isExcluded ? Colors.red : null,
+                                      decoration: isExcluded ? TextDecoration.lineThrough : null,
+                                    ),
+                                  ))
                               .toList(),
                         )
-                      : Text(value.toString()),
+                      : Text(
+                          value.toString(),
+                          textAlign: TextAlign.justify, // <-- Justifica el texto de valor
+                          style: TextStyle(
+                            color: isExcluded ? Colors.red : null,
+                            decoration: isExcluded ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
                 ),
                 Center(
                   child: IconButton(
@@ -541,7 +572,7 @@ class _Seccion2State extends State<Seccion2> {
 
       // Verificamos si está excluido en _excludedFeatures
       final isExcluded =
-          _excludedFeatures['Kits Adicionales']?.contains(name) ?? false;
+          _excludedFeatures['Adicionales de Línea']?.contains(name) ?? false;
 
       return TableRow(
         decoration: BoxDecoration(
@@ -563,6 +594,7 @@ class _Seccion2State extends State<Seccion2> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               adicionales,
+              textAlign: TextAlign.justify, // <-- Justifica el texto
               style: TextStyle(
                 color: isExcluded ? Colors.red : null,
                 decoration: isExcluded ? TextDecoration.lineThrough : null,
@@ -578,10 +610,10 @@ class _Seccion2State extends State<Seccion2> {
               onPressed: () {
                 setState(() {
                   if (isExcluded) {
-                    _excludedFeatures['Kits Adicionales']?.remove(name);
+                    _excludedFeatures['Adicionales de Línea']?.remove(name);
                   } else {
                     _excludedFeatures
-                        .putIfAbsent('Kits Adicionales', () => <String>{})
+                        .putIfAbsent('Adicionales de Línea', () => <String>{})
                         .add(name);
                   }
                 });
@@ -615,95 +647,245 @@ class _Seccion2State extends State<Seccion2> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // DROPDOWN
-                DropdownButtonFormField<String>(
-                  value: _grupoSeleccionadoId,
-                  decoration: const InputDecoration(
-                    labelText: "Selecciona una categoría",
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _gruposAdicionales.map((grupo) {
-                    return DropdownMenuItem<String>(
-                      value: grupo['value'],
-                      child: Text(grupo['text'] ?? ''),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue == null) return;
-                    final grupo = _gruposAdicionales.firstWhere(
-                      (g) => g['value'] == newValue,
-                    );
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return _gruposAdicionales.map((g) => g['text'] ?? '');
+                    }
+                    return _gruposAdicionales
+                        .map((g) => g['text'] ?? '')
+                        .where((option) => option
+                            .toLowerCase()
+                            .contains(textEditingValue.text.toLowerCase()));
+                  },
+                  onSelected: (String selection) {
+                    final grupo = _gruposAdicionales.firstWhere((g) => g['text'] == selection);
                     setState(() {
                       _grupoSeleccionadoId = grupo['value'];
                     });
                     _cargarItemsDelGrupo(grupo['value']!);
+                    FocusScope.of(context).unfocus(); 
+                  },
+                  fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                  return TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: "Selecciona una categoría",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+                      ),
+                      suffixIcon: _grupoSeleccionadoId != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                setState(() {
+                                  _grupoSeleccionadoId = null;
+                                  _itemsDelGrupo.clear();
+                                  controller.clear();
+                                });
+                              },
+                              splashRadius: 18,
+                            )
+                          : null,
+                    ),
+                  );
+                },
+                  optionsViewBuilder: (context, onSelected, options) {
+                    final itemCount = options.length;
+                    final maxVisible = 4; // Máximo de opciones visibles
+                    final height = (itemCount < maxVisible ? itemCount : maxVisible) * 56.0; 
+
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        borderRadius: BorderRadius.circular(16),
+                        elevation: 4,
+                        child: SizedBox(
+                          height: height,
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            itemCount: itemCount,
+                            itemBuilder: (context, index) {
+                              final option = options.elementAt(index);
+                              return ListTile(
+                                title: Text(option),
+                                onTap: () => onSelected(option),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 ),
 
                 const SizedBox(height: 16),
 
                 // LISTA DE ADICIONALES DEL GRUPO
-                if (_grupoSeleccionadoId != null &&
-                    _itemsDelGrupo.isNotEmpty) ...[
-                  const Text(
-                    "Adicionales disponibles:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._itemsDelGrupo.map((item) {
-                    final nombre = item['name'] ?? '';
-                    final precio = item['precio'] ?? '';
-                    final estado = item['estado'] ?? '';
+                if (_grupoSeleccionadoId != null)
+                  _cargandoAdicionales
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1565C0)), // Azul
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  "Cargando Adicionales...",
+                                  style: TextStyle(
+                                    color: Color(0xFF1565C0),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : _itemsDelGrupo.isNotEmpty
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Adicionales disponibles:",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  height: 300, 
+                                  child: Scrollbar(
+                                    controller: _scrollController,
+                                    thumbVisibility: true, 
+                                    thickness: 6,
+                                    radius: const Radius.circular(8),
+                                    child: ListView.builder(
+                                      controller: _scrollController,
+                                      itemCount: _itemsDelGrupo.length,
+                                      itemBuilder: (context, index) {
+                                        final item = _itemsDelGrupo[index];
+                                        final nombre = item['name'] ?? '';
+                                        final precio = item['precio'] ?? '';
+                                        final estado = item['estado'] ?? '';
+                                        final displayText = '$nombre - \$$precio - $estado';
+                                        final isSelected = _adicionalesSeleccionados.contains(nombre);
 
-                    final displayText = '$nombre - \$$precio - $estado';
-
-                    final isSelected = _adicionalesSeleccionados.contains(
-                      nombre,
-                    );
-
-                    return ListTile(
-                      title: Text(displayText),
-                      trailing: Icon(
-                        isSelected
-                            ? Icons.check_circle
-                            : Icons.add_circle_outline,
-                        color: isSelected ? Colors.green : Colors.grey,
-                      ),
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _adicionalesSeleccionados.remove(nombre);
-                          } else {
-                            _adicionalesSeleccionados.add(nombre);
-                          }
-                        });
-                      },
-                    );
-                  }),
-                ],
-
-                // LISTA DE SELECCIONADOS
+                                        return ListTile(
+                                          title: Text(displayText),
+                                          trailing: Icon(
+                                            isSelected ? Icons.check_circle : Icons.add_circle_outline,
+                                            color: isSelected ? Colors.green : Colors.grey,
+                                          ),
+                                          onTap: () {
+                                            setState(() {
+                                              if (isSelected) {
+                                                _adicionalesSeleccionados.remove(nombre);
+                                                _cantidadesAdicionales.remove(nombre);
+                                              } else {
+                                                _adicionalesSeleccionados.add(nombre);
+                                                _cantidadesAdicionales[nombre] = 1;
+                                              }
+                                            });
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                // Divider y sección de adicionales seleccionados
                 if (_adicionalesSeleccionados.isNotEmpty) ...[
-                  const SizedBox(height: 16),
+                  const Divider(
+                    height: 32,
+                    thickness: 1.2,
+                    color: Color(0xFF1565C0),
+                  ),
                   const Text(
-                    "Adicionales seleccionados:",
+                    "Adicionales Seleccionados:",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: 18,
                       color: Colors.blue,
                     ),
                   ),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _adicionalesSeleccionados.map((item) {
-                      return Chip(
-                        label: Text(item),
-                        onDeleted: () {
-                          setState(() {
-                            _adicionalesSeleccionados.remove(item);
-                          });
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 220, 
+                    child: Scrollbar(
+                      thumbVisibility: true,
+                      thickness: 6,
+                      radius: const Radius.circular(8),
+                      child: ListView.builder(
+                        itemCount: _adicionalesSeleccionados.length,
+                        itemBuilder: (context, index) {
+                          final adicional = _adicionalesSeleccionados[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    adicional,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline, color: Colors.blue),
+                                  onPressed: () {
+                                    setState(() {
+                                      if ((_cantidadesAdicionales[adicional] ?? 1) > 1) {
+                                        _cantidadesAdicionales[adicional] =
+                                            (_cantidadesAdicionales[adicional] ?? 1) - 1;
+                                      }
+                                    });
+                                  },
+                                ),
+                                Text(
+                                  '${_cantidadesAdicionales[adicional] ?? 1}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline, color: Colors.blue),
+                                  onPressed: () {
+                                    setState(() {
+                                      _cantidadesAdicionales[adicional] =
+                                          (_cantidadesAdicionales[adicional] ?? 1) + 1;
+                                    });
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  tooltip: 'Quitar',
+                                  onPressed: () {
+                                    setState(() {
+                                      _adicionalesSeleccionados.remove(adicional);
+                                      _cantidadesAdicionales.remove(adicional);
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
                         },
-                      );
-                    }).toList(),
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -781,7 +963,7 @@ class StepHeaderBar extends StatelessWidget {
         Container(
           width: double.infinity,
           color: Colors.blue.shade800,
-          padding: const EdgeInsets.symmetric(vertical: 8), // Menos padding
+          padding: const EdgeInsets.symmetric(vertical: 8), 
           child: Center(
             child: Text(
               'Paso $pasoActual de $totalPasos',

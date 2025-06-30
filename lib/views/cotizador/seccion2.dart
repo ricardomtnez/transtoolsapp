@@ -384,9 +384,9 @@ class _Seccion2State extends State<Seccion2> {
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:
-                                      Colors.white, // <-- Igual que "Atrás"
+                                      Colors.white, 
                                   foregroundColor:
-                                      Colors.black, // <-- Igual que "Atrás"
+                                      Colors.black, 
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
                                   ),
@@ -428,7 +428,7 @@ class _Seccion2State extends State<Seccion2> {
           });
         },
         title: SizedBox(
-          width: double.infinity, // Ocupa todo el ancho disponible
+          width: double.infinity, 
           child: Text(
             title,
             textAlign: TextAlign.justify,
@@ -436,7 +436,7 @@ class _Seccion2State extends State<Seccion2> {
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.blue[800],
-              height: 1.4, // Más espacio entre líneas
+              height: 1.4, 
             ),
           ),
         ),
@@ -508,7 +508,7 @@ class _Seccion2State extends State<Seccion2> {
                           children: value
                               .map<Widget>((item) => Text(
                                     '• $item',
-                                    textAlign: TextAlign.justify, // <-- Justifica listas también
+                                    textAlign: TextAlign.justify, 
                                     style: TextStyle(
                                       color: isExcluded ? Colors.red : null,
                                       decoration: isExcluded ? TextDecoration.lineThrough : null,
@@ -518,7 +518,7 @@ class _Seccion2State extends State<Seccion2> {
                         )
                       : Text(
                           value.toString(),
-                          textAlign: TextAlign.justify, // <-- Justifica el texto de valor
+                          textAlign: TextAlign.justify, 
                           style: TextStyle(
                             color: isExcluded ? Colors.red : null,
                             decoration: isExcluded ? TextDecoration.lineThrough : null,
@@ -570,7 +570,7 @@ class _Seccion2State extends State<Seccion2> {
       final name = kit['name'] ?? '';
       final adicionales = kit['adicionales'] ?? '';
 
-      // Verificamos si está excluido en _excludedFeatures
+     
       final isExcluded =
           _excludedFeatures['Adicionales de Línea']?.contains(name) ?? false;
 
@@ -594,7 +594,7 @@ class _Seccion2State extends State<Seccion2> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               adicionales,
-              textAlign: TextAlign.justify, // <-- Justifica el texto
+              textAlign: TextAlign.justify, 
               style: TextStyle(
                 color: isExcluded ? Colors.red : null,
                 decoration: isExcluded ? TextDecoration.lineThrough : null,

@@ -3,18 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:transtools/models/usuario.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 class Seccion3 extends StatefulWidget {
   final String? unidades;
   final String? formaPago;
 
-
-  const Seccion3({
-    super.key,
-    this.unidades,
-    this.formaPago,
-
-  });
+  const Seccion3({super.key, this.unidades, this.formaPago});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -27,7 +20,8 @@ class _Seccion3State extends State<Seccion3> {
   Usuario? _usuario;
 
   // Controllers
-  final TextEditingController direccionEntregaController = TextEditingController();
+  final TextEditingController direccionEntregaController =
+      TextEditingController();
   final TextEditingController receptorController = TextEditingController();
   final TextEditingController telefonoController = TextEditingController();
   final TextEditingController correoController = TextEditingController();
@@ -55,10 +49,7 @@ class _Seccion3State extends State<Seccion3> {
     '6 semanas a partir de su anticipo',
     '8 semanas a partir de su anticipo',
   ];
-  final List<String> garantias = [
-    '6 meses', 
-    '12 meses',
-  ];
+  final List<String> garantias = ['6 meses', '12 meses'];
   final List<String> cuentasMXN = [
     'BBVA Bancomer - 123456789 - Clabe: 012345678901234567',
     'Santander - 123456789 - Clabe: 002180123456789012',
@@ -68,7 +59,27 @@ class _Seccion3State extends State<Seccion3> {
     'Santander USD - 987654321 - Clabe: 002180123456789013',
   ];
 
-   
+  bool metodoPagoError = false;
+  String? metodoPagoErrorText;
+
+  bool monedaError = false;
+  String? monedaErrorText;
+
+  bool cuentaError = false;
+  String? cuentaErrorText;
+
+  bool entregaEnError = false;
+  String? entregaEnErrorText;
+
+  bool garantiaError = false;
+  String? garantiaErrorText;
+
+  bool rangoEntregaError = false;
+  String? rangoEntregaErrorText;
+
+  bool unidadesError = false;
+  String? unidadesErrorText;
+
   @override
   void initState() {
     super.initState();
@@ -76,7 +87,7 @@ class _Seccion3State extends State<Seccion3> {
     formaPago = 'Contado'; // <-- Valor por default y fijo
   }
 
-    Future<void> _cargarUsuario() async {
+  Future<void> _cargarUsuario() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString('usuario');
     if (jsonString != null) {
@@ -104,59 +115,59 @@ class _Seccion3State extends State<Seccion3> {
           centerTitle: true,
         ),
         drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color.fromARGB(255, 233, 227, 227),
-                Color.fromARGB(255, 212, 206, 206),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color.fromARGB(255, 233, 227, 227),
+                  Color.fromARGB(255, 212, 206, 206),
+                ],
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  children: [
+                    const SizedBox(height: 60),
+                    const CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.grey,
+                      child: Icon(Icons.person, size: 50, color: Colors.white),
+                    ),
+                    // Espacio entre el avatar y el nombre
+                    const SizedBox(height: 10),
+                    // Nombre del usuario
+                    Text(
+                      _usuario?.fullname ?? 'Nombre no disponible',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ListTile(
+                      leading: const Icon(Icons.dashboard),
+                      title: const Text('Menu Principal'),
+                      onTap: () {
+                        Navigator.pushNamed(context, '/dashboard');
+                      },
+                    ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 35),
+                  child: Text(
+                    'Versión 1.0',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ),
               ],
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                children: [
-                  const SizedBox(height: 60),
-                  const CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.grey,
-                    child: Icon(Icons.person, size: 50, color: Colors.white),
-                  ),
-                  // Espacio entre el avatar y el nombre
-                  const SizedBox(height: 10),
-                  // Nombre del usuario
-                  Text(
-                    _usuario?.fullname ?? 'Nombre no disponible',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ListTile(
-                    leading: const Icon(Icons.dashboard),
-                    title: const Text('Menu Principal'),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/dashboard');
-                    },
-                  ),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 35),
-                child: Text(
-                  'Versión 1.0',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ), // <--- Agrega aquí tu Drawer personalizado
+        ), // <--- Agrega aquí tu Drawer personalizado
         body: SafeArea(
           child: Column(
             children: [
@@ -165,10 +176,10 @@ class _Seccion3State extends State<Seccion3> {
                 children: [
                   Container(
                     height: 8,
-                    color: const Color.fromARGB(255, 0, 0, 0), 
+                    color: const Color.fromARGB(255, 0, 0, 0),
                   ),
                   FractionallySizedBox(
-                    widthFactor: 0.75, 
+                    widthFactor: 0.75,
                     child: Container(
                       height: 8,
                       color: const Color(0xFFD9CF6A), // Barra de progreso
@@ -207,61 +218,108 @@ class _Seccion3State extends State<Seccion3> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: unidadesError
+                                  ? Colors.red
+                                  : Colors.transparent,
+                              width: 1.5,
+                            ),
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Expanded(
-                                child: Text(
-                                  'Número de unidades',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline),
-                                onPressed: () {
-                                  final current = int.tryParse(unidadesController.text) ?? 0;
-                                  if (current > 1) {
-                                    unidadesController.text = (current - 1).toString();
-                                    setState(() {});
-                                  }
-                                },
-                              ),
-                              SizedBox(
-                                width: 60,
-                                child: TextFormField(
-                                  controller: unidadesController,
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.center,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly, // <-- Solo permite números
-                                  ],
-                                  decoration: const InputDecoration(
-                                    hintText: '0',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Número de unidades',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return '';
-                                    }
-                                    if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                                      return '';
-                                    }
-                                    return null;
-                                  },
-                                  onChanged: (_) => setState(() {}),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.remove_circle_outline,
+                                    ),
+                                    onPressed: () {
+                                      final current =
+                                          int.tryParse(
+                                            unidadesController.text,
+                                          ) ??
+                                          0;
+                                      if (current > 1) {
+                                        unidadesController.text = (current - 1)
+                                            .toString();
+                                        setState(() {
+                                          unidadesError = false;
+                                          unidadesErrorText = null;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(
+                                    width: 60,
+                                    child: TextFormField(
+                                      controller: unidadesController,
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      decoration: const InputDecoration(
+                                        hintText: '0',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.all(
+                                            Radius.circular(12),
+                                          ),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 0,
+                                        ),
+                                      ),
+                                      onChanged: (_) {
+                                        setState(() {
+                                          unidadesError = false;
+                                          unidadesErrorText = null;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    onPressed: () {
+                                      final current =
+                                          int.tryParse(
+                                            unidadesController.text,
+                                          ) ??
+                                          0;
+                                      unidadesController.text = (current + 1)
+                                          .toString();
+                                      setState(() {
+                                        unidadesError = false;
+                                        unidadesErrorText = null;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (unidadesError && unidadesErrorText != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 4,
+                                    top: 4,
+                                  ),
+                                  child: Text(
+                                    unidadesErrorText!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                onPressed: () {
-                                  final current = int.tryParse(unidadesController.text) ?? 0;
-                                  unidadesController.text = (current + 1).toString();
-                                  setState(() {});
-                                },
-                              ),
                             ],
                           ),
                         ),
@@ -272,8 +330,11 @@ class _Seccion3State extends State<Seccion3> {
                               label: 'Forma de Pago',
                               value: formaPago,
                               items: formasPago,
-                              onChanged: null, // <-- Esto lo deshabilita completamente
-                              validator: (value) => value == null ? 'Seleccione una forma de pago' : null,
+                              onChanged:
+                                  null, // <-- Esto lo deshabilita completamente
+                              validator: (value) => value == null
+                                  ? 'Seleccione una forma de pago'
+                                  : null,
                             ),
                             _styledDropdown(
                               label: 'Método de Pago',
@@ -282,37 +343,94 @@ class _Seccion3State extends State<Seccion3> {
                               onChanged: (value) {
                                 setState(() {
                                   metodoPago = value;
-                                  moneda = null; 
+                                  metodoPagoError = false;
+                                  metodoPagoErrorText = null;
+                                  moneda = null;
                                   cuentaSeleccionada = null;
-                                  otroMetodoController.clear(); 
+                                  otroMetodoController.clear();
                                 });
                               },
-                            ),
-                            _styledDropdown(
-                              label: 'Moneda',
-                              value: moneda,
-                              items: monedas,
-                              onChanged: (value) {
+                              error: metodoPagoError,
+                              errorText: metodoPagoErrorText,
+                              showClear: metodoPago != null,
+                              onClear: () {
                                 setState(() {
-                                  moneda = value;
-                                  cuentaSeleccionada = null; 
+                                  metodoPago = null;
+                                  metodoPagoError = false;
+                                  metodoPagoErrorText = null;
+                                  moneda = null;
+                                  cuentaSeleccionada = null;
+                                  otroMetodoController.clear();
                                 });
                               },
                             ),
+                            if (metodoPago == 'Transferencia' ||
+                                metodoPago == 'Cheque')
+                              _styledDropdown(
+                                label: 'Moneda',
+                                value: moneda,
+                                items: monedas,
+                                onChanged: (value) {
+                                  setState(() {
+                                    moneda = value;
+                                    monedaError = false;
+                                    monedaErrorText = null;
+                                    cuentaSeleccionada = null;
+                                  });
+                                },
+                                error: monedaError,
+                                errorText: monedaErrorText,
+                                showClear: moneda != null,
+                                onClear: () {
+                                  setState(() {
+                                    moneda = null;
+                                    monedaError = false;
+                                    monedaErrorText = null;
+                                    cuentaSeleccionada = null;
+                                  });
+                                },
+                              ),
                             if (metodoPago == 'Transferencia' && moneda != null)
                               _styledDropdown(
                                 label: 'Cuenta para Transferencia',
                                 value: cuentaSeleccionada,
-                                items: moneda == 'MXN' ? cuentasMXN : cuentasUSD,
-                                onChanged: (value) => setState(() => cuentaSeleccionada = value),
-                                validator: (value) => value == null ? 'Seleccione una cuenta' : null,
+                                items: moneda == 'MXN'
+                                    ? cuentasMXN
+                                    : cuentasUSD,
+                                onChanged: (value) {
+                                  setState(() {
+                                    cuentaSeleccionada = value;
+                                    cuentaError = false;
+                                    cuentaErrorText = null;
+                                  });
+                                },
+                                error: cuentaError,
+                                errorText: cuentaErrorText,
+                                showClear: cuentaSeleccionada != null,
+                                onClear: () {
+                                  setState(() {
+                                    cuentaSeleccionada = null;
+                                    cuentaError = false;
+                                    cuentaErrorText = null;
+                                  });
+                                },
+                                validator: (value) => value == null
+                                    ? 'Seleccione una cuenta'
+                                    : null,
                               ),
                             if (metodoPago == 'Otro')
                               Container(
                                 margin: const EdgeInsets.symmetric(vertical: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color.fromARGB(255, 240, 240, 240),
+                                  color: const Color.fromARGB(
+                                    255,
+                                    240,
+                                    240,
+                                    240,
+                                  ),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                     color: Colors.grey[300]!,
@@ -336,9 +454,14 @@ class _Seccion3State extends State<Seccion3> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                     border: InputBorder.none,
-                                    suffixIcon: otroMetodoController.text.isNotEmpty
+                                    suffixIcon:
+                                        otroMetodoController.text.isNotEmpty
                                         ? IconButton(
-                                            icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                                            icon: const Icon(
+                                              Icons.clear,
+                                              size: 22,
+                                              color: Colors.grey,
+                                            ),
                                             onPressed: () {
                                               otroMetodoController.clear();
                                               setState(() {});
@@ -349,7 +472,8 @@ class _Seccion3State extends State<Seccion3> {
                                   ),
                                   onChanged: (_) => setState(() {}),
                                   validator: (value) {
-                                    if (metodoPago == 'Otro' && (value == null || value.isEmpty)) {
+                                    if (metodoPago == 'Otro' &&
+                                        (value == null || value.isEmpty)) {
                                       return 'Ingrese el método de pago';
                                     }
                                     return null;
@@ -361,43 +485,156 @@ class _Seccion3State extends State<Seccion3> {
                         _buildSection(
                           title: "Información de Entrega",
                           children: [
-                            ListTile(
-                              title: const Text('Seleccionar rango de entrega'),
-                              subtitle: semanasEntrega != null && fechaInicio != null && fechaFin != null
-                                  ? Text(
-                                    'Tiempo de entrega: $semanasEntrega semanas a partir de su anticipo',
-                              )
-                                  : const Text('No se ha seleccionado un rango'),
-                              trailing: const Icon(Icons.calendar_today),
-                              onTap: () async {
-                                final rango = await showDateRangePicker(
-                                  context: context,
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                                );
-                                if (rango != null) {
-                                  setState(() {
-                                    fechaInicio = rango.start;
-                                    fechaFin = rango.end;
-                                    final dias = fechaFin!.difference(fechaInicio!).inDays;
-                                    semanasEntrega = (dias / 7).ceil().toString();
-                                  });
-                                }
-                              },
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: rangoEntregaError
+                                      ? Colors.red
+                                      : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(
+                                      'Seleccionar rango de entrega',
+                                      style: TextStyle(
+                                        color:
+                                            (semanasEntrega != null &&
+                                                fechaInicio != null &&
+                                                fechaFin != null)
+                                            ? const Color(0xFF1565C0) // Azul
+                                            : Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle:
+                                        (semanasEntrega != null &&
+                                            fechaInicio != null &&
+                                            fechaFin != null)
+                                        ? Text(
+                                            'Tiempo de entrega: $semanasEntrega semanas a partir de su anticipo',
+                                            style: const TextStyle(
+                                              color: Color.fromARGB(
+                                                255,
+                                                0,
+                                                0,
+                                                0,
+                                              ), // Azul
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'No se ha seleccionado un rango',
+                                            style: TextStyle(
+                                              color: Color(0xFF1565C0),
+                                            ),
+                                          ),
+                                    trailing: const Icon(Icons.calendar_today),
+                                    onTap: () async {
+                                      final rango = await showDateRangePicker(
+                                        context: context,
+                                        firstDate: DateTime.now(),
+                                        lastDate: DateTime.now().add(
+                                          const Duration(days: 365),
+                                        ),
+                                      );
+                                      if (rango != null) {
+                                        setState(() {
+                                          fechaInicio = rango.start;
+                                          fechaFin = rango.end;
+                                          final dias = fechaFin!
+                                              .difference(fechaInicio!)
+                                              .inDays;
+                                          semanasEntrega = (dias / 7)
+                                              .ceil()
+                                              .toString();
+                                          rangoEntregaError = false;
+                                          rangoEntregaErrorText = null;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  if (rangoEntregaError &&
+                                      rangoEntregaErrorText != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 12,
+                                        top: 2,
+                                      ),
+                                      child: Text(
+                                        rangoEntregaErrorText!,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                             _styledDropdown(
                               label: 'Entrega en',
                               value: entregaEn,
-                              items: const ['En Planta', 'Acordar con el cliente'],
-                              onChanged: (value) => setState(() => entregaEn = value),
-                              validator: (value) => value == null ? 'Seleccione una opción' : null,
+                              items: const [
+                                'En Planta',
+                                'Acordar con el cliente',
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  entregaEn = value;
+                                  entregaEnError = false;
+                                  entregaEnErrorText = null;
+                                });
+                              },
+                              error: entregaEnError,
+                              errorText: entregaEnErrorText,
+                              showClear: entregaEn != null,
+                              onClear: () {
+                                setState(() {
+                                  entregaEn = null;
+                                  entregaEnError = false;
+                                  entregaEnErrorText = null;
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? 'Seleccione una opción'
+                                  : null,
                             ),
                             _styledDropdown(
                               label: 'Garantía',
                               value: garantia,
                               items: garantias,
-                              onChanged: (value) => setState(() => garantia = value),
-                              validator: (value) => value == null ? 'Seleccione una opción' : null,
+                              onChanged: (value) {
+                                setState(() {
+                                  garantia = value;
+                                  garantiaError = false;
+                                  garantiaErrorText = null;
+                                });
+                              },
+                              error: garantiaError,
+                              errorText: garantiaErrorText,
+                              showClear: garantia != null,
+                              onClear: () {
+                                setState(() {
+                                  garantia = null;
+                                  garantiaError = false;
+                                  garantiaErrorText = null;
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? 'Seleccione una opción'
+                                  : null,
                             ),
                           ],
                         ),
@@ -414,11 +651,15 @@ class _Seccion3State extends State<Seccion3> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   ),
-                                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   elevation: 0,
                                 ),
                                 child: const Text('Atras'),
@@ -428,18 +669,78 @@ class _Seccion3State extends State<Seccion3> {
                               width: 140,
                               child: ElevatedButton(
                                 onPressed: () {
+                                  setState(() {
+                                    metodoPagoError = metodoPago == null;
+                                    metodoPagoErrorText = metodoPagoError
+                                        ? 'Seleccione un método de pago'
+                                        : null;
+
+                                    monedaError = moneda == null;
+                                    monedaErrorText = monedaError
+                                        ? 'Seleccione una moneda'
+                                        : null;
+
+                                    cuentaError =
+                                        (metodoPago == 'Transferencia' &&
+                                        cuentaSeleccionada == null);
+                                    cuentaErrorText = cuentaError
+                                        ? 'Seleccione una cuenta'
+                                        : null;
+
+                                    entregaEnError = entregaEn == null;
+                                    entregaEnErrorText = entregaEnError
+                                        ? 'Seleccione una opción'
+                                        : null;
+
+                                    garantiaError = garantia == null;
+                                    garantiaErrorText = garantiaError
+                                        ? 'Seleccione una opción'
+                                        : null;
+
+                                    rangoEntregaError =
+                                        (fechaInicio == null ||
+                                        fechaFin == null);
+                                    rangoEntregaErrorText = rangoEntregaError
+                                        ? 'Seleccione un rango de entrega'
+                                        : null;
+
+                                    unidadesError =
+                                        unidadesController.text.isEmpty ||
+                                        int.tryParse(unidadesController.text) ==
+                                            null ||
+                                        int.parse(unidadesController.text) <= 0;
+                                    unidadesErrorText = unidadesError
+                                        ? 'Ingrese un número válido de unidades'
+                                        : null;
+                                  });
+
+                                  if (unidadesError ||
+                                      metodoPagoError ||
+                                      monedaError ||
+                                      cuentaError ||
+                                      entregaEnError ||
+                                      garantiaError ||
+                                      rangoEntregaError) {
+                                    // Mostrar alerta o scroll al primer error
+                                    return;
+                                  }
+
                                   if (_formKey.currentState!.validate()) {
-                                    // Navigator.pushNamed(context, "/seccion4");
+                                    // Siguiente paso
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   ),
-                                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   elevation: 0,
                                 ),
                                 child: const Text('Siguiente'),
@@ -459,7 +760,10 @@ class _Seccion3State extends State<Seccion3> {
     );
   }
 
-  Widget _buildSection({required String title, required List<Widget> children}) {
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
       padding: const EdgeInsets.all(16),
@@ -477,7 +781,7 @@ class _Seccion3State extends State<Seccion3> {
             ),
           ),
           const SizedBox(height: 12),
-          ...children, 
+          ...children,
         ],
       ),
     );
@@ -487,8 +791,12 @@ class _Seccion3State extends State<Seccion3> {
     required String label,
     required String? value,
     required List<String> items,
-    void Function(String?)? onChanged, // <-- Cambia aquí
+    void Function(String?)? onChanged,
     FormFieldValidator<String>? validator,
+    bool error = false,
+    String? errorText,
+    bool showClear = false,
+    VoidCallback? onClear,
   }) {
     final bool isCuentas = label.contains('Cuenta');
 
@@ -497,9 +805,9 @@ class _Seccion3State extends State<Seccion3> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: const Color.fromARGB(255, 240, 240, 240),
-        borderRadius: BorderRadius.circular(20), // Bordes redondeados
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.grey[300]!,
+          color: error ? Colors.red : Colors.grey[300]!,
           width: 1.5,
         ),
         boxShadow: [
@@ -517,10 +825,19 @@ class _Seccion3State extends State<Seccion3> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
-            color: Colors.blue[800],
+            color: error ? Colors.red : Colors.blue[800],
             fontWeight: FontWeight.bold,
           ),
           border: InputBorder.none,
+          errorText: error ? errorText : null,
+          errorStyle: const TextStyle(color: Colors.red, fontSize: 13),
+          suffixIcon: showClear && value != null
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                  onPressed: onClear,
+                  splashRadius: 18,
+                )
+              : null,
         ),
         selectedItemBuilder: (context) => items.map((item) {
           return Tooltip(
@@ -536,19 +853,23 @@ class _Seccion3State extends State<Seccion3> {
             ),
           );
         }).toList(),
-        items: items.map((item) => DropdownMenuItem(
-          value: item,
-          child: Padding(
-            padding: isCuentas
-                ? const EdgeInsets.symmetric(vertical: 10.0)
-                : EdgeInsets.zero,
-            child: Text(item),
-          ),
-        )).toList(),
-        onChanged: onChanged, // <-- Así acepta null
+        items: items
+            .map(
+              (item) => DropdownMenuItem(
+                value: item,
+                child: Padding(
+                  padding: isCuentas
+                      ? const EdgeInsets.symmetric(vertical: 10.0)
+                      : EdgeInsets.zero,
+                  child: Text(item),
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
         validator: validator,
-        dropdownColor: Colors.white, // <-- Fondo blanco en la lista desplegable
-        borderRadius: BorderRadius.circular(20), // <-- Bordes redondeados en la lista
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(20),
       ),
     );
   }

@@ -566,7 +566,6 @@ class _Seccion2State extends State<Seccion2> {
         });
       }
     });
-
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(1.8),

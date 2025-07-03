@@ -36,6 +36,39 @@ class _Seccion1 extends State<Seccion1> {
   String? modeloSeleccionado;
   String? yearSeleccionado;
 
+  final FocusNode nombreFocusNode = FocusNode();
+  final FocusNode empresaFocusNode = FocusNode();
+  final FocusNode telefonoFocusNode = FocusNode();
+  final FocusNode correoFocusNode = FocusNode();
+
+  bool nombreError = false;
+  bool empresaError = false;
+  bool telefonoError = false;
+  bool correoError = false;
+
+  String? nombreErrorText;
+  String? empresaErrorText;
+  String? telefonoErrorText;
+  String? correoErrorText;
+
+  bool vigenciaError = false;
+  String? vigenciaErrorText;
+
+  bool productoError = false;
+  String? productoErrorText;
+
+  bool lineaError = false;
+  String? lineaErrorText;
+
+  bool ejesError = false;
+  String? ejesErrorText;
+
+  bool modeloError = false;
+  String? modeloErrorText;
+
+  bool yearError = false;
+  String? yearErrorText;
+
   bool get _modeloDisponible {
     return productoSeleccionado != null &&
         lineaSeleccionada != null &&
@@ -48,23 +81,121 @@ class _Seccion1 extends State<Seccion1> {
     _cargarUsuario();
     fechaCtrl.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
     _cargarGruposMonday(); // 🔄 llamada automática al abrir
+
+    nombreFocusNode.addListener(() {
+      if (!nombreFocusNode.hasFocus && nombreCtrl.text.trim().isEmpty) {
+        setState(() {
+          nombreError = true;
+          nombreErrorText = 'Favor de rellenar el nombre completo';
+        });
+      } else if (nombreFocusNode.hasFocus) {
+        setState(() {
+          nombreError = false;
+          nombreErrorText = null;
+        });
+      }
+    });
+    empresaFocusNode.addListener(() {
+      if (!empresaFocusNode.hasFocus && empresaCtrl.text.trim().isEmpty) {
+        setState(() {
+          empresaError = true;
+          empresaErrorText = 'Favor de rellenar la empresa';
+        });
+      } else if (empresaFocusNode.hasFocus) {
+        setState(() {
+          empresaError = false;
+          empresaErrorText = null;
+        });
+      }
+    });
+    telefonoFocusNode.addListener(() {
+      if (!telefonoFocusNode.hasFocus && telefonoCtrl.text.trim().isEmpty) {
+        setState(() {
+          telefonoError = true;
+          telefonoErrorText = 'Favor de rellenar el número de celular';
+        });
+      } else if (telefonoFocusNode.hasFocus) {
+        setState(() {
+          telefonoError = false;
+          telefonoErrorText = null;
+        });
+      }
+    });
+    correoFocusNode.addListener(() {
+      if (!correoFocusNode.hasFocus && correoCtrl.text.trim().isEmpty) {
+        setState(() {
+          correoError = true;
+          correoErrorText = 'Favor de rellenar el correo electrónico';
+        });
+      } else if (correoFocusNode.hasFocus) {
+        setState(() {
+          correoError = false;
+          correoErrorText = null;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
-    cotizacionCtrl.dispose();
-    nombreCtrl.dispose();
-    empresaCtrl.dispose();
-    telefonoCtrl.dispose();
-    correoCtrl.dispose();
-    fechaCtrl.dispose();
+    nombreFocusNode.dispose();
+    empresaFocusNode.dispose();
+    telefonoFocusNode.dispose();
+    correoFocusNode.dispose();
     super.dispose();
   }
 
   void _irASiguiente() {
-    if (cotizacionCtrl.text.isEmpty ||
+    setState(() {
+      vigenciaError = vigenciaSeleccionada == null;
+      vigenciaErrorText = vigenciaError
+          ? 'Favor de rellenar la vigencia'
+          : null;
+
+      productoError = productoSeleccionado == null;
+      productoErrorText = productoError
+          ? 'Favor de rellenar el producto'
+          : null;
+
+      lineaError = lineaSeleccionada == null;
+      lineaErrorText = lineaError ? 'Favor de rellenar la línea' : null;
+
+      ejesError = ejesSeleccionados == null;
+      ejesErrorText = ejesError ? 'Favor de rellenar los ejes' : null;
+
+      modeloError = modeloSeleccionado == null;
+      modeloErrorText = modeloError ? 'Favor de rellenar el modelo' : null;
+
+      yearError = yearSeleccionado == null;
+      yearErrorText = yearError ? 'Favor de rellenar la generación' : null;
+
+      nombreError = nombreCtrl.text.trim().isEmpty;
+      nombreErrorText = nombreError
+          ? 'Favor de rellenar el nombre completo'
+          : null;
+
+      empresaError = empresaCtrl.text.trim().isEmpty;
+      empresaErrorText = empresaError ? 'Favor de rellenar la empresa' : null;
+
+      telefonoError = telefonoCtrl.text.trim().isEmpty;
+      telefonoErrorText = telefonoError
+          ? 'Favor de rellenar el número de celular'
+          : null;
+
+      correoError = correoCtrl.text.trim().isEmpty;
+      correoErrorText = correoError
+          ? 'Favor de rellenar el correo electrónico'
+          : null;
+    });
+
+    if (vigenciaError ||
+        productoError ||
+        lineaError ||
+        ejesError ||
+        modeloError ||
+        yearError ||
+        cotizacionCtrl.text.isEmpty ||
         fechaCtrl.text.isEmpty ||
-        vigenciaSeleccionada == null ||
         nombreCtrl.text.isEmpty ||
         empresaCtrl.text.isEmpty ||
         telefonoCtrl.text.isEmpty ||
@@ -76,17 +207,23 @@ class _Seccion1 extends State<Seccion1> {
       return;
     }
 
-     // Validación de número de celular
-  if (telefonoCtrl.text.length != 10) {
-    mostrarAlertaError(context, 'El número de celular debe tener exactamente 10 dígitos');
-    return;
-  }
+    // Validación de número de celular
+    if (telefonoCtrl.text.length != 10) {
+      mostrarAlertaError(
+        context,
+        'El número de celular debe tener exactamente 10 dígitos',
+      );
+      return;
+    }
 
     // Validación de correo electrónico
     final email = correoCtrl.text.trim();
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$');
     if (!emailRegex.hasMatch(email)) {
-      mostrarAlertaError(context, 'Por favor ingresa un correo electrónico válido');
+      mostrarAlertaError(
+        context,
+        'Por favor ingresa un correo electrónico válido',
+      );
       return;
     } else {
       final modeloSeleccionadoMap = _modelos.firstWhere(
@@ -428,13 +565,23 @@ class _Seccion1 extends State<Seccion1> {
                             keyboardType: TextInputType.text,
                             inputFormatters: const [],
                           ),
+                        ],
+                      ),
+                      // --- Aquí va el panel separado de vigencia ---
+                      _buildSection(
+                        title: 'Vigencia',
+                        children: [
                           _VigenciaDropdown(
                             valorSeleccionado: vigenciaSeleccionada,
                             onChanged: (value) {
                               setState(() {
                                 vigenciaSeleccionada = value;
+                                vigenciaError = false;
+                                vigenciaErrorText = null;
                               });
                             },
+                            error: vigenciaError,
+                            errorText: vigenciaErrorText,
                           ),
                         ],
                       ),
@@ -446,12 +593,34 @@ class _Seccion1 extends State<Seccion1> {
                             hint: 'Nombre Completo',
                             keyboardType: TextInputType.text,
                             inputFormatters: const [],
+                            focusNode: nombreFocusNode,
+                            error: nombreError,
+                            errorText: nombreErrorText,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  nombreError = false;
+                                  nombreErrorText = null;
+                                });
+                              }
+                            },
                           ),
                           _CustomTextField(
                             controller: empresaCtrl,
                             hint: 'Empresa',
                             keyboardType: TextInputType.text,
                             inputFormatters: const [],
+                            focusNode: empresaFocusNode,
+                            error: empresaError,
+                            errorText: empresaErrorText,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  empresaError = false;
+                                  empresaErrorText = null;
+                                });
+                              }
+                            },
                           ),
                           _CustomTextField(
                             controller: telefonoCtrl,
@@ -459,16 +628,17 @@ class _Seccion1 extends State<Seccion1> {
                             keyboardType: TextInputType.phone,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(10), // Limita a 10 dígitos
+                              LengthLimitingTextInputFormatter(10),
                             ],
+                            focusNode: telefonoFocusNode,
+                            error: telefonoError,
+                            errorText: telefonoErrorText,
                             onChanged: (value) {
-                              if (value.length > 10) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('El número debe tener máximo 10 dígitos'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  telefonoError = false;
+                                  telefonoErrorText = null;
+                                });
                               }
                             },
                           ),
@@ -477,6 +647,17 @@ class _Seccion1 extends State<Seccion1> {
                             hint: 'Correo Electronico',
                             keyboardType: TextInputType.emailAddress,
                             inputFormatters: const [],
+                            focusNode: correoFocusNode,
+                            error: correoError,
+                            errorText: correoErrorText,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  correoError = false;
+                                  correoErrorText = null;
+                                });
+                              }
+                            },
                           ),
                         ],
                       ),
@@ -488,9 +669,13 @@ class _Seccion1 extends State<Seccion1> {
                             value: productoSeleccionado,
                             onChanged: (v) => setState(() {
                               productoSeleccionado = v;
+                              productoError = false;
+                              productoErrorText = null;
                               modeloSeleccionado = null;
                               _verificarYConsultarGrupo();
                             }),
+                            error: productoError,
+                            errorText: productoErrorText,
                           ),
                         ],
                       ),
@@ -501,9 +686,13 @@ class _Seccion1 extends State<Seccion1> {
                             value: lineaSeleccionada,
                             onChanged: (v) => setState(() {
                               lineaSeleccionada = v;
-                              modeloSeleccionado = null; // Limpia modelo
+                              lineaError = false;
+                              lineaErrorText = null;
+                              modeloSeleccionado = null;
                               _verificarYConsultarGrupo();
                             }),
+                            error: lineaError,
+                            errorText: lineaErrorText,
                           ),
                         ],
                       ),
@@ -514,9 +703,13 @@ class _Seccion1 extends State<Seccion1> {
                             value: ejesSeleccionados,
                             onChanged: (v) => setState(() {
                               ejesSeleccionados = v;
-                              modeloSeleccionado = null; // Limpia modelo
+                              ejesError = false;
+                              ejesErrorText = null;
+                              modeloSeleccionado = null;
                               _verificarYConsultarGrupo();
                             }),
+                            error: ejesError,
+                            errorText: ejesErrorText,
                           ),
                         ],
                       ),
@@ -529,8 +722,13 @@ class _Seccion1 extends State<Seccion1> {
                             value: modeloSeleccionado,
                             enabled: _modeloDisponible && _modelos.isNotEmpty,
                             modelos: _modelos,
-                            onChanged: (v) =>
-                                setState(() => modeloSeleccionado = v),
+                            onChanged: (v) => setState(() {
+                              modeloSeleccionado = v;
+                              modeloError = false;
+                              modeloErrorText = null;
+                            }),
+                            error: modeloError,
+                            errorText: modeloErrorText,
                           ),
                           if (_modeloDisponible && _modelos.isEmpty)
                             const Padding(
@@ -559,6 +757,8 @@ class _Seccion1 extends State<Seccion1> {
                                 yearSeleccionado = year; // Aquí puede ser null
                               });
                             },
+                            error: yearError,
+                            errorText: yearErrorText,
                           ),
                         ],
                       ),
@@ -617,13 +817,114 @@ class _Seccion1 extends State<Seccion1> {
   }
 }
 
+class _VigenciaDropdown extends StatelessWidget {
+  final String? valorSeleccionado;
+  final void Function(String?) onChanged;
+  final bool error;
+  final String? errorText;
+
+  static const List<Map<String, String>> _opciones = [
+    {'value': '1 día', 'text': '1 día'},
+    {'value': '7 días', 'text': '7 días'},
+    {'value': '15 días', 'text': '15 días'},
+    {'value': '30 días', 'text': '30 días'},
+  ];
+
+  // ignore: use_super_parameters
+  const _VigenciaDropdown({
+    Key? key,
+    required this.valorSeleccionado,
+    required this.onChanged,
+    this.error = false,
+    this.errorText,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 240, 240, 240),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: error ? Colors.red : Colors.grey[300]!,
+              width: 1.5,
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: valorSeleccionado,
+              hint: Text(
+                'Selecciona la vigencia',
+                style: TextStyle(
+                  color: error ? Colors.red : Colors.black,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                ),
+              ),
+              icon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (valorSeleccionado != null)
+                    GestureDetector(
+                      onTap: () => onChanged(null),
+                      child: const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                      ),
+                    ),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: Color(0xFF565656),
+                    size: 28,
+                  ),
+                ],
+              ),
+              dropdownColor: Colors.white,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              onChanged: onChanged,
+              items: _opciones.map((opcion) {
+                return DropdownMenuItem<String>(
+                  value: opcion['value'],
+                  child: Text(opcion['text']!),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        if (error && errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _CustomTextField extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
   final bool enabled;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
-  final ValueChanged<String>? onChanged; // <-- Agrega esto
+  final ValueChanged<String>? onChanged;
+  final FocusNode? focusNode;
+  final bool error;
+  final String? errorText;
 
   const _CustomTextField({
     required this.hint,
@@ -631,7 +932,10 @@ class _CustomTextField extends StatelessWidget {
     this.enabled = true,
     this.keyboardType,
     this.inputFormatters,
-    this.onChanged, // <-- Agrega esto
+    this.onChanged,
+    this.focusNode,
+    this.error = false,
+    this.errorText,
   });
 
   @override
@@ -642,14 +946,27 @@ class _CustomTextField extends StatelessWidget {
         controller: controller,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        onChanged: onChanged, // <-- Agrega esto
+        onChanged: onChanged,
+        focusNode: focusNode,
         decoration: InputDecoration(
-          labelText: hint, // <-- Esto hace la etiqueta flotante
+          labelText: hint,
           enabled: enabled,
           filled: true,
           fillColor: const Color.fromARGB(255, 237, 237, 237),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(
+              color: error ? Colors.red : const Color(0xFF1565C0),
+              width: 2,
+            ),
+          ),
+          floatingLabelStyle: TextStyle(
+            color: error ? Colors.red : const Color(0xFF1565C0),
+            fontWeight: FontWeight.w600,
+          ),
+          errorText: error ? errorText : null,
         ),
       ),
     );
@@ -660,11 +977,18 @@ class _ProductoDropdown extends StatefulWidget {
   final List<Map<String, String>> productos;
   final String? value;
   final void Function(String?) onChanged;
+  final bool enabled;
+  final bool error;
+  final String? errorText;
 
   const _ProductoDropdown({
     required this.productos,
     required this.value,
     required this.onChanged,
+    // ignore: unused_element_parameter
+    this.enabled = true,
+    this.error = false,
+    this.errorText,
   });
 
   @override
@@ -838,72 +1162,94 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          if (_focusNode.hasFocus) {
-            _focusNode.unfocus();
-          } else {
-            _focusNode.requestFocus();
-          }
-        },
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 240, 240, 240),
-            borderRadius: BorderRadius.circular(29),
-            border: Border.all(
-              color: _focusNode.hasFocus
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey[300]!,
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  decoration: InputDecoration(
-                    hintText: 'Selecciona un producto',
-                    hintStyle: const TextStyle(
-                      color: Color.fromARGB(255, 0, 0, 0),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    suffixIcon: _controller.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            color: Colors.grey,
-                            onPressed: () {
-                              _controller.clear();
-                              widget.onChanged(null);
-                              setState(() {
-                                _filteredProductos = widget.productos;
-                              });
-                              _focusNode.requestFocus();
-                            },
-                          )
-                        : null,
-                  ),
-                  style: const TextStyle(fontSize: 16, color: Colors.black),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (_focusNode.hasFocus) {
+                _focusNode.unfocus();
+              } else {
+                _focusNode.requestFocus();
+              }
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 240, 240, 240),
+                borderRadius: BorderRadius.circular(29),
+                border: Border.all(
+                  color: widget.error
+                      ? Colors.red
+                      : (_focusNode.hasFocus
+                            ? Theme.of(context).primaryColor
+                            : Colors.grey[300]!),
+                  width: 1.5,
                 ),
               ),
-              Icon(
-                _focusNode.hasFocus
-                    ? Icons.arrow_drop_down
-                    : Icons.arrow_drop_down,
-                color: const Color.fromARGB(255, 86, 86, 86),
-                size: 28,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      enabled: widget.enabled,
+                      decoration: InputDecoration(
+                        hintText: 'Selecciona un producto',
+                        // enabled: widget.enabled,
+                        hintStyle: TextStyle(
+                          color: widget.error ? Colors.red : Colors.black,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
+                        suffixIcon: _controller.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                color: Colors.grey,
+                                onPressed: () {
+                                  _controller.clear();
+                                  widget.onChanged(null);
+                                  setState(() {
+                                    _filteredProductos = widget.productos;
+                                  });
+                                  _focusNode.requestFocus();
+                                },
+                              )
+                            : null,
+                      ),
+                      style: const TextStyle(fontSize: 16, color: Colors.black),
+                    ),
+                  ),
+                  Opacity(
+                    opacity: widget.enabled ? 1.0 : 0.5,
+                    child: Icon(
+                      Icons.arrow_drop_down,
+                      color: const Color.fromARGB(255, 86, 86, 86),
+                      size: 28,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (widget.error && widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              widget.errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -911,8 +1257,15 @@ class _ProductoDropdownState extends State<_ProductoDropdown> {
 class _LineaDropdown extends StatefulWidget {
   final String? value;
   final void Function(String?) onChanged;
+  final bool error;
+  final String? errorText;
 
-  const _LineaDropdown({required this.value, required this.onChanged});
+  const _LineaDropdown({
+    required this.value,
+    required this.onChanged,
+    this.error = false,
+    this.errorText,
+  });
 
   @override
   State<_LineaDropdown> createState() => _LineaDropdownState();
@@ -928,65 +1281,81 @@ class _LineaDropdownState extends State<_LineaDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 240, 240, 240),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey[300]!, width: 1.5),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: widget.value,
-          hint: const Text(
-            'Selecciona la línea',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 240, 240, 240),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: widget.error ? Colors.red : Colors.grey[300]!,
+              width: 1.5,
             ),
           ),
-          onChanged: widget.onChanged,
-          dropdownColor: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.black,
-            fontWeight: FontWeight.w500,
-          ),
-          icon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.value != null)
-                GestureDetector(
-                  onTap: () => widget.onChanged(null),
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 4),
-                    child: Icon(Icons.clear, color: Colors.grey, size: 22),
-                  ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: widget.value,
+              hint: Text(
+                'Selecciona la línea',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: widget.error ? Colors.red : Colors.black,
+                  fontWeight: FontWeight.w500,
                 ),
-              const Icon(
-                Icons.arrow_drop_down,
-                color: Color(0xFF565656),
-                size: 28,
               ),
-            ],
-          ),
-          items: _lineas
-              .map(
-                (option) => DropdownMenuItem(
-                  value: option,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(option, textAlign: TextAlign.left),
+              onChanged: widget.onChanged,
+              dropdownColor: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
+              ),
+              icon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.value != null)
+                    GestureDetector(
+                      onTap: () => widget.onChanged(null),
+                      child: const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                      ),
+                    ),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: Color(0xFF565656),
+                    size: 28,
                   ),
-                ),
-              )
-              .toList(),
+                ],
+              ),
+              items: _lineas
+                  .map(
+                    (option) => DropdownMenuItem(
+                      value: option,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Text(option, textAlign: TextAlign.left),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
         ),
-      ),
+        if (widget.error && widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              widget.errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -994,12 +1363,17 @@ class _LineaDropdownState extends State<_LineaDropdown> {
 class NumeroEjesDropdown extends StatelessWidget {
   final String? value;
   final void Function(String?) onChanged;
+  final bool error;
+  final String? errorText;
 
+  // ignore: use_super_parameters
   const NumeroEjesDropdown({
-    super.key,
+    Key? key,
     required this.value,
     required this.onChanged,
-  });
+    this.error = false,
+    this.errorText,
+  }) : super(key: key);
 
   static const List<Map<String, String>> _opciones = [
     {'value': '1', 'text': '1 Eje'},
@@ -1009,61 +1383,78 @@ class NumeroEjesDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 240, 240, 240),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey[300]!, width: 1.5),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: _opciones.any((item) => item['value'] == value) ? value : null,
-          hint: const Text(
-            'Selecciona el número de ejes',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
-              fontSize: 16,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 240, 240, 240),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: error ? Colors.red : Colors.grey[300]!,
+              width: 1.5,
             ),
           ),
-          // Aquí la X y la flecha, igual que en Línea
-          icon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (value != null)
-                GestureDetector(
-                  onTap: () => onChanged(null),
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 4),
-                    child: Icon(Icons.clear, color: Colors.grey, size: 22),
-                  ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: _opciones.any((item) => item['value'] == value)
+                  ? value
+                  : null,
+              hint: Text(
+                'Selecciona el número de ejes',
+                style: TextStyle(
+                  color: error ? Colors.red : Colors.black,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
                 ),
-              const Icon(
-                Icons.arrow_drop_down,
-                color: Color(0xFF565656),
-                size: 28,
               ),
-            ],
+              icon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (value != null)
+                    GestureDetector(
+                      onTap: () => onChanged(null),
+                      child: const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                      ),
+                    ),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: Color(0xFF565656),
+                    size: 28,
+                  ),
+                ],
+              ),
+              dropdownColor: Colors.white,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              onChanged: onChanged,
+              items: _opciones.map((opcion) {
+                return DropdownMenuItem<String>(
+                  value: opcion['value'],
+                  child: Text(opcion['text']!),
+                );
+              }).toList(),
+            ),
           ),
-          dropdownColor: Colors.white,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.black,
-            fontWeight: FontWeight.w500,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          onChanged: onChanged,
-          items: _opciones.map((opcion) {
-            return DropdownMenuItem<String>(
-              value: opcion['value'],
-              child: Text(opcion['text']!),
-            );
-          }).toList(),
         ),
-      ),
+        if (error && errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1073,12 +1464,16 @@ class _ModeloDropdown extends StatefulWidget {
   final void Function(String?)? onChanged;
   final bool enabled;
   final List<Map<String, String>> modelos;
+  final bool error;
+  final String? errorText;
 
   const _ModeloDropdown({
     required this.value,
     required this.onChanged,
     required this.modelos,
     this.enabled = true,
+    this.error = false,
+    this.errorText,
   });
 
   @override
@@ -1241,45 +1636,46 @@ class _ModeloDropdownState extends State<_ModeloDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          if (_focusNode.hasFocus) {
-            _focusNode.unfocus();
-          } else {
-            _focusNode.requestFocus();
-          }
-        },
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 240, 240, 240),
-            borderRadius: BorderRadius.circular(29),
-            border: Border.all(
-              color: _focusNode.hasFocus
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey[300]!,
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Opacity(
-                  opacity: widget.enabled ? 1.0 : 0.5,
-                  child: IgnorePointer(
-                    ignoring: !widget.enabled,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (_focusNode.hasFocus) {
+                _focusNode.unfocus();
+              } else {
+                _focusNode.requestFocus();
+              }
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 240, 240, 240),
+                borderRadius: BorderRadius.circular(29),
+                border: Border.all(
+                  color: widget.error
+                      ? Colors.red
+                      : (_focusNode.hasFocus
+                            ? Theme.of(context).primaryColor
+                            : Colors.grey[300]!),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
                       enabled: widget.enabled,
                       decoration: InputDecoration(
                         hintText: 'Selecciona el modelo',
-                        hintStyle: const TextStyle(
-                          color: Colors.black,
+                        hintStyle: TextStyle(
+                          color: widget.error ? Colors.red : Colors.black,
                           fontWeight: FontWeight.w500,
                           fontSize: 16,
                         ),
@@ -1305,76 +1701,30 @@ class _ModeloDropdownState extends State<_ModeloDropdown> {
                       style: const TextStyle(fontSize: 16, color: Colors.black),
                     ),
                   ),
-                ),
+                  Opacity(
+                    opacity: widget.enabled ? 1.0 : 0.5,
+                    child: Icon(
+                      _focusNode.hasFocus
+                          ? Icons.arrow_drop_down
+                          : Icons.arrow_drop_down,
+                      color: const Color.fromARGB(255, 86, 86, 86),
+                      size: 28,
+                    ),
+                  ),
+                ],
               ),
-              Opacity(
-                opacity: widget.enabled ? 1.0 : 0.5,
-                child: const Icon(
-                  Icons.arrow_drop_down,
-                  color: Color.fromARGB(255, 86, 86, 86),
-                  size: 28,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VigenciaDropdown extends StatelessWidget {
-  final String? valorSeleccionado;
-  final void Function(String?) onChanged;
-
-  const _VigenciaDropdown({
-    required this.valorSeleccionado,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 237, 237, 237),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey[300]!, width: 1.5),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: valorSeleccionado,
-          hint: const Text(
-            'Selecciona vigencia (días)',
-            style: TextStyle(
-              color: Colors.black, // Texto del hint negro
-              fontWeight: FontWeight.w500,
-              fontSize: 16,
             ),
           ),
-          icon: const Icon(
-            Icons.arrow_drop_down,
-            color: Color(0xFF565656),
-            size: 28,
-          ),
-          dropdownColor: Colors.white, // Fondo blanco del menú
-          style: const TextStyle(
-            color: Colors.black, // Texto negro de los ítems
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-          ),
-          borderRadius: BorderRadius.circular(16), // Bordes del menú
-          onChanged: onChanged,
-          items: const [
-            DropdownMenuItem(value: '1', child: Text('1 día')),
-            DropdownMenuItem(value: '7', child: Text('7 días')),
-            DropdownMenuItem(value: '15', child: Text('15 días')),
-            DropdownMenuItem(value: '30', child: Text('30 días')),
-          ],
         ),
-      ),
+        if (widget.error && widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              widget.errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1404,10 +1754,14 @@ class _NavigationButton extends StatelessWidget {
 class _YearPickerField extends StatelessWidget {
   final String? initialYear;
   final void Function(String?) onYearSelected;
+  final bool error;
+  final String? errorText;
 
   const _YearPickerField({
     required this.initialYear,
     required this.onYearSelected,
+    this.error = false,
+    this.errorText,
   });
 
   List<String> _getYears() {
@@ -1423,45 +1777,63 @@ class _YearPickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 240, 240, 240),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey[300]!, width: 1.5),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: initialYear,
-          hint: const Text(
-            'Selecciona el año del modelo',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
-              fontSize: 16,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 240, 240, 240),
+            borderRadius: BorderRadius.circular(29),
+            border: Border.all(
+              color: error ? Colors.red : Colors.grey[300]!,
+              width: 1.5,
             ),
           ),
-          icon: const Icon(
-            Icons.arrow_drop_down,
-            color: Color(0xFF565656),
-            size: 28,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: initialYear,
+              hint: Text(
+                'Selecciona el año del modelo',
+                style: TextStyle(
+                  color: error ? Colors.red : Colors.black,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                ),
+              ),
+              icon: const Icon(
+                Icons.arrow_drop_down,
+                color: Color(0xFF565656),
+                size: 28,
+              ),
+              dropdownColor: Colors.white,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+              menuMaxHeight: 200,
+              borderRadius: BorderRadius.circular(16),
+              onChanged: onYearSelected,
+              items: _getYears()
+                  .map(
+                    (year) => DropdownMenuItem(value: year, child: Text(year)),
+                  )
+                  .toList(),
+            ),
           ),
-          dropdownColor: Colors.white,
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-          ),
-          menuMaxHeight: 200,
-          borderRadius: BorderRadius.circular(16),
-          onChanged: onYearSelected,
-          items: _getYears()
-              .map((year) => DropdownMenuItem(value: year, child: Text(year)))
-              .toList(),
         ),
-      ),
+        if (error && errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
     );
   }
 }

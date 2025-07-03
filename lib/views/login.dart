@@ -154,8 +154,12 @@ class LoginState extends State<Login> {
                     borderSide: BorderSide(
                       color: Colors.blue[700]!,
                       width: 2,
-                    ), // Borde cuando está enfocado
+                    ),
                     borderRadius: BorderRadius.circular(12),
+                  ),
+                  floatingLabelStyle: TextStyle(
+                    color: Colors.blue[700], // <-- Azul para el label animado
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -175,10 +179,13 @@ class LoginState extends State<Login> {
                     borderSide: BorderSide(
                       color: Colors.blue[700]!,
                       width: 2,
-                    ), // Borde cuando está enfocado
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  // Icono para mostrar/ocultar contraseña
+                  floatingLabelStyle: TextStyle(
+                    color: Colors.blue[700], // <-- Azul para el label animado
+                    fontWeight: FontWeight.w600,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureText ? Icons.visibility_off : Icons.visibility,

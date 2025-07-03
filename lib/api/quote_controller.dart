@@ -6,7 +6,7 @@ class QuoteController {
       'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjM4MDk5MjcyMiwiYWFpIjoxMSwidWlkIjo0MDY5NzEwMSwiaWFkIjoiMjAyNC0wNy0wNVQyMTowMjozMi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MTA5Mjg0OTUsInJnbiI6InVzZTEifQ.55PVw2YfNZ7d7DUgqfEOl4vLHlh3MU5QGnwReMl-NpQ'; // Pon tu token de Monday aquí
   static final url = Uri.parse('https://api.monday.com/v2');
 
-  //
+  //Método para obtener los grupos que corresponden a los productos para el dropdown
   static Future<List<Map<String, dynamic>>> obtenerGrupos(int boardId) async {
     final query =
         """
@@ -49,6 +49,7 @@ query {
     throw Exception('Error al obtener los grupos desde Monday');
   }
 
+  //Método que permite obtener los modelos de los productos seleccionados por (Producto, Línea, Ejes)
   static Future<List<Map<String, String>>> obtenerModelosPorGrupo(
     String producto,
     String linea,
@@ -116,6 +117,7 @@ query {
     throw Exception('Error al obtener modelos');
   }
 
+  //Método que permite extraer todas las estructuras para sacar la ficha técnica del modelo seleccionado
   static Future<List<Map<String, dynamic>>> obtenerGruposEstructura(
     int boardId,
   ) async {
@@ -152,6 +154,7 @@ query {
     throw Exception('Error al obtener los grupos desde Monday');
   }
 
+  //Método que obtiene la estructura del modelo seleccionado
   static Future<List<dynamic>> obtenerFichaTecnica(
     String grupoId,
     int boardId,
@@ -203,6 +206,7 @@ query {
     }
   }
 
+  //Método que permite obtener los kits del modelo seleccionado que se encuentran en los subelementos
   static Future<List<Map<String, dynamic>>> obtenerKitsAdicionales(
     int itemId,
   ) async {
@@ -259,7 +263,7 @@ query {
           } else if (title == 'CANTIDAD') {
             cantidad = int.tryParse(textValue ?? '0') ?? 0;
           } else if (title == 'COSTO X UNIDAD') {
-            precio = double.tryParse(textValue ?? '0') ?? 0;
+            precio = double.tryParse(displayValue ?? '0') ?? 0;
           }
         }
         final descripcionCompleta = "$cantidad KIT DE $adicional";
@@ -392,7 +396,7 @@ query {
         final rentabilidadVal = double.tryParse(rentabilidad ?? '0') ?? 0;
 
         final base = costo + (manoObraVal * ponderacionVal);
-        final precioFinal = (base/(1 - (rentabilidadVal / 100)))/1.16;
+        final precioFinal = (base / (1 - (rentabilidadVal / 100))) / 1.16;
 
         return {
           'name': item['name'] ?? '',
@@ -403,5 +407,66 @@ query {
     }
 
     throw Exception('Error al obtener modelos');
+  }
+
+  static Future<Map<String, dynamic>> obtenerPrecioProducto(int itemId) async {
+    final query =
+        """
+    query {
+      items(ids: $itemId) {
+        name
+        column_values(ids: ["reflejo3", "n_meros81", "numeric_mkp11qxn", "n_meros5", "estado33"]) {
+          column {
+            title
+          }
+          text
+          ... on MirrorValue {
+            display_value
+          }
+        }
+      }
+    }
+  """;
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final item = data['data']['items'][0];
+      final columnValues = item['column_values'] as List;
+
+      double costoMateriales = 0;
+      double manoObra = 0;
+      double ponderacion = 0;
+      double rentabilidad = 0;
+
+      for (var col in columnValues) {
+        final title = col['column']['title'];
+        final display = col['display_value'] ?? col['text'] ?? '';
+
+        if (title == "Costo de Materiales") {
+          costoMateriales = double.tryParse(display) ?? 0;
+        } else if (title == "Mano de Obra Estandár") {
+          manoObra = double.tryParse(display) ?? 0;
+        } else if (title == "Ponderación") {
+          ponderacion = double.tryParse(display) ?? 0;
+        } else if (title == "Rentabilidad/Ganancia Esperada") {
+          rentabilidad = double.tryParse(display) ?? 0;
+        }
+      }
+
+      final subtotal = costoMateriales + (manoObra * ponderacion);
+      final rentabilidadPorcentaje = rentabilidad / 100;
+
+      return {'subtotal': subtotal, 'rentabilidad': rentabilidadPorcentaje};
+    } else {
+      throw Exception(
+        'Error al obtener el precio del producto: ${response.body}',
+      );
+    }
   }
 }

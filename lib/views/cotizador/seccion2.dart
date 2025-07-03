@@ -46,6 +46,11 @@ class _Seccion2State extends State<Seccion2> {
 
   bool _adicionalesTileExpanded = true; // <-- NUEVO
 
+  // Variables de control y datos
+  double _precioProductoBase = 0;
+  double _precioProductoConAdicionales = 0;
+  double _rentabilidad = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -191,6 +196,8 @@ class _Seccion2State extends State<Seccion2> {
       setState(() {
         especificaciones['Adicionales de Línea'] = adicionales;
       });
+      // Después de guardar adicionales, ahora sí carga el precio
+      _cargarPrecioProducto();
     } catch (e) {
       if (!mounted) return;
       showDialog(
@@ -210,6 +217,43 @@ class _Seccion2State extends State<Seccion2> {
       setState(() {
         _cargandoAdicionales = false;
       });
+    }
+  }
+
+  void _cargarPrecioProducto() async {
+    try {
+      final idProducto = int.tryParse(widget.modeloValue) ?? 0;
+
+      final precioData = await QuoteController.obtenerPrecioProducto(
+        idProducto,
+      );
+
+      final subtotal = precioData['subtotal'] ?? 0.0;
+      final rentabilidad = precioData['rentabilidad'] ?? 0.0;
+      //print(subtotal);
+      //print(rentabilidad);
+
+      setState(() {
+        _precioProductoBase = subtotal;
+        _rentabilidad =
+            rentabilidad; // Debes declarar esta variable en la clase
+        _actualizarPrecioConAdicionales();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Error cargando el precio del producto:\n$e'),
+          actions: [
+            TextButton(
+              child: const Text('Cerrar'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -258,6 +302,46 @@ class _Seccion2State extends State<Seccion2> {
         _cargandoAdicionales = false;
       });
     }
+  }
+
+  //
+  void _actualizarPrecioConAdicionales() {
+    double totalAdicionales = 0;
+
+    final adicionales = especificaciones['Adicionales de Línea'] ?? [];
+
+    final excluidos =
+        (_excludedFeatures['Adicionales de Línea'] ?? {})
+            .toList();
+
+    try {
+      for (var adicional in adicionales) {
+        final cantidad = (adicional['cantidad'] is int)
+            ? adicional['cantidad'] as int
+            : int.tryParse(adicional['cantidad'].toString()) ?? 0;
+
+        final precio = (adicional['precio'] is double)
+            ? adicional['precio'] as double
+            : double.tryParse(adicional['precio'].toString()) ?? 0.0;
+
+        final nombre = adicional['name'] ?? '';
+
+        if (!excluidos.contains(nombre)) {
+          totalAdicionales += cantidad * precio;
+        } else {
+          totalAdicionales += cantidad * precio * 0.2;
+        }
+      }
+    } catch (e) {
+      //print('Error al calcular adicionales: $e');
+    }
+
+    final subtotalConAdicionales = _precioProductoBase + totalAdicionales;
+    final totalFinal = (subtotalConAdicionales / (1 - _rentabilidad)) / 1.16;
+
+    setState(() {
+      _precioProductoConAdicionales = totalFinal;
+    });
   }
 
   @override
@@ -436,19 +520,33 @@ class _Seccion2State extends State<Seccion2> {
             _expandedMainSections[title] = expanded;
           });
         },
-        title: SizedBox(
-          width: double.infinity,
-          child: Text(
-            title,
-            textAlign: TextAlign.justify,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.blue[800],
-              height: 1.4,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue[800],
+                ),
+                overflow: TextOverflow
+                    .ellipsis, // Opcional: para evitar que el texto se desborde
+              ),
             ),
-          ),
+            const SizedBox(width: 8), // Espacio entre texto y precio
+            Text(
+              formatCurrency(_precioProductoConAdicionales),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Color(0xFF1565C0),
+              ),
+            ),
+          ],
         ),
+
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -630,6 +728,7 @@ class _Seccion2State extends State<Seccion2> {
                         .putIfAbsent('Adicionales de Línea', () => <String>{})
                         .add(name);
                   }
+                  _actualizarPrecioConAdicionales();
                 });
               },
               tooltip: isExcluded ? 'Incluir' : 'Excluir',
@@ -663,7 +762,8 @@ class _Seccion2State extends State<Seccion2> {
               ),
             ),
             // Solo mostrar el total cuando está colapsado
-            if (!_adicionalesTileExpanded && _adicionalesSeleccionados.isNotEmpty)
+            if (!_adicionalesTileExpanded &&
+                _adicionalesSeleccionados.isNotEmpty)
               Text(
                 formatCurrency(
                   _adicionalesSeleccionados.fold<double>(
@@ -732,7 +832,9 @@ class _Seccion2State extends State<Seccion2> {
                               focusNode: focusNode,
                               decoration: InputDecoration(
                                 labelText: "Selecciona una categoría",
-                                labelStyle: const TextStyle(color: Color(0xFF1565C0)), // Azul
+                                labelStyle: const TextStyle(
+                                  color: Color(0xFF1565C0),
+                                ), // Azul
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -853,8 +955,10 @@ class _Seccion2State extends State<Seccion2> {
                                         final nombre = item['name'] ?? '';
                                         final precio = item['precio'] ?? '';
                                         final estado = item['estado'] ?? '';
-                                        final isSelected = _adicionalesSeleccionados
-                                            .contains(nombre);
+                                        final isSelected =
+                                            _adicionalesSeleccionados.contains(
+                                              nombre,
+                                            );
                                         return Padding(
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 8,
@@ -869,26 +973,26 @@ class _Seccion2State extends State<Seccion2> {
                                             ),
                                             elevation: 2,
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(
-                                                24,
-                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(24),
                                               side: BorderSide(
                                                 color: isSelected
                                                     ? Colors.green
                                                     : const Color.fromARGB(
-                                                      255,
-                                                      237,
-                                                      237,
-                                                      237,
-                                                    ),
+                                                        255,
+                                                        237,
+                                                        237,
+                                                        237,
+                                                      ),
                                                 width: isSelected ? 2 : 1,
                                               ),
                                             ),
                                             child: Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                vertical: 18,
-                                                horizontal: 22,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 18,
+                                                    horizontal: 22,
+                                                  ),
                                               child: Row(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
@@ -898,22 +1002,27 @@ class _Seccion2State extends State<Seccion2> {
                                                     flex: 2,
                                                     child: Column(
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         _chipEstado(estado),
-                                                        const SizedBox(height: 12),
+                                                        const SizedBox(
+                                                          height: 12,
+                                                        ),
                                                         Text(
                                                           nombre,
-                                                          style: const TextStyle(
-                                                            fontSize:
-                                                                13, 
-                                                            color: Colors.black87,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                          ),
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 13,
+                                                                color: Colors
+                                                                    .black87,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                              ),
                                                           maxLines: 3,
-                                                          overflow:
-                                                              TextOverflow.ellipsis,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
                                                         ),
                                                       ],
                                                     ),
@@ -923,13 +1032,15 @@ class _Seccion2State extends State<Seccion2> {
                                                     flex: 1,
                                                     child: Column(
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment.end,
+                                                          CrossAxisAlignment
+                                                              .end,
                                                       children: [
                                                         IconButton(
                                                           iconSize: 25,
                                                           icon: Icon(
                                                             isSelected
-                                                                ? Icons.check_circle
+                                                                ? Icons
+                                                                      .check_circle
                                                                 : Icons
                                                                       .add_circle_outline,
                                                             color: isSelected
@@ -940,18 +1051,26 @@ class _Seccion2State extends State<Seccion2> {
                                                             setState(() {
                                                               if (isSelected) {
                                                                 _adicionalesSeleccionados
-                                                                    .remove(nombre);
+                                                                    .remove(
+                                                                      nombre,
+                                                                    );
                                                                 _cantidadesAdicionales
-                                                                    .remove(nombre);
+                                                                    .remove(
+                                                                      nombre,
+                                                                    );
                                                                 _preciosAdicionales
-                                                                    .remove(nombre);
+                                                                    .remove(
+                                                                      nombre,
+                                                                    );
                                                                 _estadosAdicionales
                                                                     .remove(
                                                                       nombre,
                                                                     ); // <-- NUEVO
                                                               } else {
                                                                 _adicionalesSeleccionados
-                                                                    .add(nombre);
+                                                                    .add(
+                                                                      nombre,
+                                                                    );
                                                                 _cantidadesAdicionales[nombre] =
                                                                     1;
                                                                 _preciosAdicionales[nombre] =
@@ -973,7 +1092,9 @@ class _Seccion2State extends State<Seccion2> {
                                                             });
                                                           },
                                                         ),
-                                                        const SizedBox(height: 24),
+                                                        const SizedBox(
+                                                          height: 24,
+                                                        ),
                                                         Container(
                                                           padding:
                                                               const EdgeInsets.symmetric(
@@ -1001,16 +1122,18 @@ class _Seccion2State extends State<Seccion2> {
                                                                           ',',
                                                                           '',
                                                                         ),
-                                                                ) ??
-                                                                0.0,
+                                                                  ) ??
+                                                                  0.0,
                                                             ),
-                                                            style: const TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight.bold,
-                                                              fontSize: 13,
-                                                              color:
-                                                                  Colors.blueGrey,
-                                                            ),
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontSize: 13,
+                                                                  color: Colors
+                                                                      .blueGrey,
+                                                                ),
                                                           ),
                                                         ),
                                                       ],
@@ -1053,7 +1176,8 @@ class _Seccion2State extends State<Seccion2> {
                           child: ListView.builder(
                             itemCount: _adicionalesSeleccionados.length,
                             itemBuilder: (context, index) {
-                              final adicional = _adicionalesSeleccionados[index];
+                              final adicional =
+                                  _adicionalesSeleccionados[index];
                               final precioUnitario =
                                   _preciosAdicionales[adicional] ?? 0.0;
                               final cantidad =
@@ -1066,7 +1190,12 @@ class _Seccion2State extends State<Seccion2> {
                                   horizontal: 0,
                                 ),
                                 child: Card(
-                                  color: const Color.fromARGB(235, 236, 236, 236),
+                                  color: const Color.fromARGB(
+                                    235,
+                                    236,
+                                    236,
+                                    236,
+                                  ),
                                   elevation: 2,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
@@ -1078,7 +1207,8 @@ class _Seccion2State extends State<Seccion2> {
                                       horizontal: 18,
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         // Fila superior: Chip y botón de quitar
                                         Row(
@@ -1103,9 +1233,8 @@ class _Seccion2State extends State<Seccion2> {
                                               tooltip: 'Quitar',
                                               onPressed: () {
                                                 setState(() {
-                                                  _adicionalesSeleccionados.remove(
-                                                    adicional,
-                                                  );
+                                                  _adicionalesSeleccionados
+                                                      .remove(adicional);
                                                   _cantidadesAdicionales.remove(
                                                     adicional,
                                                   );
@@ -1159,7 +1288,8 @@ class _Seccion2State extends State<Seccion2> {
                                                   onPressed: () {
                                                     if (cantidad > 1) {
                                                       setState(() {
-                                                        _cantidadesAdicionales[adicional] = cantidad - 1;
+                                                        _cantidadesAdicionales[adicional] =
+                                                            cantidad - 1;
                                                       });
                                                     }
                                                   },
@@ -1179,7 +1309,8 @@ class _Seccion2State extends State<Seccion2> {
                                                   iconSize: 25,
                                                   onPressed: () {
                                                     setState(() {
-                                                      _cantidadesAdicionales[adicional] = cantidad + 1;
+                                                      _cantidadesAdicionales[adicional] =
+                                                          cantidad + 1;
                                                     });
                                                   },
                                                 ),
@@ -1187,10 +1318,15 @@ class _Seccion2State extends State<Seccion2> {
                                             ),
                                             // TOTAL con estilo de etiqueta
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFF7F4FB),
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
                                               child: Text(
                                                 formatCurrency(total),
@@ -1241,7 +1377,8 @@ class _Seccion2State extends State<Seccion2> {
                                   (sum, adicional) =>
                                       sum +
                                       ((_preciosAdicionales[adicional] ?? 0.0) *
-                                          (_cantidadesAdicionales[adicional] ?? 1)),
+                                          (_cantidadesAdicionales[adicional] ??
+                                              1)),
                                 ),
                               ),
                               style: const TextStyle(
@@ -1257,12 +1394,13 @@ class _Seccion2State extends State<Seccion2> {
                   ],
                 ),
               ),
-          ],
+            ],
           ),
         ],
       ),
     );
   }
+
   Widget _buildLoader() {
     return Center(
       child: Container(

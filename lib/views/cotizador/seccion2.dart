@@ -50,6 +50,7 @@ class _Seccion2State extends State<Seccion2> {
   double _precioProductoBase = 0;
   double _precioProductoConAdicionales = 0;
   double _rentabilidad = 0.0;
+  bool _precioCargado = false;
 
   @override
   void initState() {
@@ -223,20 +224,16 @@ class _Seccion2State extends State<Seccion2> {
   void _cargarPrecioProducto() async {
     try {
       final idProducto = int.tryParse(widget.modeloValue) ?? 0;
-
       final precioData = await QuoteController.obtenerPrecioProducto(
         idProducto,
       );
-
       final subtotal = precioData['subtotal'] ?? 0.0;
       final rentabilidad = precioData['rentabilidad'] ?? 0.0;
-      //print(subtotal);
-      //print(rentabilidad);
 
       setState(() {
         _precioProductoBase = subtotal;
-        _rentabilidad =
-            rentabilidad; // Debes declarar esta variable en la clase
+        _rentabilidad = rentabilidad;
+        _precioCargado = true; // <--- aquí
         _actualizarPrecioConAdicionales();
       });
     } catch (e) {
@@ -310,9 +307,8 @@ class _Seccion2State extends State<Seccion2> {
 
     final adicionales = especificaciones['Adicionales de Línea'] ?? [];
 
-    final excluidos =
-        (_excludedFeatures['Adicionales de Línea'] ?? {})
-            .toList();
+    final excluidos = (_excludedFeatures['Adicionales de Línea'] ?? {})
+        .toList();
 
     try {
       for (var adicional in adicionales) {
@@ -425,7 +421,7 @@ class _Seccion2State extends State<Seccion2> {
           ),
         ),
         backgroundColor: Colors.blue[800],
-        body: especificaciones.isEmpty
+        body: (especificaciones.isEmpty || !_precioCargado)
             ? _buildLoader()
             : Column(
                 children: [
@@ -441,7 +437,7 @@ class _Seccion2State extends State<Seccion2> {
                             content: especificaciones,
                           ),
                           _buildAdicionalesCarrito(),
-
+                          _buildTotalGeneralCard(), // <-- Mueve esta línea aquí, justo después de Adicionales
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -510,6 +506,13 @@ class _Seccion2State extends State<Seccion2> {
     required String title,
     required Map<String, dynamic> content,
   }) {
+    // Extrae solo el nombre del Dolly (antes de la primera coma)
+    String dollyName = title.split(',').first.trim();
+    // Extrae el resto de la configuración (después de la primera coma)
+    String? configuracionExtra = title.contains(',')
+        ? title.substring(title.indexOf(',') + 1).trim()
+        : null;
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 24),
@@ -525,17 +528,16 @@ class _Seccion2State extends State<Seccion2> {
           children: [
             Expanded(
               child: Text(
-                title,
+                dollyName, // Solo el nombre del Dolly
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.blue[800],
                 ),
-                overflow: TextOverflow
-                    .ellipsis, // Opcional: para evitar que el texto se desborde
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8), // Espacio entre texto y precio
+            const SizedBox(width: 8),
             Text(
               formatCurrency(_precioProductoConAdicionales),
               style: const TextStyle(
@@ -546,11 +548,58 @@ class _Seccion2State extends State<Seccion2> {
             ),
           ],
         ),
-
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: _buildUnifiedTable(content),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Muestra la configuración
+                if (configuracionExtra != null && configuracionExtra.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 8),
+                    child: Text(
+                      configuracionExtra,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF1565C0),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                _buildUnifiedTable(content),
+                const Divider(
+                  height: 32,
+                  thickness: 1.2,
+                  color: Color(0xFF1565C0),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, right: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Precio del Producto:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        formatCurrency(_precioProductoConAdicionales),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -755,7 +804,7 @@ class _Seccion2State extends State<Seccion2> {
             Text(
               "Adicionales",
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.blue[800],
               ),
@@ -1448,13 +1497,13 @@ class _Seccion2State extends State<Seccion2> {
       case 'costeo aprobado':
       case 'aprobado':
         label = 'Aprobado';
-        chipColor = Colors.green; // <-- VERDE
+        chipColor = Colors.green;
         break;
       case 'pendiente revisión':
       case 'p/revisión':
-      case 'preparado p/revisión': // <-- AGREGA ESTE CASO
+      case 'preparado p/revisión':
         label = 'P/Revisión';
-        chipColor = const Color.fromARGB(255, 25, 103, 167); // <-- AZUL
+        chipColor = const Color.fromARGB(255, 25, 103, 167);
         textColor = Colors.white;
         break;
       case 'sin aprobar':
@@ -1468,9 +1517,63 @@ class _Seccion2State extends State<Seccion2> {
     }
 
     return Chip(
-      label: Text(label, style: TextStyle(color: textColor, fontSize: 12)),
       backgroundColor: chipColor,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+      label: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Kit',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white,
+            ),
+          ),
+          
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalGeneralCard() {
+    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
+      0.0,
+      (sum, adicional) =>
+          sum +
+          ((_preciosAdicionales[adicional] ?? 0.0) *
+              (_cantidadesAdicionales[adicional] ?? 1)),
+    );
+    final totalGeneral = _precioProductoConAdicionales + totalAdicionalesSeleccionados;
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 24),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        title: const Text(
+          "Total General Sin IVA",
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1565C0),
+          ),
+        ),
+        trailing: Text(
+          formatCurrency(totalGeneral),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Color(0xFF1565C0),
+          ),
+        ),
+      ),
     );
   }
 }

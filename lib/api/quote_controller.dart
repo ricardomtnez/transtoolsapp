@@ -410,8 +410,7 @@ query {
   }
 
   static Future<Map<String, dynamic>> obtenerPrecioProducto(int itemId) async {
-    final query =
-        """
+    final query = """
     query {
       items(ids: $itemId) {
         name
@@ -443,6 +442,7 @@ query {
       double manoObra = 0;
       double ponderacion = 0;
       double rentabilidad = 0;
+      String estado = '';
 
       for (var col in columnValues) {
         final title = col['column']['title'];
@@ -456,13 +456,19 @@ query {
           ponderacion = double.tryParse(display) ?? 0;
         } else if (title == "Rentabilidad/Ganancia Esperada") {
           rentabilidad = double.tryParse(display) ?? 0;
+        } else if (title == "Estado del costeo") {
+          estado = col['text'] ?? '';
         }
       }
 
       final subtotal = costoMateriales + (manoObra * ponderacion);
       final rentabilidadPorcentaje = rentabilidad / 100;
 
-      return {'subtotal': subtotal, 'rentabilidad': rentabilidadPorcentaje};
+      return {
+        'subtotal': subtotal,
+        'rentabilidad': rentabilidadPorcentaje,
+        'estado': estado, 
+      };
     } else {
       throw Exception(
         'Error al obtener el precio del producto: ${response.body}',

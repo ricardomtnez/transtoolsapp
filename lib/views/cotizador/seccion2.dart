@@ -26,6 +26,8 @@ class _Seccion2State extends State<Seccion2> {
       'Semirremolque tipo Plataforma'; // O puedes cambiarlo por el que venga desde la API si lo deseas
   Map<String, dynamic> especificaciones = {}; // Aquí se cargan los datos reales
 
+  String? _estadoProducto;
+
   final Map<String, bool> _expandedMainSections = {
     'Especificaciones Técnicas': true,
     'Adicionales': true,
@@ -229,11 +231,13 @@ class _Seccion2State extends State<Seccion2> {
       );
       final subtotal = precioData['subtotal'] ?? 0.0;
       final rentabilidad = precioData['rentabilidad'] ?? 0.0;
+      final estado = precioData['estado'] ?? ''; // <-- agrega esto
 
       setState(() {
         _precioProductoBase = subtotal;
         _rentabilidad = rentabilidad;
-        _precioCargado = true; // <--- aquí
+        _precioCargado = true;
+        _estadoProducto = estado; // <-- guarda el estado aquí
         _actualizarPrecioConAdicionales();
       });
     } catch (e) {
@@ -426,6 +430,16 @@ class _Seccion2State extends State<Seccion2> {
             : Column(
                 children: [
                   StepHeaderBar(pasoActual: 2, totalPasos: 4),
+                  if (_estadoProducto != null && _estadoProducto!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 19, bottom: 10),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _chipEstadoProducto(
+                          _estadoProducto!,
+                        ), // Usa el nuevo chip aquí
+                      ),
+                    ),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
@@ -1524,12 +1538,9 @@ class _Seccion2State extends State<Seccion2> {
         children: [
           const Text(
             'Kit',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.white),
           ),
-          
+
           Text(
             label,
             style: TextStyle(
@@ -1543,22 +1554,90 @@ class _Seccion2State extends State<Seccion2> {
     );
   }
 
+Widget _chipEstadoProducto(String estado) {
+  Color chipColor;
+  Color textColor = Colors.white;
+  String label;
+
+  switch (estado.toLowerCase()) {
+    case 'costeo aprobado':
+    case 'aprobado':
+      label = 'Aprobado';
+      chipColor = const Color(0xFF388E3C); // Verde
+      break;
+    case 'terminado':
+      label = 'Terminado';
+      chipColor = const Color.fromARGB(255, 215, 127, 50); // Morado
+      break;
+    case 'pendiente revisión':
+    case 'p/revisión':
+    case 'preparado p/revisión':
+      label = 'P/Revisión';
+      chipColor = const Color(0xFFFFB74D); // Naranja
+      textColor = Colors.black;
+      break;
+    case 'sin aprobar':
+      label = 'Sin Aprobar';
+      chipColor = const Color(0xFFBDBDBD); // Gris
+      textColor = Colors.black;
+      break;
+    default:
+      label = estado;
+      chipColor = Colors.grey;
+      textColor = Colors.white;
+  }
+
+  return Container(
+    decoration: BoxDecoration(
+      color: chipColor,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Estado del costeo: ',
+          style: TextStyle(
+            color: Color.fromARGB(221, 0, 0, 0),
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
   Widget _buildTotalGeneralCard() {
-    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
-      0.0,
-      (sum, adicional) =>
-          sum +
-          ((_preciosAdicionales[adicional] ?? 0.0) *
-              (_cantidadesAdicionales[adicional] ?? 1)),
-    );
-    final totalGeneral = _precioProductoConAdicionales + totalAdicionalesSeleccionados;
+    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados
+        .fold<double>(
+          0.0,
+          (sum, adicional) =>
+              sum +
+              ((_preciosAdicionales[adicional] ?? 0.0) *
+                  (_cantidadesAdicionales[adicional] ?? 1)),
+        );
+    final totalGeneral =
+        _precioProductoConAdicionales + totalAdicionalesSeleccionados;
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 24),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 3,
+        ),
         title: const Text(
-          "Total General Sin IVA",
+          "Importe",
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -1569,7 +1648,7 @@ class _Seccion2State extends State<Seccion2> {
           formatCurrency(totalGeneral),
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: 16,
             color: Color(0xFF1565C0),
           ),
         ),

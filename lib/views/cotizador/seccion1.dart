@@ -69,6 +69,40 @@ class _Seccion1 extends State<Seccion1> {
   bool yearError = false;
   String? yearErrorText;
 
+  bool colorError = false;
+  String? colorErrorText;
+  bool marcaError = false;
+  String? marcaErrorText;
+
+  String? colorSeleccionado;
+  String? marcaSeleccionada;
+
+  static const List<String> _colores = [
+    'NEGRO BRILLANTE',
+    'NEGRO MATE',
+    'BLANCO BRILLANTE',
+    'AZUL HOLANDES',
+    'AZUL TIPO TEJA',
+    'AMARILLO CATERPILLAR',
+    'VERDE',
+    'NARANJA',
+    'ROJO VIPER',
+  ];
+
+  static const Map<String, Color> _colorSwatches = {
+    'NEGRO BRILLANTE': Colors.black,
+    'NEGRO MATE': Color(0xFF222222),
+    'BLANCO BRILLANTE': Colors.white,
+    'AZUL HOLANDES': Color(0xFF1E3A5C),
+    'AZUL TIPO TEJA': Color(0xFF3B5998),
+    'AMARILLO CATERPILLAR': Color(0xFFFFD600),
+    'VERDE': Color(0xFF388E3C),
+    'NARANJA': Color(0xFFFF9800),
+    'ROJO VIPER': Color(0xFFD32F2F),
+  };
+
+  static const List<String> _marcas = ['SHERWINS', 'PPG', 'COMEX'];
+
   bool get _modeloDisponible {
     return productoSeleccionado != null &&
         lineaSeleccionada != null &&
@@ -121,6 +155,7 @@ class _Seccion1 extends State<Seccion1> {
         });
       }
     });
+    // Validación del correo electrónico
     correoFocusNode.addListener(() {
       if (!correoFocusNode.hasFocus && correoCtrl.text.trim().isEmpty) {
         setState(() {
@@ -187,6 +222,23 @@ class _Seccion1 extends State<Seccion1> {
           ? 'Favor de rellenar el correo electrónico'
           : null;
     });
+
+    setState(() {
+      // ...otras validaciones...
+      colorError = colorSeleccionado == null;
+      colorErrorText = colorError ? 'Favor de seleccionar el color' : null;
+
+      marcaError = marcaSeleccionada == null;
+      marcaErrorText = marcaError ? 'Favor de seleccionar la marca' : null;
+    });
+
+    if (colorError || marcaError) {
+      mostrarAlertaError(
+        context,
+        'Por favor llena todos los campos obligatorios',
+      );
+      return;
+    }
 
     if (vigenciaError ||
         productoError ||
@@ -298,19 +350,20 @@ class _Seccion1 extends State<Seccion1> {
     }
   }
 
-  Future<void> _cargarUsuario() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('usuario');
-    if (jsonString != null) {
-      setState(() {
-        _usuario = Usuario.fromJson(
-          jsonString,
-        ); // Ya devuelve un objeto Usuario
-        final mesActual = DateTime.now().month.toString().padLeft(2, '0');
-        cotizacionCtrl.text = 'COT-${_usuario!.initials}$mesActual-';
-      });
-    }
+Future<void> _cargarUsuario() async {
+  final prefs = await SharedPreferences.getInstance();
+  final jsonString = prefs.getString('usuario');
+  if (jsonString != null) {
+    _usuario = Usuario.fromJson(jsonString);
+    final mesActual = DateTime.now().month.toString().padLeft(2, '0');
+    final fullname = _usuario!.fullname;
+    final consecutivo = await QuoteController.obtenerConsecutivoCotizacion(fullname, mesActual);
+    final consecutivoStr = (consecutivo + 1).toString().padLeft(4, '0');
+    setState(() {
+      cotizacionCtrl.text = 'COT-${_usuario!.initials}$mesActual-$consecutivoStr';
+    });
   }
+}
 
   Future<void> _cargarGruposMonday() async {
     final prefs = await SharedPreferences.getInstance();
@@ -330,8 +383,11 @@ class _Seccion1 extends State<Seccion1> {
       ejesSeleccionados = null;
       modeloSeleccionado = null;
       yearSeleccionado = null;
+      colorSeleccionado = null;
+      marcaSeleccionada = null;
       _modelos = [];
     });
+     await _cargarUsuario();
 
     final gruposCacheString = prefs.getString('grupos');
 
@@ -543,10 +599,9 @@ class _Seccion1 extends State<Seccion1> {
               child: RefreshIndicator(
                 color: Colors.blue,
                 onRefresh: _cargarGruposMonday,
-                child: SingleChildScrollView(
+                child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
-                  child: Column(
                     children: [
                       _buildSection(
                         title: 'Información Inicial',
@@ -747,6 +802,180 @@ class _Seccion1 extends State<Seccion1> {
                         ],
                       ),
                       _buildSection(
+                        title: 'Color',
+                        children: [
+                          // Dropdown de color
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 240, 240, 240),
+                              borderRadius: BorderRadius.circular(29),
+                              border: Border.all(
+                                color: colorError
+                                    ? Colors.red
+                                    : Colors.grey[300]!,
+                                width: 1.5,
+                              ),
+                            ),
+
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: colorSeleccionado,
+                                hint: Text(
+                                  'Selecciona el color',
+                                  style: TextStyle(
+                                    color: colorError ? Colors.red : Colors.grey,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Color(0xFF565656),
+                                  size: 28,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                menuMaxHeight: 210,
+                                dropdownColor: Colors.white,
+                                onChanged: (value) {
+                                  setState(() {
+                                    colorSeleccionado = value;
+                                    marcaSeleccionada = null;
+                                    colorError = false;
+                                    colorErrorText = null;
+                                    // También puedes limpiar el error de marca si lo deseas
+                                    marcaError = false;
+                                    marcaErrorText = null;
+                                  });
+                                },
+                                items: _colores.map((color) {
+                                  return DropdownMenuItem<String>(
+                                    value: color,
+                                    child: Text(color),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                          if (colorError && colorErrorText != null)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12, top: 2),
+                              child: Text(
+                                colorErrorText!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          // Dropdown de marca
+                          if (colorSeleccionado != null)
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(29),
+                                border: Border.all(
+                                  color: marcaError
+                                      ? Colors.red
+                                      : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  isExpanded: true,
+                                  value: marcaSeleccionada,
+                                  hint: const Text(
+                                    'Selecciona la marca',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Color(0xFF565656),
+                                    size: 28,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  dropdownColor: Colors.white,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      marcaSeleccionada = value;
+                                      marcaError = false;
+                                      marcaErrorText = null;
+                                    });
+                                  },
+                                  items: _marcas.map((marca) {
+                                    return DropdownMenuItem<String>(
+                                      value: marca,
+                                      child: Text(marca),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          if (marcaError && marcaErrorText != null)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12, top: 2),
+                              child: Text(
+                                marcaErrorText!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          // Muestra la selección final y la muestra de color abajo a la derecha
+                          if (colorSeleccionado != null &&
+                              marcaSeleccionada != null)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      'Color elegido: $colorSeleccionado\nMarca: $marcaSeleccionada',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1565C0),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  margin: const EdgeInsets.only(
+                                    left: 12,
+                                    right: 4,
+                                    top: 8,
+                                    bottom: 8,
+                                  ),
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        _colorSwatches[colorSeleccionado] ??
+                                        Colors.transparent,
+                                    border: Border.all(
+                                      color: Colors.grey[400]!,
+                                      width: 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+
+                      _buildSection(
                         title: 'Generación',
                         children: [
                           _YearPickerField(
@@ -782,7 +1011,6 @@ class _Seccion1 extends State<Seccion1> {
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

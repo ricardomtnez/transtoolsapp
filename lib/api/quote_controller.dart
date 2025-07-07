@@ -475,4 +475,42 @@ query {
       );
     }
   }
-}
+
+  static Future<int> obtenerConsecutivoCotizacion(String nombreCompleto, String mes) async {
+  const boardId = 9523399732;
+  final query = '''
+    query {
+      items_page_by_column_values (
+        limit: 200,
+        board_id: $boardId,
+        columns: [
+          {column_id: "text_mkshgz4r", column_values: ["$nombreCompleto"]},
+          {column_id: "text_mkshpxr7", column_values: ["$mes"]}
+        ]
+      ) {
+        items {
+          id
+          name
+        }
+      }
+    }
+  ''';
+
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json', 'Authorization': token},
+    body: jsonEncode({'query': query}),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    final items = data['data']?['items_page_by_column_values']?['items'];
+    if (items is List) {
+      return items.length;
+    }
+    return 0;
+  } else {
+    throw Exception('Error al consultar cotizaciones: ${response.body}');
+  }
+ }
+} 

@@ -430,28 +430,27 @@ class _Seccion2State extends State<Seccion2> {
             : Column(
                 children: [
                   StepHeaderBar(pasoActual: 2, totalPasos: 4),
+                  const SizedBox(height: 14),
                   if (_estadoProducto != null && _estadoProducto!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(left: 19, bottom: 10),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: _chipEstadoProducto(
-                          _estadoProducto!,
+                        child: _chipEstadoProducto( _estadoProducto!,
                         ), // Usa el nuevo chip aquí
                       ),
                     ),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         children: [
-                          const SizedBox(height: 16),
                           _buildMainSection(
                             title: widget.configuracionProducto,
                             content: especificaciones,
                           ),
                           _buildAdicionalesCarrito(),
-                          _buildTotalGeneralCard(), // <-- Mueve esta línea aquí, justo después de Adicionales
+                          _buildTotalGeneralCard(), 
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1573,7 +1572,7 @@ Widget _chipEstadoProducto(String estado) {
     case 'p/revisión':
     case 'preparado p/revisión':
       label = 'P/Revisión';
-      chipColor = const Color(0xFFFFB74D); // Naranja
+      chipColor = const Color.fromARGB(255, 255, 198, 29); // Naranja
       textColor = Colors.black;
       break;
     case 'sin aprobar':
@@ -1587,34 +1586,37 @@ Widget _chipEstadoProducto(String estado) {
       textColor = Colors.white;
   }
 
-  return Container(
-    decoration: BoxDecoration(
-      color: chipColor,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'Estado del costeo: ',
-          style: TextStyle(
-            color: Color.fromARGB(221, 0, 0, 0),
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
+return Container(
+  decoration: BoxDecoration(
+    color: chipColor,
+    borderRadius: BorderRadius.circular(6),
+  ),
+  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.center, // Centra horizontalmente
+    children: [
+      const Text(
+        'Precio del Producto',
+        textAlign: TextAlign.center, // Centra el texto
+        style: TextStyle(
+          color: Color.fromARGB(255, 0, 0, 0),
+          fontWeight: FontWeight.w500,
+          fontSize: 9,
         ),
-        Text(
-          label,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
+      ),
+      Text(
+        label,
+        textAlign: TextAlign.center, // Centra el texto
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
         ),
-      ],
-    ),
-  );
+      ),
+    ],
+  ),
+);
 }
 
   Widget _buildTotalGeneralCard() {

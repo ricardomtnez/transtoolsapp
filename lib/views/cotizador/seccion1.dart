@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
+import 'package:transtools/models/cotizacion.dart';
 import 'package:transtools/models/usuario.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 
@@ -291,17 +292,46 @@ class _Seccion1 extends State<Seccion1> {
       )['text']!;
       final configuracionProducto =
           '$productoText, Linea: ${lineaSeleccionada ?? ""}, ${ejesSeleccionados ?? ""} Ejes, Modelo: $modeloSeleccionadoText, Generación: ${yearSeleccionado ?? ""}';
-
+      final cotizacion = Cotizacion(
+        folioCotizacion: cotizacionCtrl.text.trim(),
+        fechaCotizacion: DateFormat('dd/MM/yyyy').parse(fechaCtrl.text),
+        fechaVigencia: _calcularFechaVigenciaDesdeSeleccion(
+          vigenciaSeleccionada!,
+        ),
+        cliente: nombreCtrl.text.trim(),
+        empresa: empresaCtrl.text.trim(),
+        telefono: telefonoCtrl.text.trim(),
+        correo: correoCtrl.text.trim(),
+        producto: productoText,
+        linea: lineaSeleccionada ?? '',
+        numeroEjes: int.tryParse(ejesSeleccionados ?? '0') ?? 0,
+        modelo: modeloSeleccionadoText,
+        color: colorSeleccionado ?? '',
+        marcaColor: marcaSeleccionada ?? '',
+        generacion: int.tryParse(yearSeleccionado ?? '0') ?? 0,
+      );
       Navigator.pushNamed(
         context,
         "/seccion2",
         arguments: {
+          'cotizacion': cotizacion,
           'modeloNombre': modeloSeleccionadoText,
           'modeloValue': modeloSeleccionadoValue,
           'configuracionProducto': configuracionProducto.trim(),
         },
       );
     }
+  }
+
+  DateTime _calcularFechaVigenciaDesdeSeleccion(String seleccion) {
+    // Buscar el primer número en el string (ej. "7 días" → 7)
+    final match = RegExp(r'\d+').firstMatch(seleccion);
+    if (match != null) {
+      final dias = int.parse(match.group(0)!);
+      return DateTime.now().add(Duration(days: dias));
+    }
+    // Si no encuentra número, por defecto agrega 7 días
+    return DateTime.now().add(const Duration(days: 7));
   }
 
   void mostrarAlertaError(BuildContext context, String mensaje) {
@@ -608,317 +638,209 @@ class _Seccion1 extends State<Seccion1> {
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildSection(
-                      title: 'Información Inicial',
-                      children: [
-                        _CustomTextField(
-                          controller: cotizacionCtrl,
-                          hint: 'Número de Cotización',
-                          enabled: false,
-                          keyboardType: TextInputType.text,
-                          inputFormatters: const [],
-                        ),
-                        _CustomTextField(
-                          controller: fechaCtrl,
-                          hint: 'Fecha de cotización',
-                          enabled: false,
-                          keyboardType: TextInputType.text,
-                          inputFormatters: const [],
-                        ),
-                      ],
-                    ),
-                    // --- Aquí va el panel separado de vigencia ---
-                    _buildSection(
-                      title: 'Vigencia',
-                      children: [
-                        _VigenciaDropdown(
-                          valorSeleccionado: vigenciaSeleccionada,
-                          onChanged: (value) {
-                            setState(() {
-                              vigenciaSeleccionada = value;
-                              vigenciaError = false;
-                              vigenciaErrorText = null;
-                            });
-                          },
-                          error: vigenciaError,
-                          errorText: vigenciaErrorText,
-                        ),
-                      ],
-                    ),
-                    _buildSection(
-                      title: 'Información del Cliente',
-                      children: [
-                        _CustomTextField(
-                          controller: nombreCtrl,
-                          hint: 'Nombre Completo',
-                          keyboardType: TextInputType.text,
-                          inputFormatters: const [],
-                          focusNode: nombreFocusNode,
-                          error: nombreError,
-                          errorText: nombreErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
+                    children: [
+                      _buildSection(
+                        title: 'Información Inicial',
+                        children: [
+                          _CustomTextField(
+                            controller: cotizacionCtrl,
+                            hint: 'Número de Cotización',
+                            enabled: false,
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
+                          ),
+                          _CustomTextField(
+                            controller: fechaCtrl,
+                            hint: 'Fecha de cotización',
+                            enabled: false,
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
+                          ),
+                        ],
+                      ),
+                      // --- Aquí va el panel separado de vigencia ---
+                      _buildSection(
+                        title: 'Vigencia',
+                        children: [
+                          _VigenciaDropdown(
+                            valorSeleccionado: vigenciaSeleccionada,
+                            onChanged: (value) {
                               setState(() {
-                                nombreError = false;
-                                nombreErrorText = null;
+                                vigenciaSeleccionada = value;
+                                vigenciaError = false;
+                                vigenciaErrorText = null;
                               });
-                            }
-                          },
-                        ),
-                        _CustomTextField(
-                          controller: empresaCtrl,
-                          hint: 'Empresa',
-                          keyboardType: TextInputType.text,
-                          inputFormatters: const [],
-                          focusNode: empresaFocusNode,
-                          error: empresaError,
-                          errorText: empresaErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
-                              setState(() {
-                                empresaError = false;
-                                empresaErrorText = null;
-                              });
-                            }
-                          },
-                        ),
-                        _CustomTextField(
-                          controller: telefonoCtrl,
-                          hint: 'Número de Celular',
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(10),
-                          ],
-                          focusNode: telefonoFocusNode,
-                          error: telefonoError,
-                          errorText: telefonoErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
-                              setState(() {
-                                telefonoError = false;
-                                telefonoErrorText = null;
-                              });
-                            }
-                          },
-                        ),
-                        _CustomTextField(
-                          controller: correoCtrl,
-                          hint: 'Correo Electronico',
-                          keyboardType: TextInputType.emailAddress,
-                          inputFormatters: const [],
-                          focusNode: correoFocusNode,
-                          error: correoError,
-                          errorText: correoErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
-                              setState(() {
-                                correoError = false;
-                                correoErrorText = null;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    _buildSection(
-                      title: 'Producto',
-                      children: [
-                        _ProductoDropdown(
-                          productos: _grupos,
-                          value: productoSeleccionado,
-                          onChanged: (nuevoProducto) async {
-                            setState(() {
-                              productoSeleccionado = nuevoProducto;
+                            },
+                            error: vigenciaError,
+                            errorText: vigenciaErrorText,
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Información del Cliente',
+                        children: [
+                          _CustomTextField(
+                            controller: nombreCtrl,
+                            hint: 'Nombre Completo',
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
+                            focusNode: nombreFocusNode,
+                            error: nombreError,
+                            errorText: nombreErrorText,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  nombreError = false;
+                                  nombreErrorText = null;
+                                });
+                              }
+                            },
+                          ),
+                          _CustomTextField(
+                            controller: empresaCtrl,
+                            hint: 'Empresa',
+                            keyboardType: TextInputType.text,
+                            inputFormatters: const [],
+                            focusNode: empresaFocusNode,
+                            error: empresaError,
+                            errorText: empresaErrorText,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  empresaError = false;
+                                  empresaErrorText = null;
+                                });
+                              }
+                            },
+                          ),
+                          _CustomTextField(
+                            controller: telefonoCtrl,
+                            hint: 'Número de Celular',
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(10),
+                            ],
+                            focusNode: telefonoFocusNode,
+                            error: telefonoError,
+                            errorText: telefonoErrorText,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  telefonoError = false;
+                                  telefonoErrorText = null;
+                                });
+                              }
+                            },
+                          ),
+                          _CustomTextField(
+                            controller: correoCtrl,
+                            hint: 'Correo Electronico',
+                            keyboardType: TextInputType.emailAddress,
+                            inputFormatters: const [],
+                            focusNode: correoFocusNode,
+                            error: correoError,
+                            errorText: correoErrorText,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty) {
+                                setState(() {
+                                  correoError = false;
+                                  correoErrorText = null;
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Producto',
+                        children: [
+                          _ProductoDropdown(
+                            productos: _grupos,
+                            value: productoSeleccionado,
+                            onChanged: (v) => setState(() {
+                              productoSeleccionado = v;
                               productoError = false;
                               productoErrorText = null;
                               modeloSeleccionado = null;
-                              lineaSeleccionada = null;
-                              ejesSeleccionados = null;
-                              _ejesDisponibles = [];
-                            });
-                            _verificarYConsultarGrupo();
-                          },
-                          error: productoError,
-                          errorText: productoErrorText,
-                        ),
-                      ],
-                    ),
-                    _buildSection(
-                      title: 'Linea',
-                      children: [
-                        _LineaDropdown(
-                          value: lineaSeleccionada,
-                          onChanged: (v) async {
-                            setState(() {
+                              _verificarYConsultarGrupo();
+                            }),
+                            error: productoError,
+                            errorText: productoErrorText,
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Linea',
+                        children: [
+                          _LineaDropdown(
+                            value: lineaSeleccionada,
+                            onChanged: (v) => setState(() {
                               lineaSeleccionada = v;
                               lineaError = false;
                               lineaErrorText = null;
                               modeloSeleccionado = null;
-                              ejesSeleccionados = null;
-                              _ejesDisponibles = [];
-                            });
-                            if (productoSeleccionado != null && v != null) {
-                              final ejes =
-                                  await QuoteController.obtenerEjesCompatibles(
-                                    productoSeleccionado!,
-                                    v,
-                                  );
-                              setState(() {
-                                _ejesDisponibles = ejes;
-                              });
-                            }
-                            _verificarYConsultarGrupo();
-                          },
-                          error: lineaError,
-                          errorText: lineaErrorText,
-                        ),
-                      ],
-                    ),
-                    _buildSection(
-                      title: 'Ejes',
-                      children: [
-                        NumeroEjesDropdown(
-                          value: ejesSeleccionados,
-                          onChanged: (v) => setState(() {
-                            ejesSeleccionados = v;
-                            ejesError = false;
-                            ejesErrorText = null;
-                            modeloSeleccionado = null;
-                            _verificarYConsultarGrupo();
-                          }),
-                          opciones:
-                              _ejesDisponibles, // <-- usa la lista dinámica
-                          error: ejesError,
-                          errorText: ejesErrorText,
-                        ),
-                      ],
-                    ),
+                              _verificarYConsultarGrupo();
+                            }),
+                            error: lineaError,
+                            errorText: lineaErrorText,
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Ejes',
+                        children: [
+                          NumeroEjesDropdown(
+                            value: ejesSeleccionados,
+                            onChanged: (v) => setState(() {
+                              ejesSeleccionados = v;
+                              ejesError = false;
+                              ejesErrorText = null;
+                              modeloSeleccionado = null;
+                              _verificarYConsultarGrupo();
+                            }),
+                            error: ejesError,
+                            errorText: ejesErrorText,
+                          ),
+                        ],
+                      ),
 
-                    // Aquí se determina si el modelo está disponible
-                    _buildSection(
-                      title: 'Modelo/Gama',
-                      children: [
-                        _ModeloDropdown(
-                          value: modeloSeleccionado,
-                          enabled: _modeloDisponible && _modelos.isNotEmpty,
-                          modelos: _modelos,
-                          onChanged: (v) => setState(() {
-                            modeloSeleccionado = v;
-                            modeloError = false;
-                            modeloErrorText = null;
-                          }),
-                          error: modeloError,
-                          errorText: modeloErrorText,
-                        ),
-                        if (_modeloDisponible && _modelos.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: Center(
-                              child: Text(
-                                'Sin modelos disponibles',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
+                      // Aquí se determina si el modelo está disponible
+                      _buildSection(
+                        title: 'Modelo/Gama',
+                        children: [
+                          _ModeloDropdown(
+                            value: modeloSeleccionado,
+                            enabled: _modeloDisponible && _modelos.isNotEmpty,
+                            modelos: _modelos,
+                            onChanged: (v) => setState(() {
+                              modeloSeleccionado = v;
+                              modeloError = false;
+                              modeloErrorText = null;
+                            }),
+                            error: modeloError,
+                            errorText: modeloErrorText,
                           ),
-                      ],
-                    ),
-                    _buildSection(
-                      title: 'Color',
-                      children: [
-                        // Dropdown de color
-                        Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 240, 240, 240),
-                            borderRadius: BorderRadius.circular(29),
-                            border: Border.all(
-                              color: colorError
-                                  ? Colors.red
-                                  : Colors.grey[300]!,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: colorSeleccionado,
-                              hint: Text(
-                                'Selecciona el color',
-                                style: TextStyle(
-                                  color: colorError ? Colors.red : Colors.black,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              icon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (colorSeleccionado != null)
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          colorSeleccionado = null;
-                                          marcaSeleccionada = null;
-                                        });
-                                      },
-                                      child: const Padding(
-                                        padding: EdgeInsets.only(right: 4),
-                                        child: Icon(
-                                          Icons.clear,
-                                          color: Colors.grey,
-                                          size: 22,
-                                        ),
-                                      ),
-                                    ),
-                                  const Icon(
-                                    Icons.arrow_drop_down,
-                                    color: Color(0xFF565656),
-                                    size: 28,
+                          if (_modeloDisponible && _modelos.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Center(
+                                child: Text(
+                                  'Sin modelos disponibles',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
                                   ),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              menuMaxHeight: 210,
-                              dropdownColor: Colors.white,
-                              onChanged: (value) {
-                                setState(() {
-                                  colorSeleccionado = value;
-                                  marcaSeleccionada = null;
-                                  colorError = false;
-                                  colorErrorText = null;
-                                  marcaError = false;
-                                  marcaErrorText = null;
-                                });
-                              },
-                              items: _colores.map((color) {
-                                return DropdownMenuItem<String>(
-                                  value: color,
-                                  child: Text(color),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                        if (colorError && colorErrorText != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 12, top: 2),
-                            child: Text(
-                              colorErrorText!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 13,
+                                ),
                               ),
                             ),
-                          ),
-                        // Dropdown de marca
-                        if (colorSeleccionado != null)
+                        ],
+                      ),
+                      _buildSection(
+                        title: 'Color',
+                        children: [
+                          // Dropdown de color
                           Container(
                             margin: const EdgeInsets.symmetric(vertical: 8),
                             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -926,120 +848,168 @@ class _Seccion1 extends State<Seccion1> {
                               color: const Color.fromARGB(255, 240, 240, 240),
                               borderRadius: BorderRadius.circular(29),
                               border: Border.all(
-                                color: marcaError
+                                color: colorError
                                     ? Colors.red
                                     : Colors.grey[300]!,
                                 width: 1.5,
                               ),
                             ),
+
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 isExpanded: true,
-                                value: marcaSeleccionada,
-                                hint: const Text(
-                                  'Selecciona la marca',
+                                value: colorSeleccionado,
+                                hint: Text(
+                                  'Selecciona el color',
                                   style: TextStyle(
+                                    color: colorError ? Colors.red : Colors.grey,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 16,
                                   ),
                                 ),
-                                icon: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (marcaSeleccionada != null)
-                                      GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            marcaSeleccionada = null;
-                                          });
-                                        },
-                                        child: const Padding(
-                                          padding: EdgeInsets.only(right: 4),
-                                          child: Icon(
-                                            Icons.clear,
-                                            color: Colors.grey,
-                                            size: 22,
-                                          ),
-                                        ),
-                                      ),
-                                    const Icon(
-                                      Icons.arrow_drop_down,
-                                      color: Color(0xFF565656),
-                                      size: 28,
-                                    ),
-                                  ],
+                                icon: const Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Color(0xFF565656),
+                                  size: 28,
                                 ),
                                 borderRadius: BorderRadius.circular(16),
+                                menuMaxHeight: 210,
                                 dropdownColor: Colors.white,
                                 onChanged: (value) {
                                   setState(() {
-                                    marcaSeleccionada = value;
+                                    colorSeleccionado = value;
+                                    marcaSeleccionada = null;
+                                    colorError = false;
+                                    colorErrorText = null;
+                                    // También puedes limpiar el error de marca si lo deseas
                                     marcaError = false;
                                     marcaErrorText = null;
                                   });
                                 },
-                                items: _marcas.map((marca) {
+                                items: _colores.map((color) {
                                   return DropdownMenuItem<String>(
-                                    value: marca,
-                                    child: Text(marca),
+                                    value: color,
+                                    child: Text(color),
                                   );
                                 }).toList(),
                               ),
                             ),
                           ),
-                        if (marcaError && marcaErrorText != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 12, top: 2),
-                            child: Text(
-                              marcaErrorText!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 13,
+                          if (colorError && colorErrorText != null)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12, top: 2),
+                              child: Text(
+                                colorErrorText!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
-                          ),
-                        // Muestra la selección final y la muestra de color abajo a la derecha
-                        if (colorSeleccionado != null &&
-                            marcaSeleccionada != null)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(
-                                    'Color elegido: $colorSeleccionado\nMarca: $marcaSeleccionada',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1565C0),
+                          // Dropdown de marca
+                          if (colorSeleccionado != null)
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(29),
+                                border: Border.all(
+                                  color: marcaError
+                                      ? Colors.red
+                                      : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  isExpanded: true,
+                                  value: marcaSeleccionada,
+                                  hint: const Text(
+                                    'Selecciona la marca',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Color(0xFF565656),
+                                    size: 28,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  dropdownColor: Colors.white,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      marcaSeleccionada = value;
+                                      marcaError = false;
+                                      marcaErrorText = null;
+                                    });
+                                  },
+                                  items: _marcas.map((marca) {
+                                    return DropdownMenuItem<String>(
+                                      value: marca,
+                                      child: Text(marca),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          if (marcaError && marcaErrorText != null)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12, top: 2),
+                              child: Text(
+                                marcaErrorText!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          // Muestra la selección final y la muestra de color abajo a la derecha
+                          if (colorSeleccionado != null &&
+                              marcaSeleccionada != null)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      'Color elegido: $colorSeleccionado\nMarca: $marcaSeleccionada',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1565C0),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              Container(
-                                margin: const EdgeInsets.only(
-                                  left: 12,
-                                  right: 4,
-                                  top: 8,
-                                  bottom: 8,
-                                ),
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color:
-                                      _colorSwatches[colorSeleccionado] ??
-                                      Colors.transparent,
-                                  border: Border.all(
-                                    color: Colors.grey[400]!,
-                                    width: 1,
+                                Container(
+                                  margin: const EdgeInsets.only(
+                                    left: 12,
+                                    right: 4,
+                                    top: 8,
+                                    bottom: 8,
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        _colorSwatches[colorSeleccionado] ??
+                                        Colors.transparent,
+                                    border: Border.all(
+                                      color: Colors.grey[400]!,
+                                      width: 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
+                              ],
+                            ),
+                        ],
+                      ),
 
                     _buildSection(
                       title: 'Generación',

@@ -93,6 +93,8 @@ query {
     }
   ''';
 
+    
+
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json', 'Authorization': token},
@@ -513,4 +515,61 @@ query {
     throw Exception('Error al consultar cotizaciones: ${response.body}');
   }
  }
-} 
+
+ static Future<List<Map<String, String>>> obtenerEjesCompatibles(
+  String producto,
+  String linea,
+) async {
+  const boardId = 4863963204;
+  final query = '''
+    query {
+      boards(ids: $boardId) {
+        groups(ids: ["$producto"]) {
+          items_page(limit: 100, query_params: {
+            rules: [
+              { column_id: "text_mks1k9fq", compare_value: ["$linea"] }
+            ],
+            operator: and
+          }) {
+            items {
+              column_values(ids: ["numeric_mks18d6b"]) {
+                text
+              }
+            }
+          }
+        }
+      }
+    }
+  ''';
+
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json', 'Authorization': token},
+    body: jsonEncode({'query': query}),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    final items = data['data']?['boards']?[0]?['groups']?[0]?['items_page']?['items'];
+
+    if (items is List) {
+      // Extrae los valores únicos de ejes
+      final ejesSet = <String>{};
+      for (var item in items) {
+        final colVals = item['column_values'] as List?;
+        if (colVals != null && colVals.isNotEmpty) {
+          final eje = colVals[0]['text']?.toString();
+          if (eje != null && eje.isNotEmpty) {
+            ejesSet.add(eje);
+          }
+        }
+      }
+      // Devuelve la lista para el dropdown
+      return ejesSet.map((eje) => {'value': eje, 'text': '$eje Eje${eje == "1" ? "" : "s"}'}).toList();
+    }
+  }
+  throw Exception('Error al obtener ejes compatibles');
+}
+}
+
+

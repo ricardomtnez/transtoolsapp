@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
+import 'package:transtools/models/adicional_seleccionado.dart';
+import 'package:transtools/models/cotizacion.dart';
 import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 
@@ -8,12 +10,14 @@ class Seccion2 extends StatefulWidget {
   final String modeloNombre; // 👈 Aquí defines la propiedad
   final String modeloValue;
   final String configuracionProducto;
+  final Cotizacion cotizacion;
 
   const Seccion2({
     super.key,
     required this.modeloNombre, // 👈 Aquí lo asignas
     required this.modeloValue,
     required this.configuracionProducto,
+    required this.cotizacion,
   });
   @override
   State<Seccion2> createState() => _Seccion2State();
@@ -53,7 +57,6 @@ class _Seccion2State extends State<Seccion2> {
   double _precioProductoConAdicionales = 0;
   double _rentabilidad = 0.0;
   bool _precioCargado = false;
-
   @override
   void initState() {
     super.initState();
@@ -436,7 +439,8 @@ class _Seccion2State extends State<Seccion2> {
                       padding: const EdgeInsets.only(left: 19, bottom: 10),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: _chipEstadoProducto( _estadoProducto!,
+                        child: _chipEstadoProducto(
+                          _estadoProducto!,
                         ), // Usa el nuevo chip aquí
                       ),
                     ),
@@ -450,7 +454,7 @@ class _Seccion2State extends State<Seccion2> {
                             content: especificaciones,
                           ),
                           _buildAdicionalesCarrito(),
-                          _buildTotalGeneralCard(), 
+                          _buildTotalGeneralCard(),
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -483,7 +487,33 @@ class _Seccion2State extends State<Seccion2> {
                                 width: 140,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.pushNamed(context, '/seccion3');
+                                    widget.cotizacion.estructura =
+                                        especificaciones['Estructura'] ?? {};
+                                    widget.cotizacion.adicionalesDeLinea =
+                                        especificaciones['Adicionales de Línea'] ??
+                                        [];
+
+                                    widget.cotizacion.adicionalesSeleccionados =
+                                        _adicionalesSeleccionados.map((nombre) {
+                                          return AdicionalSeleccionado(
+                                            nombre: nombre,
+                                            cantidad:
+                                                _cantidadesAdicionales[nombre] ??
+                                                1,
+                                            precioUnitario:
+                                                _preciosAdicionales[nombre] ??
+                                                0.0,
+                                            estado:
+                                                _estadosAdicionales[nombre] ??
+                                                'Desconocido',
+                                          );
+                                        }).toList();
+                                    // Navegar pasando el objeto cotización completo:
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/seccion3',
+                                      arguments: {'cotizacion':widget.cotizacion},
+                                    );
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
@@ -1553,71 +1583,71 @@ class _Seccion2State extends State<Seccion2> {
     );
   }
 
-Widget _chipEstadoProducto(String estado) {
-  Color chipColor;
-  Color textColor = Colors.white;
-  String label;
+  Widget _chipEstadoProducto(String estado) {
+    Color chipColor;
+    Color textColor = Colors.white;
+    String label;
 
-  switch (estado.toLowerCase()) {
-    case 'costeo aprobado':
-    case 'aprobado':
-      label = 'Aprobado';
-      chipColor = const Color(0xFF388E3C); // Verde
-      break;
-    case 'terminado':
-      label = 'Terminado';
-      chipColor = const Color.fromARGB(255, 215, 127, 50); // Morado
-      break;
-    case 'pendiente revisión':
-    case 'p/revisión':
-    case 'preparado p/revisión':
-      label = 'P/Revisión';
-      chipColor = const Color.fromARGB(255, 255, 198, 29); // Naranja
-      textColor = Colors.black;
-      break;
-    case 'sin aprobar':
-      label = 'Sin Aprobar';
-      chipColor = const Color(0xFFBDBDBD); // Gris
-      textColor = Colors.black;
-      break;
-    default:
-      label = estado;
-      chipColor = Colors.grey;
-      textColor = Colors.white;
+    switch (estado.toLowerCase()) {
+      case 'costeo aprobado':
+      case 'aprobado':
+        label = 'Aprobado';
+        chipColor = const Color(0xFF388E3C); // Verde
+        break;
+      case 'terminado':
+        label = 'Terminado';
+        chipColor = const Color.fromARGB(255, 215, 127, 50); // Morado
+        break;
+      case 'pendiente revisión':
+      case 'p/revisión':
+      case 'preparado p/revisión':
+        label = 'P/Revisión';
+        chipColor = const Color.fromARGB(255, 255, 198, 29); // Naranja
+        textColor = Colors.black;
+        break;
+      case 'sin aprobar':
+        label = 'Sin Aprobar';
+        chipColor = const Color(0xFFBDBDBD); // Gris
+        textColor = Colors.black;
+        break;
+      default:
+        label = estado;
+        chipColor = Colors.grey;
+        textColor = Colors.white;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: chipColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center, // Centra horizontalmente
+        children: [
+          const Text(
+            'Precio del Producto',
+            textAlign: TextAlign.center, // Centra el texto
+            style: TextStyle(
+              color: Color.fromARGB(255, 0, 0, 0),
+              fontWeight: FontWeight.w500,
+              fontSize: 9,
+            ),
+          ),
+          Text(
+            label,
+            textAlign: TextAlign.center, // Centra el texto
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
   }
-
-return Container(
-  decoration: BoxDecoration(
-    color: chipColor,
-    borderRadius: BorderRadius.circular(6),
-  ),
-  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-  child: Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.center, // Centra horizontalmente
-    children: [
-      const Text(
-        'Precio del Producto',
-        textAlign: TextAlign.center, // Centra el texto
-        style: TextStyle(
-          color: Color.fromARGB(255, 0, 0, 0),
-          fontWeight: FontWeight.w500,
-          fontSize: 9,
-        ),
-      ),
-      Text(
-        label,
-        textAlign: TextAlign.center, // Centra el texto
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-        ),
-      ),
-    ],
-  ),
-);
-}
 
   Widget _buildTotalGeneralCard() {
     final double totalAdicionalesSeleccionados = _adicionalesSeleccionados
@@ -1634,10 +1664,7 @@ return Container(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 24),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 3,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
         title: const Text(
           "Importe",
           style: TextStyle(

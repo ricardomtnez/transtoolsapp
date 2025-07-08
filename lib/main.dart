@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:transtools/views/cotizador/seccion2.dart';
 import 'package:transtools/views/cotizador/seccion3.dart';
+import 'package:transtools/views/cotizador/seccion4.dart';
 import 'package:transtools/views/dashboard.dart';
 import 'package:transtools/views/login.dart';
 import 'package:transtools/views/cotizador/seccion1.dart';
@@ -42,15 +43,24 @@ class _MyAppState extends State<MyApp> {
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
               builder: (_) => Seccion2(
+                cotizacion: args['cotizacion'],
                 modeloNombre: args['modeloNombre'],
                 modeloValue: args['modeloValue'],
                 configuracionProducto: args['configuracionProducto'],
               ),
             );
-         
-          case "/seccion3":
-            return MaterialPageRoute(builder: (_) => Seccion3());
 
+          case "/seccion3":
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => Seccion3(cotizacion: args['cotizacion']),
+            );
+
+          case "/seccion4":
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => Seccion4(cotizacion: args['cotizacion']),
+            );
           default:
             return MaterialPageRoute(
               builder: (_) => const Scaffold(

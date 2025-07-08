@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:transtools/models/cotizacion.dart';
 import 'package:transtools/models/usuario.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Seccion3 extends StatefulWidget {
   final String? unidades;
   final String? formaPago;
+  final Cotizacion cotizacion;
 
-  const Seccion3({super.key, this.unidades, this.formaPago});
+  const Seccion3({
+    super.key,
+    this.unidades,
+    this.formaPago,
+    required this.cotizacion,
+  });
 
   @override
   // ignore: library_private_types_in_public_api
@@ -18,7 +25,6 @@ class _Seccion3State extends State<Seccion3> {
   final _formKey = GlobalKey<FormState>();
 
   Usuario? _usuario;
-
   // Controllers
   final TextEditingController direccionEntregaController =
       TextEditingController();
@@ -727,6 +733,39 @@ class _Seccion3State extends State<Seccion3> {
 
                                   if (_formKey.currentState!.validate()) {
                                     // Siguiente paso
+                                    // Actualiza el objeto cotización con los datos ingresados en esta sección:
+                                    final cotizacionActualizada = widget
+                                        .cotizacion
+                                        .copyWith(
+                                          numeroUnidades: int.tryParse(
+                                            unidadesController.text,
+                                          ),
+                                          formaPago: formaPago,
+                                          metodoPago: metodoPago,
+                                          moneda: moneda,
+                                          entregaEn: entregaEn,
+                                          garantia: garantia,
+                                          cuentaSeleccionada:
+                                              cuentaSeleccionada,
+                                          otroMetodoPago:
+                                              otroMetodoController
+                                                  .text
+                                                  .isNotEmpty
+                                              ? otroMetodoController.text
+                                              : null,
+                                          fechaInicioEntrega: fechaInicio,
+                                          fechaFinEntrega: fechaFin,
+                                          semanasEntrega: semanasEntrega,
+                                        );
+
+                                    // Navegar a la Sección 4 pasando el objeto cotización actualizado
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/seccion4',
+                                      arguments: {
+                                        'cotizacion': cotizacionActualizada,
+                                      },
+                                    );
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(

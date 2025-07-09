@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:transtools/models/cotizacion.dart';
+import 'package:intl/intl.dart';
 
 class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
@@ -11,16 +12,12 @@ class Seccion4 extends StatelessWidget {
   static Route route(RouteSettings settings) {
     final args = settings.arguments as Map<String, dynamic>;
     return MaterialPageRoute(
-      builder: (_) => Seccion4(
-        cotizacion: args['cotizacion'],
-      ),
+      builder: (_) => Seccion4(cotizacion: args['cotizacion']),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Ya tienes cotizacion en la propiedad, no necesitas extraerla del ModalRoute
-
     return Scaffold(
       backgroundColor: Colors.blue[800],
       appBar: AppBar(
@@ -41,85 +38,197 @@ class Seccion4 extends StatelessWidget {
               children: [
                 _buildTitulo('Datos Generales'),
                 _buildCard([
-                  _item('Folio:', cotizacion.folioCotizacion),
-                  _item('Fecha Cotización:', cotizacion.fechaCotizacion.toIso8601String()),
-                  _item('Vigencia:', cotizacion.fechaVigencia.toIso8601String()),
-                  _item('Cliente:', cotizacion.cliente),
-                  _item('Empresa:', cotizacion.empresa),
-                  _item('Teléfono:', cotizacion.telefono),
-                  _item('Correo:', cotizacion.correo),
+                  Table(
+                    columnWidths: const {
+                      0: IntrinsicColumnWidth(),
+                      1: FlexColumnWidth(),
+                    },
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    children: [
+                      _tableRow('Folio:', cotizacion.folioCotizacion),
+                      _tableRow(
+                        'Fecha Cotización: ',
+                        DateFormat(
+                          'dd/MM/yyyy',
+                        ).format(cotizacion.fechaCotizacion),
+                      ),
+                      _tableRow(
+                        'Vigencia:',
+                        DateFormat(
+                          'dd/MM/yyyy',
+                        ).format(cotizacion.fechaVigencia),
+                      ),
+                      _tableRow('Cliente:', cotizacion.cliente),
+                      _tableRow('Empresa:', cotizacion.empresa),
+                      _tableRow('Teléfono:', cotizacion.telefono),
+                      _tableRow('Correo:', cotizacion.correo),
+                    ],
+                  ),
                 ]),
 
                 _buildTitulo('Producto'),
                 _buildCard([
-                  _item('Producto:', cotizacion.producto),
-                  _item('Línea:', cotizacion.linea),
-                  _item('Modelo:', cotizacion.modelo),
-                  _item('Color:', cotizacion.color),
-                  _item('Marca Color:', cotizacion.marcaColor),
-                  _item('Generación:', cotizacion.generacion.toString()),
-                  _item('Número de Ejes:', cotizacion.numeroEjes.toString()),
-                  _item('Unidades:', cotizacion.numeroUnidades.toString()),
+                  Table(
+                    columnWidths: const {
+                      0: IntrinsicColumnWidth(),
+                      1: FlexColumnWidth(),
+                    },
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    children: [
+                      _tableRow('Producto: ', cotizacion.producto),
+                      _tableRow('Línea: ', cotizacion.linea),
+                      _tableRow('Modelo: ', cotizacion.modelo),
+                      _tableRow('Color: ', cotizacion.color),
+                      _tableRow('Marca Color: ', cotizacion.marcaColor),
+                      _tableRow(
+                        'Generación: ',
+                        cotizacion.generacion.toString(),
+                      ),
+                      _tableRow(
+                        'Número de Ejes: ',
+                        cotizacion.numeroEjes.toString(),
+                      ),
+                      _tableRow(
+                        'Unidades: ',
+                        cotizacion.numeroUnidades.toString(),
+                      ),
+                    ],
+                  ),
                 ]),
 
                 _buildTitulo('Estructura'),
-                _buildCard(
-                  estructuraOrden
-                      .where((campo) => cotizacion.estructura[campo['key']] != null)
-                      .map((campo) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '${campo['label']} ',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  TextSpan(
-                                    text: cotizacion.estructura[campo['key']]!,
-                                  ),
-                                ],
-                                style: const TextStyle(color: Colors.black),
-                              ),
-                              textAlign: TextAlign.justify, // <-- Justifica el texto
-                            ),
-                          ))
-                      .toList(),
-                ),
+                _buildCard([
+                  buildEstructuraTable(
+                    cotizacion.estructura.map(
+                      (k, v) => MapEntry(k, v.toString()),
+                    ),
+                  ),
+                ]),
 
                 _buildTitulo('Adicionales de Línea'),
-                _buildCard(
-                  cotizacion.adicionalesDeLinea
-                      .map((a) => _item('•', a.toString()))
-                      .toList(),
+                ...cotizacion.adicionalesDeLinea.map(
+                  (a) => _buildCard([
+                    Text(
+                      (a['name'] ?? a['nombre'] ?? '').toString(),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    if ((a['adicionales'] ?? '').toString().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 4),
+                        child: Text(
+                          a['adicionales'],
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Cantidad:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        Text('${a['cantidad'] ?? ''}'),
+                      ],
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Precio:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(
+                            double.tryParse('${a['precio'] ?? a['precioUnitario'] ?? 0}') ?? 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ]),
                 ),
 
                 _buildTitulo('Adicionales Seleccionados'),
-                _buildCard(
-                  cotizacion.adicionalesSeleccionados.map((a) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('• ${a.nombre}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text('  Cantidad: ${a.cantidad}'),
-                          Text('  Precio: \$${a.precioUnitario.toStringAsFixed(2)}'),
-                          Text('  Estado: ${a.estado}'),
-                          const Divider()
-                        ],
-                      )).toList(),
+                ...cotizacion.adicionalesSeleccionados.map(
+                  (a) => _buildCard([
+                    Text(
+                      a.nombre,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Cantidad:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('${a.cantidad}'),
+                      ],
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Precio:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(a.precioUnitario),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Estado:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(a.estado),
+                      ],
+                    ),
+                  ]),
                 ),
 
                 _buildTitulo('Pago y Entrega'),
                 _buildCard([
-                  _item('Forma de Pago:', cotizacion.formaPago ?? '-'),
-                  _item('Método de Pago:', cotizacion.metodoPago ?? '-'),
-                  _item('Moneda:', cotizacion.moneda ?? '-'),
-                  _item('Cuenta:', cotizacion.cuentaSeleccionada ?? '-'),
-                  _item('Otro Método:', cotizacion.otroMetodoPago ?? '-'),
-                  _item('Entrega en:', cotizacion.entregaEn ?? '-'),
-                  _item('Garantía:', cotizacion.garantia ?? '-'),
-                  _item('Inicio Entrega:', cotizacion.fechaInicioEntrega?.toIso8601String() ?? '-'),
-                  _item('Fin Entrega:', cotizacion.fechaFinEntrega?.toIso8601String() ?? '-'),
-                  _item('Semanas Entrega:', cotizacion.semanasEntrega ?? '-'),
+                  Table(
+                    columnWidths: const {
+                      0: IntrinsicColumnWidth(),
+                      1: FlexColumnWidth(),
+                    },
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    children: [
+                      _tableRow('Forma de Pago: ', cotizacion.formaPago ?? '-'),
+                      _tableRow('Método de Pago: ', cotizacion.metodoPago ?? '-'),
+                      _tableRow('Moneda: ', cotizacion.moneda ?? '-'),
+                      _tableRow('Cuenta: ', cotizacion.cuentaSeleccionada ?? '-'),
+                      _tableRow('Otro Método: ', cotizacion.otroMetodoPago ?? '-'),
+                      _tableRow('Entrega en: ', cotizacion.entregaEn ?? '-'),
+                      _tableRow('Garantía: ', cotizacion.garantia ?? '-'),
+                      _tableRow(
+                        'Inicio Entrega: ',
+                        cotizacion.fechaInicioEntrega != null
+                            ? DateFormat('dd/MM/yyyy').format(cotizacion.fechaInicioEntrega!)
+                            : '-',
+                      ),
+                      _tableRow(
+                        'Fin Entrega: ',
+                        cotizacion.fechaFinEntrega != null
+                            ? DateFormat('dd/MM/yyyy').format(cotizacion.fechaFinEntrega!)
+                            : '-',
+                      ),
+                      _tableRow('Semanas Entrega: ', cotizacion.semanasEntrega ?? '-'),
+                    ],
+                  ),
                 ]),
 
                 const SizedBox(height: 24),
@@ -131,7 +240,10 @@ class Seccion4 extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
@@ -166,11 +278,20 @@ class Seccion4 extends StatelessWidget {
   Widget _buildCard(List<Widget> children) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: const Color.fromARGB(255, 240, 239, 239),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            // ignore: deprecated_member_use
+            color: Colors.black.withOpacity(0.40), 
+            blurRadius: 36,                        
+            spreadRadius: 4,
+            offset: const Offset(0, 18),          
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,37 +300,76 @@ class Seccion4 extends StatelessWidget {
     );
   }
 
-  Widget _item(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+
+  TableRow _tableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
             label,
             style: const TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.start,
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(value)),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            value,
+            textAlign: TextAlign.right, // <-- Alinea a la derecha
+          ),
+        ),
+      ],
     );
   }
 
-// Orden y etiquetas de los campos de estructura
-final List<Map<String, String>> estructuraOrden = [
-  {'key': 'LONGITUD', 'label': 'LONGITUD'},
-  {'key': 'ANCHO', 'label': 'ANCHO'},
-  {'key': 'ALTO', 'label': 'ALTO'},
-  {'key': 'LONGITUD DE LANZA', 'label': 'LONGITUD DE LANZA'},
-  {'key': 'ARGOLLA', 'label': 'ARGOLLA'},
-  {'key': 'BISAGRAS', 'label': 'BISAGRAS'},
-  {'key': 'LANZA', 'label': 'LANZA'},
-  {'key': 'BASTIDOR', 'label': 'BASTIDOR'},
-  {'key': 'QUINTA RUEDA', 'label': 'QUINTA RUEDA'},
-  {'key': 'SUSPENSION', 'label': 'SUSPENSION'},
-  {'key': 'EJES', 'label': 'EJES'},
-  {'key': 'ALINEACION', 'label': 'ALINEACION'},
-  {'key': 'PINTURA', 'label': 'PINTURA'},
-];
+  Widget buildEstructuraTable(Map<String, String> estructura) {
+    return Table(
+      columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+      border: TableBorder(), // <--- Sin bordes
+      defaultVerticalAlignment: TableCellVerticalAlignment.top,
+      children: estructuraOrden
+          .where((campo) => estructura[campo['key']] != null)
+          .map(
+            (campo) => TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    campo['label']!,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                  ).copyWith(left: 8),
+                  child: Text(
+                    estructura[campo['key']]!,
+                    textAlign: TextAlign.justify,
+                  ),
+                ),
+              ],
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  // Orden y etiquetas de los campos de estructura
+  final List<Map<String, String>> estructuraOrden = [
+    {'key': 'LONGITUD', 'label': 'LONGITUD'},
+    {'key': 'ANCHO', 'label': 'ANCHO'},
+    {'key': 'ALTO', 'label': 'ALTO'},
+    {'key': 'LONGITUD DE LANZA', 'label': 'LONGITUD DE LANZA'},
+    {'key': 'ARGOLLA', 'label': 'ARGOLLA'},
+    {'key': 'BISAGRAS', 'label': 'BISAGRAS'},
+    {'key': 'LANZA', 'label': 'LANZA'},
+    {'key': 'BASTIDOR', 'label': 'BASTIDOR'},
+    {'key': 'QUINTA RUEDA', 'label': 'QUINTA RUEDA'},
+    {'key': 'SUSPENSION', 'label': 'SUSPENSION'},
+    {'key': 'EJES', 'label': 'EJES'},
+    {'key': 'ALINEACION', 'label': 'ALINEACION'},
+    {'key': 'PINTURA', 'label': 'PINTURA'},
+  ];
 }

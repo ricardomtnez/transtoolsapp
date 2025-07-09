@@ -5,7 +5,7 @@ class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
 
   // Recibe la cotización en el constructor
-  const Seccion4({Key? key, required this.cotizacion}) : super(key: key);
+  Seccion4({Key? key, required this.cotizacion}) : super(key: key);
 
   // Método estático para facilitar crear la ruta con argumentos
   static Route route(RouteSettings settings) {
@@ -64,8 +64,26 @@ class Seccion4 extends StatelessWidget {
 
                 _buildTitulo('Estructura'),
                 _buildCard(
-                  cotizacion.estructura.entries
-                      .map((e) => _item(e.key, e.value.toString()))
+                  estructuraOrden
+                      .where((campo) => cotizacion.estructura[campo['key']] != null)
+                      .map((campo) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: '${campo['label']} ',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  TextSpan(
+                                    text: cotizacion.estructura[campo['key']]!,
+                                  ),
+                                ],
+                                style: const TextStyle(color: Colors.black),
+                              ),
+                              textAlign: TextAlign.justify, // <-- Justifica el texto
+                            ),
+                          ))
                       .toList(),
                 ),
 
@@ -177,4 +195,21 @@ class Seccion4 extends StatelessWidget {
       ),
     );
   }
+
+// Orden y etiquetas de los campos de estructura
+final List<Map<String, String>> estructuraOrden = [
+  {'key': 'LONGITUD', 'label': 'LONGITUD'},
+  {'key': 'ANCHO', 'label': 'ANCHO'},
+  {'key': 'ALTO', 'label': 'ALTO'},
+  {'key': 'LONGITUD DE LANZA', 'label': 'LONGITUD DE LANZA'},
+  {'key': 'ARGOLLA', 'label': 'ARGOLLA'},
+  {'key': 'BISAGRAS', 'label': 'BISAGRAS'},
+  {'key': 'LANZA', 'label': 'LANZA'},
+  {'key': 'BASTIDOR', 'label': 'BASTIDOR'},
+  {'key': 'QUINTA RUEDA', 'label': 'QUINTA RUEDA'},
+  {'key': 'SUSPENSION', 'label': 'SUSPENSION'},
+  {'key': 'EJES', 'label': 'EJES'},
+  {'key': 'ALINEACION', 'label': 'ALINEACION'},
+  {'key': 'PINTURA', 'label': 'PINTURA'},
+];
 }

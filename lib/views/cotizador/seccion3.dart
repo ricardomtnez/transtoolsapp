@@ -90,7 +90,17 @@ class _Seccion3State extends State<Seccion3> {
   void initState() {
     super.initState();
     _cargarUsuario();
-    formaPago = 'Contado'; // <-- Valor por default y fijo
+    formaPago = widget.cotizacion.formaPago ?? 'Contado';
+    metodoPago = widget.cotizacion.metodoPago;
+    moneda = widget.cotizacion.moneda;
+    entregaEn = widget.cotizacion.entregaEn;
+    garantia = widget.cotizacion.garantia;
+    cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
+    otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
+    semanasEntrega = widget.cotizacion.semanasEntrega;
+    fechaInicio = widget.cotizacion.fechaInicioEntrega;
+    fechaFin = widget.cotizacion.fechaFinEntrega;
+    unidadesController.text = widget.cotizacion.numeroUnidades.toString();
   }
 
   Future<void> _cargarUsuario() async {
@@ -652,7 +662,21 @@ class _Seccion3State extends State<Seccion3> {
                               width: 140,
                               child: ElevatedButton(
                                 onPressed: () {
-                                  Navigator.of(context).pop();
+                                  Navigator.pop(context, {
+    'cotizacion': widget.cotizacion.copyWith(
+      formaPago: formaPago,
+      metodoPago: metodoPago,
+      moneda: moneda,
+      entregaEn: entregaEn,
+      garantia: garantia,
+      cuentaSeleccionada: cuentaSeleccionada,
+      otroMetodoPago: otroMetodoController.text.isNotEmpty ? otroMetodoController.text : null,
+      fechaInicioEntrega: fechaInicio,
+      fechaFinEntrega: fechaFin,
+      semanasEntrega: semanasEntrega,
+      numeroUnidades: int.tryParse(unidadesController.text),
+    ),
+  });
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,

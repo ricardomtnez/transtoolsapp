@@ -486,13 +486,12 @@ class _Seccion2State extends State<Seccion2> {
                               SizedBox(
                                 width: 140,
                                 child: ElevatedButton(
-                                  onPressed: () {
+                                  onPressed: () async {
                                     widget.cotizacion.estructura =
                                         especificaciones['Estructura'] ?? {};
                                     widget.cotizacion.adicionalesDeLinea =
                                         especificaciones['Adicionales de Línea'] ??
                                         [];
-
                                     widget.cotizacion.adicionalesSeleccionados =
                                         _adicionalesSeleccionados.map((nombre) {
                                           return AdicionalSeleccionado(
@@ -509,7 +508,6 @@ class _Seccion2State extends State<Seccion2> {
                                           );
                                         }).toList();
 
-                                    // Calcula el total general igual que en _buildTotalGeneralCard
                                     final double totalAdicionalesSeleccionados =
                                         _adicionalesSeleccionados.fold<double>(
                                           0.0,
@@ -524,24 +522,42 @@ class _Seccion2State extends State<Seccion2> {
                                         _precioProductoConAdicionales +
                                         totalAdicionalesSeleccionados;
 
-                                    // Crea una copia de la cotización con el importe actualizado
-                                    final cotizacionActualizada = widget
-                                        .cotizacion
-                                        .copyWith(
-                                          importe: totalGeneral,
-                                          totalAdicionales:
-                                              totalAdicionalesSeleccionados,
-                                          precioProductoConAdicionales:
-                                              _precioProductoConAdicionales, 
-                                        );
+                                    final cotizacionActualizada = widget.cotizacion.copyWith(
+                                      importe: totalGeneral,
+                                      totalAdicionales: totalAdicionalesSeleccionados,
+                                      precioProductoConAdicionales: _precioProductoConAdicionales,
+                                    );
 
-                                    Navigator.pushNamed(
+                                    final resultado = await Navigator.pushNamed(
                                       context,
                                       '/seccion3',
                                       arguments: {
                                         'cotizacion': cotizacionActualizada,
                                       },
                                     );
+
+                                    if (resultado != null && resultado is Map && resultado['cotizacion'] != null) {
+                                      setState(() {
+                                        // ¡ACTUALIZA tu cotización con lo que regresa S3!
+                                        widget.cotizacion.estructura = resultado['cotizacion'].estructura;
+                                        widget.cotizacion.adicionalesDeLinea = resultado['cotizacion'].adicionalesDeLinea;
+                                        widget.cotizacion.adicionalesSeleccionados = resultado['cotizacion'].adicionalesSeleccionados;
+                                        widget.cotizacion.importe = resultado['cotizacion'].importe;
+                                        widget.cotizacion.totalAdicionales = resultado['cotizacion'].totalAdicionales;
+                                        widget.cotizacion.precioProductoConAdicionales = resultado['cotizacion'].precioProductoConAdicionales;
+                                        widget.cotizacion.formaPago = resultado['cotizacion'].formaPago;
+                                        widget.cotizacion.metodoPago = resultado['cotizacion'].metodoPago;
+                                        widget.cotizacion.moneda = resultado['cotizacion'].moneda;
+                                        widget.cotizacion.entregaEn = resultado['cotizacion'].entregaEn;
+                                        widget.cotizacion.garantia = resultado['cotizacion'].garantia;
+                                        widget.cotizacion.cuentaSeleccionada = resultado['cotizacion'].cuentaSeleccionada;
+                                        widget.cotizacion.otroMetodoPago = resultado['cotizacion'].otroMetodoPago;
+                                        widget.cotizacion.fechaInicioEntrega = resultado['cotizacion'].fechaInicioEntrega;
+                                        widget.cotizacion.fechaFinEntrega = resultado['cotizacion'].fechaFinEntrega;
+                                        widget.cotizacion.semanasEntrega = resultado['cotizacion'].semanasEntrega;
+                                        widget.cotizacion.numeroUnidades = resultado['cotizacion'].numeroUnidades;
+                                      });
+                                    }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,

@@ -215,18 +215,9 @@ class Seccion4 extends StatelessWidget {
                       _tableRow('Entrega en: ', cotizacion.entregaEn ?? '-'),
                       _tableRow('Garantía: ', cotizacion.garantia ?? '-'),
                       _tableRow(
-                        'Inicio Entrega: ',
-                        cotizacion.fechaInicioEntrega != null
-                            ? DateFormat('dd/MM/yyyy').format(cotizacion.fechaInicioEntrega!)
-                            : '-',
+                        'Semanas de Entrega: ',
+                        '${cotizacion.semanasEntrega ?? '-'} semanas',
                       ),
-                      _tableRow(
-                        'Fin Entrega: ',
-                        cotizacion.fechaFinEntrega != null
-                            ? DateFormat('dd/MM/yyyy').format(cotizacion.fechaFinEntrega!)
-                            : '-',
-                      ),
-                      _tableRow('Semanas Entrega: ', cotizacion.semanasEntrega ?? '-'),
                     ],
                   ),
                 ]),

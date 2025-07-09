@@ -508,11 +508,39 @@ class _Seccion2State extends State<Seccion2> {
                                                 'Desconocido',
                                           );
                                         }).toList();
-                                    // Navegar pasando el objeto cotización completo:
+
+                                    // Calcula el total general igual que en _buildTotalGeneralCard
+                                    final double totalAdicionalesSeleccionados =
+                                        _adicionalesSeleccionados.fold<double>(
+                                          0.0,
+                                          (sum, adicional) =>
+                                              sum +
+                                              ((_preciosAdicionales[adicional] ??
+                                                      0.0) *
+                                                  (_cantidadesAdicionales[adicional] ??
+                                                      1)),
+                                        );
+                                    final totalGeneral =
+                                        _precioProductoConAdicionales +
+                                        totalAdicionalesSeleccionados;
+
+                                    // Crea una copia de la cotización con el importe actualizado
+                                    final cotizacionActualizada = widget
+                                        .cotizacion
+                                        .copyWith(
+                                          importe: totalGeneral,
+                                          totalAdicionales:
+                                              totalAdicionalesSeleccionados,
+                                          precioProductoConAdicionales:
+                                              _precioProductoConAdicionales, 
+                                        );
+
                                     Navigator.pushNamed(
                                       context,
                                       '/seccion3',
-                                      arguments: {'cotizacion':widget.cotizacion},
+                                      arguments: {
+                                        'cotizacion': cotizacionActualizada,
+                                      },
                                     );
                                   },
                                   style: ElevatedButton.styleFrom(

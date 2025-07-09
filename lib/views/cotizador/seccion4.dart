@@ -18,6 +18,16 @@ class Seccion4 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double _precioProductoConAdicionales = cotizacion.precioProductoConAdicionales ?? 0;
+    final double _totalAdicionalesSeleccionados = cotizacion.totalAdicionales ?? 0;
+    final int numeroUnidades = cotizacion.numeroUnidades?.toInt() ?? 0;
+
+    final precioProductoTotal = _precioProductoConAdicionales * numeroUnidades;
+    final precioAdicionalesTotal = _totalAdicionalesSeleccionados * numeroUnidades;
+    final subTotal = precioProductoTotal + precioAdicionalesTotal;
+    final iva = subTotal * 0.16;
+    final totalFinal = subTotal + iva;
+
     return Scaffold(
       backgroundColor: Colors.blue[800],
       appBar: AppBar(
@@ -78,20 +88,11 @@ class Seccion4 extends StatelessWidget {
                       _tableRow('Producto: ', cotizacion.producto),
                       _tableRow('Línea: ', cotizacion.linea),
                       _tableRow('Modelo: ', cotizacion.modelo),
+                      _tableRow('Número de Ejes: ', cotizacion.numeroEjes.toString()),
+                      _tableRow('Unidades: ', cotizacion.numeroUnidades.toString()),
                       _tableRow('Color: ', cotizacion.color),
                       _tableRow('Marca Color: ', cotizacion.marcaColor),
-                      _tableRow(
-                        'Generación: ',
-                        cotizacion.generacion.toString(),
-                      ),
-                      _tableRow(
-                        'Número de Ejes: ',
-                        cotizacion.numeroEjes.toString(),
-                      ),
-                      _tableRow(
-                        'Unidades: ',
-                        cotizacion.numeroUnidades.toString(),
-                      ),
+                      _tableRow('Generación: ', cotizacion.generacion.toString()),
                     ],
                   ),
                 ]),
@@ -102,101 +103,82 @@ class Seccion4 extends StatelessWidget {
                     cotizacion.estructura.map(
                       (k, v) => MapEntry(k, v.toString()),
                     ),
+                    cotizacion.adicionalesDeLinea.cast<Map<String, dynamic>>(),
                   ),
                 ]),
 
-                _buildTitulo('Adicionales de Línea'),
-                ...cotizacion.adicionalesDeLinea.map(
-                  (a) => _buildCard([
-                    Text(
-                      (a['name'] ?? a['nombre'] ?? '').toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    if ((a['adicionales'] ?? '').toString().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, bottom: 4),
-                        child: Text(
-                          a['adicionales'],
-                          style: const TextStyle(fontSize: 15),
-                        ),
-                      ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Cantidad:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        Text('${a['cantidad'] ?? ''}'),
-                      ],
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Precio:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(
-                            double.tryParse('${a['precio'] ?? a['precioUnitario'] ?? 0}') ?? 0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ]),
-                ),
-
                 _buildTitulo('Adicionales Seleccionados'),
-                ...cotizacion.adicionalesSeleccionados.map(
-                  (a) => _buildCard([
-                    Text(
-                      a.nombre,
-                      style: const TextStyle(
+                if (cotizacion.adicionalesSeleccionados.isEmpty)
+                  _buildCard([
+                    const Text(
+                      'Sin adicionales agregados',
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 0, 0, 0),
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Cantidad:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                  ])
+                else
+                  _buildCard(
+                    [
+                      for (int i = 0; i < cotizacion.adicionalesSeleccionados.length; i++) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cotizacion.adicionalesSeleccionados[i].nombre,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Cantidad:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Text('${cotizacion.adicionalesSeleccionados[i].cantidad}'),
+                              ],
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Precio:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  NumberFormat.currency(
+                                    locale: 'es_MX',
+                                    symbol: '\$',
+                                  ).format(cotizacion.adicionalesSeleccionados[i].precioUnitario),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Estado:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(cotizacion.adicionalesSeleccionados[i].estado),
+                              ],
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text('${a.cantidad}'),
-                      ],
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Precio:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(a.precioUnitario),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Estado:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(a.estado),
-                      ],
-                    ),
-                  ]),
-                ),
+                        if (i != cotizacion.adicionalesSeleccionados.length - 1)
+                          const Divider(height: 32, thickness: 1),
+                      ]
+                    ],
+                  ),
 
                 _buildTitulo('Pago y Entrega'),
                 _buildCard([
@@ -217,6 +199,145 @@ class Seccion4 extends StatelessWidget {
                       _tableRow(
                         'Semanas de Entrega: ',
                         '${cotizacion.semanasEntrega ?? '-'} semanas',
+                      ),
+                    ],
+                  ),
+                ]),
+
+                _buildTitulo('Resumen de Pago'),
+                _buildCard([
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Unidades:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
+                        '${cotizacion.numeroUnidades}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Precio del producto:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
+                        NumberFormat.currency(locale: 'es_MX', symbol: '\$')
+                            .format(cotizacion.precioProductoConAdicionales ?? 0),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Precio de adicionales:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
+                        NumberFormat.currency(locale: 'es_MX', symbol: '\$')
+                            .format(cotizacion.totalAdicionales ?? 0),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Sub total:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
+                        NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(subTotal),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'IVA (16%):',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
+                        NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(iva),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(thickness: 1, color: Colors.black26),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Final:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
+                        NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(totalFinal),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1565C0),
+                        ),
                       ),
                     ],
                   ),
@@ -266,6 +387,7 @@ class Seccion4 extends StatelessWidget {
     );
   }
 
+  // Cambia el método _buildCard:
   Widget _buildCard(List<Widget> children) {
     return Container(
       width: double.infinity,
@@ -277,21 +399,21 @@ class Seccion4 extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             // ignore: deprecated_member_use
-            color: Colors.black.withOpacity(0.40), 
-            blurRadius: 36,                        
+            color: Colors.black.withOpacity(0.40),
+            blurRadius: 36,
             spreadRadius: 4,
-            offset: const Offset(0, 18),          
+            offset: const Offset(0, 18),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center, // <-- Centrado
         children: children,
       ),
     );
   }
 
-
+  // Cambia el método _tableRow:
   TableRow _tableRow(String label, String value) {
     return TableRow(
       children: [
@@ -300,50 +422,109 @@ class Seccion4 extends StatelessWidget {
           child: Text(
             label,
             style: const TextStyle(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.start,
+            textAlign: TextAlign.center, // Etiqueta centrada
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Text(
             value,
-            textAlign: TextAlign.right, // <-- Alinea a la derecha
+            textAlign: TextAlign.right, // <-- Cambia a right
           ),
         ),
       ],
     );
   }
 
-  Widget buildEstructuraTable(Map<String, String> estructura) {
-    return Table(
-      columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
-      border: TableBorder(), // <--- Sin bordes
-      defaultVerticalAlignment: TableCellVerticalAlignment.top,
-      children: estructuraOrden
-          .where((campo) => estructura[campo['key']] != null)
-          .map(
-            (campo) => TableRow(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    campo['label']!,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+  Widget buildEstructuraTable(
+    Map<String, String> estructura,
+    List<Map<String, dynamic>> adicionalesDeLinea,
+  ) {
+    final rows = estructuraOrden
+        .where((campo) => estructura[campo['key']] != null)
+        .map(
+          (campo) => TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  campo['label']!,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8).copyWith(left: 8),
+                child: Text(
+                  estructura[campo['key']]!,
+                  textAlign: TextAlign.justify, // <-- Justificado
+                  style: const TextStyle(
+                    fontSize: 14,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                  ).copyWith(left: 8),
-                  child: Text(
-                    estructura[campo['key']]!,
-                    textAlign: TextAlign.justify,
-                  ),
+              ),
+            ],
+          ),
+        )
+        .toList();
+
+    // Agrega el título solo si hay adicionales de línea no excluidos
+    final adicionalesIncluidos = adicionalesDeLinea.where((a) => a['excluido'] != true).toList();
+    if (adicionalesIncluidos.isNotEmpty) {
+      rows.add(
+        TableRow(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Adicionales de Línea',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
                 ),
-              ],
+                textAlign: TextAlign.left,
+              ),
             ),
-          )
-          .toList(),
+            const SizedBox(),
+          ],
+        ),
+      );
+
+      for (final a in adicionalesIncluidos) {
+        rows.add(
+          TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  (a['name'] ?? a['nombre'] ?? '').toString(),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.left,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8).copyWith(left: 8),
+                child: Text(
+                  '${a['cantidad'] ?? ''} ${a['adicionales'] ?? ''}',
+                  textAlign: TextAlign.justify,
+                  style: const TextStyle(
+                    fontSize: 14, // <-- Cambiado a 14
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    return Table(
+      columnWidths: const {
+        0: FixedColumnWidth(140),
+        1: FlexColumnWidth(),
+      },
+      defaultVerticalAlignment: TableCellVerticalAlignment.top,
+      children: rows,
     );
   }
 

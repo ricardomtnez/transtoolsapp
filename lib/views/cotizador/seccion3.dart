@@ -756,6 +756,10 @@ class _Seccion3State extends State<Seccion3> {
                                           fechaInicioEntrega: fechaInicio,
                                           fechaFinEntrega: fechaFin,
                                           semanasEntrega: semanasEntrega,
+                                          importe: widget.cotizacion.importe,
+                                          totalAdicionales: widget
+                                              .cotizacion
+                                              .totalAdicionales,
                                         );
 
                                     // Navegar a la Sección 4 pasando el objeto cotización actualizado

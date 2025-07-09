@@ -27,7 +27,7 @@ class Cotizacion {
   // Guarda los adicionales seleccionados, con detalles (nombre, cantidad, precio, estado)
   List<AdicionalSeleccionado> adicionalesSeleccionados;
 
-  // NUEVOS CAMPOS de Sección 3
+
   int numeroUnidades;
   String? formaPago;
   String? metodoPago;
@@ -39,6 +39,9 @@ class Cotizacion {
   DateTime? fechaInicioEntrega;
   DateTime? fechaFinEntrega;
   String? semanasEntrega;
+  double? importe; 
+  double? totalAdicionales;
+  double? precioProductoConAdicionales;
 
   Cotizacion({
     required this.folioCotizacion,
@@ -69,6 +72,9 @@ class Cotizacion {
     this.fechaInicioEntrega,
     this.fechaFinEntrega,
     this.semanasEntrega,
+    this.importe, // <-- Agrega esto
+    this.totalAdicionales,
+    this.precioProductoConAdicionales, // <--- agrega esto
   });
 
   factory Cotizacion.fromMap(Map<String, dynamic> map) {
@@ -109,6 +115,8 @@ class Cotizacion {
           ? DateTime.parse(map['fechaFinEntrega'])
           : null,
       semanasEntrega: map['semanasEntrega'],
+      importe: map['importe'] != null ? (map['importe'] as num).toDouble() : null, // <-- Agrega esto
+      totalAdicionales: map['totalAdicionales'] != null ? (map['totalAdicionales'] as num).toDouble() : null, // <-- Agrega esto
     );
   }
 
@@ -144,6 +152,8 @@ class Cotizacion {
       'fechaInicioEntrega': fechaInicioEntrega?.toIso8601String(),
       'fechaFinEntrega': fechaFinEntrega?.toIso8601String(),
       'semanasEntrega': semanasEntrega,
+      'importe': importe, // <-- Agrega esto
+      'totalAdicionales': totalAdicionales, // <-- Agrega esto
     };
   }
 
@@ -181,6 +191,9 @@ class Cotizacion {
     DateTime? fechaInicioEntrega,
     DateTime? fechaFinEntrega,
     String? semanasEntrega,
+    double? importe, // <-- Agrega esto
+    double? totalAdicionales,
+    double? precioProductoConAdicionales, // <--- agrega esto
   }) {
     return Cotizacion(
       folioCotizacion: folioCotizacion ?? this.folioCotizacion,
@@ -212,6 +225,9 @@ class Cotizacion {
       fechaInicioEntrega: fechaInicioEntrega ?? this.fechaInicioEntrega,
       fechaFinEntrega: fechaFinEntrega ?? this.fechaFinEntrega,
       semanasEntrega: semanasEntrega ?? this.semanasEntrega,
+      importe: importe ?? this.importe, // <-- Agrega esto
+      totalAdicionales: totalAdicionales ?? this.totalAdicionales, // <-- Agrega esto
+      precioProductoConAdicionales: precioProductoConAdicionales ?? this.precioProductoConAdicionales, // <--- agrega esto
     );
   }
 }

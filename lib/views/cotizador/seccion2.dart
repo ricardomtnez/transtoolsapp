@@ -505,6 +505,7 @@ class _Seccion2State extends State<Seccion2> {
                                         widget.cotizacion.numeroUnidades =
                                             resultado['cotizacion']
                                                 .numeroUnidades;
+                                        widget.cotizacion.anticipoSeleccionado = resultado['cotizacion'].anticipoSeleccionado;
                                       });
                                     }
                                   },
@@ -631,7 +632,7 @@ class _Seccion2State extends State<Seccion2> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: Color.fromARGB(221, 255, 255, 255),
+                                color: Color.fromARGB(221, 0, 0, 0),
                               ),
                             ),
                             const SizedBox(width: 12),

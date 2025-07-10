@@ -43,7 +43,7 @@ class Cotizacion {
   double? importe; 
   double? totalAdicionales;
   double? precioProductoConAdicionales;
-  final String? anticipoSeleccionado;
+  String? anticipoSeleccionado; 
 
   Cotizacion({
     required this.folioCotizacion,
@@ -189,6 +189,7 @@ class Cotizacion {
     String? moneda,
     String? entregaEn,
     String? garantia,
+    String? anticipoSeleccionado,
     String? cuentaSeleccionada,
     String? otroMetodoPago,
     DateTime? fechaInicioEntrega,
@@ -197,7 +198,6 @@ class Cotizacion {
     double? importe, // <-- Agrega esto
     double? totalAdicionales,
     double? precioProductoConAdicionales, // <--- agrega esto
-    final String? anticipoSeleccionado,
   }) {
     return Cotizacion(
       folioCotizacion: folioCotizacion ?? this.folioCotizacion,

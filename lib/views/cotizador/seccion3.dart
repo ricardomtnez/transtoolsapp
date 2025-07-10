@@ -48,13 +48,18 @@ class _Seccion3State extends State<Seccion3> {
   String? semanasEntrega;
 
   final List<String> formasPago = ['Contado'];
-  final List<String> metodosPago = ['Transferencia', 'Cheque', 'Otro'];
+  final List<String> metodosPago = ['Transferencia', 'Cheque'];
   final List<String> monedas = ['MXN', 'USD'];
   final List<String> tiemposEntrega = [
     '4 semanas a partir de su anticipo',
     '6 semanas a partir de su anticipo',
     '8 semanas a partir de su anticipo',
   ];
+
+  final List<String> anticipos = ['10%', '20%', '30%', '50%'];
+  
+  String? anticipoSeleccionado;
+
   final List<String> garantias = ['6 meses', '12 meses'];
   final List<String> cuentasMXN = [
     'BBVA Bancomer - 123456789 - Clabe: 012345678901234567',
@@ -496,8 +501,25 @@ class _Seccion3State extends State<Seccion3> {
                                   },
                                 ),
                               ),
+                            _styledDropdown(
+                              label: 'Anticipo',
+                              value: anticipoSeleccionado,
+                              items: anticipos,
+                              onChanged: (value) {
+                                setState(() {
+                                  anticipoSeleccionado = value;
+                                });
+                              },
+                              showClear: anticipoSeleccionado != null,
+                              onClear: () {
+                                setState(() {
+                                  anticipoSeleccionado = null;
+                                });
+                              },
+                            ),
                           ],
                         ),
+
                         _buildSection(
                           title: "Información de Entrega",
                           children: [
@@ -663,20 +685,25 @@ class _Seccion3State extends State<Seccion3> {
                               child: ElevatedButton(
                                 onPressed: () {
                                   Navigator.pop(context, {
-    'cotizacion': widget.cotizacion.copyWith(
-      formaPago: formaPago,
-      metodoPago: metodoPago,
-      moneda: moneda,
-      entregaEn: entregaEn,
-      garantia: garantia,
-      cuentaSeleccionada: cuentaSeleccionada,
-      otroMetodoPago: otroMetodoController.text.isNotEmpty ? otroMetodoController.text : null,
-      fechaInicioEntrega: fechaInicio,
-      fechaFinEntrega: fechaFin,
-      semanasEntrega: semanasEntrega,
-      numeroUnidades: int.tryParse(unidadesController.text),
-    ),
-  });
+                                    'cotizacion': widget.cotizacion.copyWith(
+                                      formaPago: formaPago,
+                                      metodoPago: metodoPago,
+                                      moneda: moneda,
+                                      entregaEn: entregaEn,
+                                      garantia: garantia,
+                                      cuentaSeleccionada: cuentaSeleccionada,
+                                      otroMetodoPago:
+                                          otroMetodoController.text.isNotEmpty
+                                          ? otroMetodoController.text
+                                          : null,
+                                      fechaInicioEntrega: fechaInicio,
+                                      fechaFinEntrega: fechaFin,
+                                      semanasEntrega: semanasEntrega,
+                                      numeroUnidades: int.tryParse(
+                                        unidadesController.text,
+                                      ),
+                                    ),
+                                  });
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
@@ -780,10 +807,7 @@ class _Seccion3State extends State<Seccion3> {
                                           fechaInicioEntrega: fechaInicio,
                                           fechaFinEntrega: fechaFin,
                                           semanasEntrega: semanasEntrega,
-                                          importe: widget.cotizacion.importe,
-                                          totalAdicionales: widget
-                                              .cotizacion
-                                              .totalAdicionales,
+                                          anticipoSeleccionado: anticipoSeleccionado,
                                         );
 
                                     // Navegar a la Sección 4 pasando el objeto cotización actualizado

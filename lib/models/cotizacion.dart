@@ -17,6 +17,7 @@ class Cotizacion {
   String color;
   String marcaColor;
   int generacion;
+  
 
   // Guarda la estructura del producto (puede ser Map o List)
   Map<String, dynamic> estructura;
@@ -42,6 +43,7 @@ class Cotizacion {
   double? importe; 
   double? totalAdicionales;
   double? precioProductoConAdicionales;
+  final String? anticipoSeleccionado;
 
   Cotizacion({
     required this.folioCotizacion,
@@ -75,6 +77,7 @@ class Cotizacion {
     this.importe, // <-- Agrega esto
     this.totalAdicionales,
     this.precioProductoConAdicionales, // <--- agrega esto
+    this.anticipoSeleccionado,
   });
 
   factory Cotizacion.fromMap(Map<String, dynamic> map) {
@@ -194,6 +197,7 @@ class Cotizacion {
     double? importe, // <-- Agrega esto
     double? totalAdicionales,
     double? precioProductoConAdicionales, // <--- agrega esto
+    final String? anticipoSeleccionado,
   }) {
     return Cotizacion(
       folioCotizacion: folioCotizacion ?? this.folioCotizacion,
@@ -228,6 +232,7 @@ class Cotizacion {
       importe: importe ?? this.importe, // <-- Agrega esto
       totalAdicionales: totalAdicionales ?? this.totalAdicionales, // <-- Agrega esto
       precioProductoConAdicionales: precioProductoConAdicionales ?? this.precioProductoConAdicionales, // <--- agrega esto
+      anticipoSeleccionado: anticipoSeleccionado ?? this.anticipoSeleccionado,
     );
   }
 }

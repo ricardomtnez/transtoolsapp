@@ -22,18 +22,22 @@ class Seccion4 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // ignore: no_leading_underscores_for_local_identifiers
-    final double _precioProductoConAdicionales = cotizacion.precioProductoConAdicionales ?? 0;
+    final double _precioProductoConAdicionales =
+        cotizacion.precioProductoConAdicionales ?? 0;
     // ignore: no_leading_underscores_for_local_identifiers
-    final double _totalAdicionalesSeleccionados = cotizacion.totalAdicionales ?? 0;
+    final double _totalAdicionalesSeleccionados =
+        cotizacion.totalAdicionales ?? 0;
     final int numeroUnidades = cotizacion.numeroUnidades.toInt();
 
     final precioProductoTotal = _precioProductoConAdicionales * numeroUnidades;
-    final precioAdicionalesTotal = _totalAdicionalesSeleccionados * numeroUnidades;
+    final precioAdicionalesTotal =
+        _totalAdicionalesSeleccionados * numeroUnidades;
     final subTotal = precioProductoTotal + precioAdicionalesTotal;
     final iva = subTotal * 0.16;
     final totalFinal = subTotal + iva;
 
-    final int cantidadAdicionalesSeleccionados = cotizacion.adicionalesSeleccionados
+    final int cantidadAdicionalesSeleccionados = cotizacion
+        .adicionalesSeleccionados
         .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
     return Scaffold(
@@ -49,7 +53,8 @@ class Seccion4 extends StatelessWidget {
       ),
       body: SafeArea(
         child: Scrollbar(
-          thumbVisibility: true, // Siempre visible en desktop/web, visible al hacer scroll en mobile
+          thumbVisibility:
+              true, // Siempre visible en desktop/web, visible al hacer scroll en mobile
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -63,7 +68,8 @@ class Seccion4 extends StatelessWidget {
                         0: IntrinsicColumnWidth(),
                         1: FlexColumnWidth(),
                       },
-                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      defaultVerticalAlignment:
+                          TableCellVerticalAlignment.middle,
                       children: [
                         _tableRow('Folio:', cotizacion.folioCotizacion),
                         _tableRow(
@@ -93,16 +99,26 @@ class Seccion4 extends StatelessWidget {
                         0: IntrinsicColumnWidth(),
                         1: FlexColumnWidth(),
                       },
-                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      defaultVerticalAlignment:
+                          TableCellVerticalAlignment.middle,
                       children: [
                         _tableRow('Producto: ', cotizacion.producto),
                         _tableRow('Línea: ', cotizacion.linea),
                         _tableRow('Modelo: ', cotizacion.modelo),
-                        _tableRow('Número de Ejes: ', cotizacion.numeroEjes.toString()),
-                        _tableRow('Unidades: ', cotizacion.numeroUnidades.toString()),
+                        _tableRow(
+                          'Número de Ejes: ',
+                          cotizacion.numeroEjes.toString(),
+                        ),
+                        _tableRow(
+                          'Unidades: ',
+                          cotizacion.numeroUnidades.toString(),
+                        ),
                         _tableRow('Color: ', cotizacion.color),
                         _tableRow('Marca Color: ', cotizacion.marcaColor),
-                        _tableRow('Generación: ', cotizacion.generacion.toString()),
+                        _tableRow(
+                          'Generación: ',
+                          cotizacion.generacion.toString(),
+                        ),
                       ],
                     ),
                   ]),
@@ -113,7 +129,8 @@ class Seccion4 extends StatelessWidget {
                       cotizacion.estructura.map(
                         (k, v) => MapEntry(k, v.toString()),
                       ),
-                      cotizacion.adicionalesDeLinea.cast<Map<String, dynamic>>(),
+                      cotizacion.adicionalesDeLinea
+                          .cast<Map<String, dynamic>>(),
                     ),
                   ]),
 
@@ -130,65 +147,75 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ])
                   else
-                    _buildCard(
-                      [
-                        for (int i = 0; i < cotizacion.adicionalesSeleccionados.length; i++) ...[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                cotizacion.adicionalesSeleccionados[i].nombre,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                    _buildCard([
+                      for (
+                        int i = 0;
+                        i < cotizacion.adicionalesSeleccionados.length;
+                        i++
+                      ) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cotizacion.adicionalesSeleccionados[i].nombre,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Cantidad:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Cantidad:',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${cotizacion.adicionalesSeleccionados[i].cantidad}',
+                                ),
+                              ],
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Precio:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  NumberFormat.currency(
+                                    locale: 'es_MX',
+                                    symbol: '\$',
+                                  ).format(
+                                    cotizacion
+                                        .adicionalesSeleccionados[i]
+                                        .precioUnitario,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text('${cotizacion.adicionalesSeleccionados[i].cantidad}'),
-                                ],
-                              ),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Precio:',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    NumberFormat.currency(
-                                      locale: 'es_MX',
-                                      symbol: '\$',
-                                    ).format(cotizacion.adicionalesSeleccionados[i].precioUnitario),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Estado:',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(cotizacion.adicionalesSeleccionados[i].estado),
-                                ],
-                              ),
-                            ],
-                          ),
-                          if (i != cotizacion.adicionalesSeleccionados.length - 1)
-                            const Divider(height: 32, thickness: 1),
-                        ]
+                                ),
+                              ],
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Estado:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  cotizacion.adicionalesSeleccionados[i].estado,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        if (i != cotizacion.adicionalesSeleccionados.length - 1)
+                          const Divider(height: 32, thickness: 1),
                       ],
-                    ),
+                    ]),
 
                   _buildTitulo('Pago y Entrega'),
                   _buildCard([
@@ -197,15 +224,25 @@ class Seccion4 extends StatelessWidget {
                         0: IntrinsicColumnWidth(),
                         1: FlexColumnWidth(),
                       },
-                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      defaultVerticalAlignment:
+                          TableCellVerticalAlignment.middle,
                       children: [
-                        _tableRow('Forma de Pago: ', cotizacion.formaPago ?? '-'),
-                        _tableRow('Método de Pago: ', cotizacion.metodoPago ?? '-'),
+                        _tableRow(
+                          'Forma de Pago: ',
+                          cotizacion.formaPago ?? '-',
+                        ),
+                        _tableRow(
+                          'Método de Pago: ',
+                          cotizacion.metodoPago ?? '-',
+                        ),
                         _tableRow('Moneda: ', cotizacion.moneda ?? '-'),
-                        _tableRow('Cuenta: ', cotizacion.cuentaSeleccionada ?? '-'),
-                        _tableRow('Otro Método: ', cotizacion.otroMetodoPago ?? '-'),
+                        _tableRow(
+                          'Cuenta: ',
+                          cotizacion.cuentaSeleccionada ?? '-',
+                        ),
                         _tableRow('Entrega en: ', cotizacion.entregaEn ?? '-'),
                         _tableRow('Garantía: ', cotizacion.garantia ?? '-'),
+                        _tableRow('Anticipo: ', cotizacion.anticipoSeleccionado ?? '-'),
                         _tableRow(
                           'Semanas de Entrega: ',
                           '${cotizacion.semanasEntrega ?? '-'} semanas',
@@ -220,7 +257,7 @@ class Seccion4 extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Precio del producto (${cotizacion.numeroUnidades}):',
+                          'Unidades (${cotizacion.numeroUnidades}):',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -228,8 +265,13 @@ class Seccion4 extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          NumberFormat.currency(locale: 'es_MX', symbol: '\$')
-                              .format(cotizacion.precioProductoConAdicionales ?? 0),
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(
+                            (cotizacion.precioProductoConAdicionales ?? 0) *
+                                (cotizacion.numeroUnidades),
+                          ),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -244,7 +286,7 @@ class Seccion4 extends StatelessWidget {
                       children: [
                         Text(
                           // ignore: unnecessary_brace_in_string_interps
-                          'Precio de adicionales (${cantidadAdicionalesSeleccionados}):',
+                          'Adicionales (${cantidadAdicionalesSeleccionados}):',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -252,8 +294,13 @@ class Seccion4 extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          NumberFormat.currency(locale: 'es_MX', symbol: '\$')
-                              .format(cotizacion.totalAdicionales ?? 0),
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(
+                            (cotizacion.totalAdicionales ?? 0) *
+                                (cotizacion.numeroUnidades),
+                          ),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -275,7 +322,10 @@ class Seccion4 extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(subTotal),
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(subTotal),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -297,7 +347,10 @@ class Seccion4 extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(iva),
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(iva),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -321,7 +374,10 @@ class Seccion4 extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(totalFinal),
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(totalFinal),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -344,18 +400,38 @@ class Seccion4 extends StatelessWidget {
                               return pw.Column(
                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                                 children: [
-                                  pw.Text('Resumen de Cotización', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                                  pw.Text(
+                                    'Resumen de Cotización',
+                                    style: pw.TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: pw.FontWeight.bold,
+                                    ),
+                                  ),
                                   pw.SizedBox(height: 16),
-                                  pw.Text('Folio: ${cotizacion.folioCotizacion}'),
+                                  pw.Text(
+                                    'Folio: ${cotizacion.folioCotizacion}',
+                                  ),
                                   pw.Text('Cliente: ${cotizacion.cliente}'),
                                   pw.Text('Producto: ${cotizacion.producto}'),
-                                  pw.Text('Unidades: ${cotizacion.numeroUnidades}'),
+                                  pw.Text(
+                                    'Unidades: ${cotizacion.numeroUnidades}',
+                                  ),
                                   pw.SizedBox(height: 16),
-                                  pw.Text('Precio del producto: \$${cotizacion.precioProductoConAdicionales?.toStringAsFixed(2) ?? "0.00"}'),
-                                  pw.Text('Precio de adicionales: \$${cotizacion.totalAdicionales?.toStringAsFixed(2) ?? "0.00"}'),
-                                  pw.Text('Sub total: \$${subTotal.toStringAsFixed(2)}'),
-                                  pw.Text('IVA (16%): \$${iva.toStringAsFixed(2)}'),
-                                  pw.Text('Total Final: \$${totalFinal.toStringAsFixed(2)}'),
+                                  pw.Text(
+                                    'Precio del producto: \$${cotizacion.precioProductoConAdicionales?.toStringAsFixed(2) ?? "0.00"}',
+                                  ),
+                                  pw.Text(
+                                    'Precio de adicionales: \$${cotizacion.totalAdicionales?.toStringAsFixed(2) ?? "0.00"}',
+                                  ),
+                                  pw.Text(
+                                    'Sub total: \$${subTotal.toStringAsFixed(2)}',
+                                  ),
+                                  pw.Text(
+                                    'IVA (16%): \$${iva.toStringAsFixed(2)}',
+                                  ),
+                                  pw.Text(
+                                    'Total Final: \$${totalFinal.toStringAsFixed(2)}',
+                                  ),
                                 ],
                               );
                             },
@@ -473,13 +549,13 @@ class Seccion4 extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8).copyWith(left: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                ).copyWith(left: 8),
                 child: Text(
                   estructura[campo['key']]!,
                   textAlign: TextAlign.justify, // <-- Justificado
-                  style: const TextStyle(
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
             ],
@@ -488,7 +564,9 @@ class Seccion4 extends StatelessWidget {
         .toList();
 
     // Agrega el título solo si hay adicionales de línea no excluidos
-    final adicionalesIncluidos = adicionalesDeLinea.where((a) => a['excluido'] != true).toList();
+    final adicionalesIncluidos = adicionalesDeLinea
+        .where((a) => a['excluido'] != true)
+        .toList();
     if (adicionalesIncluidos.isNotEmpty) {
       rows.add(
         TableRow(
@@ -522,7 +600,9 @@ class Seccion4 extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8).copyWith(left: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                ).copyWith(left: 8),
                 child: Text(
                   '${a['cantidad'] ?? ''} ${a['adicionales'] ?? ''}',
                   textAlign: TextAlign.justify,
@@ -538,10 +618,7 @@ class Seccion4 extends StatelessWidget {
     }
 
     return Table(
-      columnWidths: const {
-        0: FixedColumnWidth(140),
-        1: FlexColumnWidth(),
-      },
+      columnWidths: const {0: FixedColumnWidth(140), 1: FlexColumnWidth()},
       defaultVerticalAlignment: TableCellVerticalAlignment.top,
       children: rows,
     );

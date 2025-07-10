@@ -357,16 +357,6 @@ class _Seccion2State extends State<Seccion2> {
                 children: [
                   StepHeaderBar(pasoActual: 2, totalPasos: 4),
                   const SizedBox(height: 14),
-                  if (_estadoProducto != null && _estadoProducto!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 19, bottom: 10),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _chipEstadoProducto(
-                          _estadoProducto!,
-                        ), // Usa el nuevo chip aquí
-                      ),
-                    ),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(18),
@@ -445,11 +435,15 @@ class _Seccion2State extends State<Seccion2> {
                                         _precioProductoConAdicionales +
                                         totalAdicionalesSeleccionados;
 
-                                    final cotizacionActualizada = widget.cotizacion.copyWith(
-                                      importe: totalGeneral,
-                                      totalAdicionales: totalAdicionalesSeleccionados,
-                                      precioProductoConAdicionales: _precioProductoConAdicionales,
-                                    );
+                                    final cotizacionActualizada = widget
+                                        .cotizacion
+                                        .copyWith(
+                                          importe: totalGeneral,
+                                          totalAdicionales:
+                                              totalAdicionalesSeleccionados,
+                                          precioProductoConAdicionales:
+                                              _precioProductoConAdicionales,
+                                        );
 
                                     final resultado = await Navigator.pushNamed(
                                       context,
@@ -459,26 +453,58 @@ class _Seccion2State extends State<Seccion2> {
                                       },
                                     );
 
-                                    if (resultado != null && resultado is Map && resultado['cotizacion'] != null) {
+                                    if (resultado != null &&
+                                        resultado is Map &&
+                                        resultado['cotizacion'] != null) {
                                       setState(() {
-                          
-                                        widget.cotizacion.estructura = resultado['cotizacion'].estructura;
-                                        widget.cotizacion.adicionalesDeLinea = resultado['cotizacion'].adicionalesDeLinea;
-                                        widget.cotizacion.adicionalesSeleccionados = resultado['cotizacion'].adicionalesSeleccionados;
-                                        widget.cotizacion.importe = resultado['cotizacion'].importe;
-                                        widget.cotizacion.totalAdicionales = resultado['cotizacion'].totalAdicionales;
-                                        widget.cotizacion.precioProductoConAdicionales = resultado['cotizacion'].precioProductoConAdicionales;
-                                        widget.cotizacion.formaPago = resultado['cotizacion'].formaPago;
-                                        widget.cotizacion.metodoPago = resultado['cotizacion'].metodoPago;
-                                        widget.cotizacion.moneda = resultado['cotizacion'].moneda;
-                                        widget.cotizacion.entregaEn = resultado['cotizacion'].entregaEn;
-                                        widget.cotizacion.garantia = resultado['cotizacion'].garantia;
-                                        widget.cotizacion.cuentaSeleccionada = resultado['cotizacion'].cuentaSeleccionada;
-                                        widget.cotizacion.otroMetodoPago = resultado['cotizacion'].otroMetodoPago;
-                                        widget.cotizacion.fechaInicioEntrega = resultado['cotizacion'].fechaInicioEntrega;
-                                        widget.cotizacion.fechaFinEntrega = resultado['cotizacion'].fechaFinEntrega;
-                                        widget.cotizacion.semanasEntrega = resultado['cotizacion'].semanasEntrega;
-                                        widget.cotizacion.numeroUnidades = resultado['cotizacion'].numeroUnidades;
+                                        widget.cotizacion.estructura =
+                                            resultado['cotizacion'].estructura;
+                                        widget.cotizacion.adicionalesDeLinea =
+                                            resultado['cotizacion']
+                                                .adicionalesDeLinea;
+                                        widget
+                                                .cotizacion
+                                                .adicionalesSeleccionados =
+                                            resultado['cotizacion']
+                                                .adicionalesSeleccionados;
+                                        widget.cotizacion.importe =
+                                            resultado['cotizacion'].importe;
+                                        widget.cotizacion.totalAdicionales =
+                                            resultado['cotizacion']
+                                                .totalAdicionales;
+                                        widget
+                                                .cotizacion
+                                                .precioProductoConAdicionales =
+                                            resultado['cotizacion']
+                                                .precioProductoConAdicionales;
+                                        widget.cotizacion.formaPago =
+                                            resultado['cotizacion'].formaPago;
+                                        widget.cotizacion.metodoPago =
+                                            resultado['cotizacion'].metodoPago;
+                                        widget.cotizacion.moneda =
+                                            resultado['cotizacion'].moneda;
+                                        widget.cotizacion.entregaEn =
+                                            resultado['cotizacion'].entregaEn;
+                                        widget.cotizacion.garantia =
+                                            resultado['cotizacion'].garantia;
+                                        widget.cotizacion.cuentaSeleccionada =
+                                            resultado['cotizacion']
+                                                .cuentaSeleccionada;
+                                        widget.cotizacion.otroMetodoPago =
+                                            resultado['cotizacion']
+                                                .otroMetodoPago;
+                                        widget.cotizacion.fechaInicioEntrega =
+                                            resultado['cotizacion']
+                                                .fechaInicioEntrega;
+                                        widget.cotizacion.fechaFinEntrega =
+                                            resultado['cotizacion']
+                                                .fechaFinEntrega;
+                                        widget.cotizacion.semanasEntrega =
+                                            resultado['cotizacion']
+                                                .semanasEntrega;
+                                        widget.cotizacion.numeroUnidades =
+                                            resultado['cotizacion']
+                                                .numeroUnidades;
                                       });
                                     }
                                   },
@@ -526,83 +552,99 @@ class _Seccion2State extends State<Seccion2> {
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 24),
-      child: ExpansionTile(
-        initiallyExpanded: _expandedMainSections[title] ?? false,
-        onExpansionChanged: (expanded) {
-          setState(() {
-            _expandedMainSections[title] = expanded;
-          });
-        },
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                dollyName, // Solo el nombre del Dolly
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue[800],
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              formatCurrency(_precioProductoConAdicionales),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Color(0xFF1565C0),
-              ),
-            ),
-          ],
-        ),
+      child: Column(
         children: [
+          // Chip centrado arriba del ExpansionTile
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            padding: const EdgeInsets.only(top: 16, bottom: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Muestra la configuración
-                if (configuracionExtra != null && configuracionExtra.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 8),
-                    child: Text(
-                      configuracionExtra,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF1565C0),
-                        fontWeight: FontWeight.w600,
-                      ),
+                _chipEstadoProducto(_estadoProducto ?? ''),
+              ],
+            ),
+          ),
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              initiallyExpanded: _expandedMainSections[title] ?? false,
+              onExpansionChanged: (expanded) {
+                setState(() {
+                  _expandedMainSections[title] = expanded;
+                });
+              },
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    dollyName,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue[800],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    formatCurrency(_precioProductoConAdicionales),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF1565C0),
                     ),
                   ),
-                _buildUnifiedTable(content),
-                const Divider(
-                  height: 32,
-                  thickness: 1.2,
-                  color: Color(0xFF1565C0),
-                ),
+                ],
+              ),
+              children: [
                 Padding(
-                  padding: const EdgeInsets.only(top: 12, right: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Precio del Producto:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.black87,
+                      // Muestra la configuración
+                      if (configuracionExtra != null && configuracionExtra.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 8),
+                          child: Text(
+                            configuracionExtra,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Color(0xFF1565C0),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
+                      // Aquí va la tabla
+                      _buildUnifiedTable(content),
+                      const Divider(
+                        height: 32,
+                        thickness: 1.2,
+                        color: Color(0xFF1565C0),
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        formatCurrency(_precioProductoConAdicionales),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Color(0xFF1565C0),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12, right: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text(
+                              'Precio del Producto:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Color.fromARGB(221, 255, 255, 255),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              formatCurrency(_precioProductoConAdicionales),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Color(0xFF1565C0),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -881,6 +923,7 @@ class _Seccion2State extends State<Seccion2> {
                           _grupoSeleccionadoId = grupo['value'];
                         });
                         _cargarItemsDelGrupo(grupo['value']!);
+                        FocusScope.of(context).unfocus();
                         FocusScope.of(context).unfocus();
                       },
                       fieldViewBuilder:
@@ -1589,22 +1632,20 @@ class _Seccion2State extends State<Seccion2> {
         borderRadius: BorderRadius.circular(6),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      child: Column(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center, // Centra horizontalmente
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Text(
-            'Precio del Producto',
-            textAlign: TextAlign.center, // Centra el texto
+            'Precio: ',
             style: TextStyle(
-              color: Color.fromARGB(255, 0, 0, 0),
+              color: Colors.white,
               fontWeight: FontWeight.w500,
-              fontSize: 9,
+              fontSize: 11,
             ),
           ),
           Text(
             label,
-            textAlign: TextAlign.center, // Centra el texto
             style: TextStyle(
               color: textColor,
               fontWeight: FontWeight.bold,
@@ -1637,7 +1678,6 @@ class _Seccion2State extends State<Seccion2> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1565C0),
           ),
         ),
         trailing: Text(

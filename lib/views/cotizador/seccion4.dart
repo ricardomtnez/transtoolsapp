@@ -536,7 +536,6 @@ class Seccion4 extends StatelessWidget {
     );
   }
 
-  // Cambia el método _buildCard:
   Widget _buildCard(List<Widget> children) {
     return Container(
       width: double.infinity,
@@ -556,13 +555,13 @@ class Seccion4 extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center, // <-- Centrado
+        crossAxisAlignment: CrossAxisAlignment.center, 
         children: children,
       ),
     );
   }
 
-  // Cambia el método _tableRow:
+
   TableRow _tableRow(String label, String value) {
     return TableRow(
       children: [
@@ -578,7 +577,7 @@ class Seccion4 extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Text(
             value,
-            textAlign: TextAlign.right, // <-- Cambia a right
+            textAlign: TextAlign.right, 
           ),
         ),
       ],
@@ -658,7 +657,7 @@ class Seccion4 extends StatelessWidget {
                   vertical: 8,
                 ).copyWith(left: 8),
                 child: Text(
-                  '${a['cantidad'] ?? ''} ${a['adicionales'] ?? ''}',
+                  '${a['adicionales'] ?? ''}',
                   textAlign: TextAlign.justify,
                   style: const TextStyle(
                     fontSize: 14, // <-- Cambiado a 14

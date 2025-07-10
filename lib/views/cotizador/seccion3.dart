@@ -42,6 +42,7 @@ class _Seccion3State extends State<Seccion3> {
   String? entregaEn;
   String? tiempoEntrega;
   String? cuentaSeleccionada;
+  
 
   DateTime? fechaInicio;
   DateTime? fechaFin;
@@ -58,7 +59,7 @@ class _Seccion3State extends State<Seccion3> {
 
   final List<String> anticipos = ['10%', '20%', '30%', '50%'];
 
-  String? anticipoSeleccionado;
+String anticipoSeleccionado = '';
 
   final List<String> cuentasMXN = [
     'BBVA Bancomer - 0172940930 - Clabe: 012830001729409301'
@@ -85,23 +86,23 @@ class _Seccion3State extends State<Seccion3> {
   bool unidadesError = false;
   String? unidadesErrorText;
 
-  @override
-  void initState() {
-    super.initState();
-    _cargarUsuario();
-    formaPago = widget.cotizacion.formaPago ?? 'Contado';
-    metodoPago = widget.cotizacion.metodoPago;
-    moneda = widget.cotizacion.moneda;
-    entregaEn = widget.cotizacion.entregaEn;
-    cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
-    otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
-    anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? '';
-    anticipoController.text = (anticipoSeleccionado?.isNotEmpty ?? false) ? '$anticipoSeleccionado%' : '';
-    semanasEntrega = widget.cotizacion.semanasEntrega;
-    fechaInicio = widget.cotizacion.fechaInicioEntrega;
-    fechaFin = widget.cotizacion.fechaFinEntrega;
-    unidadesController.text = widget.cotizacion.numeroUnidades.toString();
-  }
+@override
+void initState() {
+  super.initState();
+  _cargarUsuario();
+  formaPago = widget.cotizacion.formaPago ?? 'Contado';
+  metodoPago = widget.cotizacion.metodoPago;
+  moneda = widget.cotizacion.moneda;
+  entregaEn = widget.cotizacion.entregaEn;
+  cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
+  otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
+  anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? '';
+  anticipoController.text = anticipoSeleccionado.isNotEmpty ? '$anticipoSeleccionado%' : '';
+  semanasEntrega = widget.cotizacion.semanasEntrega;
+  fechaInicio = widget.cotizacion.fechaInicioEntrega;
+  fechaFin = widget.cotizacion.fechaFinEntrega;
+  unidadesController.text = widget.cotizacion.numeroUnidades.toString();
+}
 
   Future<void> _cargarUsuario() async {
     final prefs = await SharedPreferences.getInstance();
@@ -503,12 +504,12 @@ child: TextFormField(
       );
     }),
   ],
-  onChanged: (value) {
-    String clean = value.replaceAll('%', '');
-    setState(() {
-      anticipoSeleccionado = clean;
-    });
-  },
+onChanged: (value) {
+  String clean = value.replaceAll('%', '');
+  setState(() {
+    anticipoSeleccionado = clean;
+  });
+},
   validator: (value) {
     String clean = value?.replaceAll('%', '') ?? '';
     if (clean.isEmpty) {
@@ -640,7 +641,7 @@ child: TextFormField(
                                   entregaEn = value;
                                   entregaEnError = false;
                                   entregaEnErrorText = null;
-                                  anticipoSeleccionado = value;
+                                  
                                 });
                               },
                               error: entregaEnError,
@@ -681,8 +682,10 @@ child: TextFormField(
                                       fechaInicioEntrega: fechaInicio,
                                       fechaFinEntrega: fechaFin,
                                       semanasEntrega: semanasEntrega,
+                                      anticipoSeleccionado: anticipoSeleccionado,
                                       numeroUnidades: int.tryParse(
                                         unidadesController.text,
+                                        
                                       ),
                                     ),
                                   });

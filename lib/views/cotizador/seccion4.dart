@@ -57,14 +57,44 @@ class Seccion4 extends StatelessWidget {
       ),
       body: SafeArea(
         child: Scrollbar(
-          thumbVisibility:
-              true, // Siempre visible en desktop/web, visible al hacer scroll en mobile
+          thumbVisibility: true,
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Barra de navegación de pasos
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Barra amarilla superior
+                      Container(
+                        height: 8,
+                        width: double.infinity,
+                        color: const Color(0xFFD9D381), // Amarillo similar al de tu imagen
+                      ),
+                      // Barra azul con texto
+                      Container(
+                        width: double.infinity,
+                        color: const Color(0xFF1565C0), // Azul igual que tu app
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: const Center(
+                          child: Text(
+                            'Paso 4 de 4',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+
                   _buildTitulo('Información del Vendedor'),
                   _buildCard([
                     Table(

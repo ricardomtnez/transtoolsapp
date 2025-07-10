@@ -61,12 +61,10 @@ class _Seccion3State extends State<Seccion3> {
   String? anticipoSeleccionado;
 
   final List<String> cuentasMXN = [
-    'BBVA Bancomer - 123456789 - Clabe: 012345678901234567',
-    'Santander - 123456789 - Clabe: 002180123456789012',
+    'BBVA Bancomer - 0172940930 - Clabe: 012830001729409301'
   ];
   final List<String> cuentasUSD = [
-    'BBVA Bancomer USD - 987654321 - Clabe: 012345678901234568',
-    'Santander USD - 987654321 - Clabe: 002180123456789013',
+    'BBVA Bancomer USD - 0117396880 - Clabe: 012830001173968809'
   ];
 
   bool metodoPagoError = false;
@@ -97,7 +95,8 @@ class _Seccion3State extends State<Seccion3> {
     entregaEn = widget.cotizacion.entregaEn;
     cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
     otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
-    anticipoController.text = anticipoSeleccionado ?? '';
+    anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? '';
+    anticipoController.text = (anticipoSeleccionado?.isNotEmpty ?? false) ? '$anticipoSeleccionado%' : '';
     semanasEntrega = widget.cotizacion.semanasEntrega;
     fechaInicio = widget.cotizacion.fechaInicioEntrega;
     fechaFin = widget.cotizacion.fechaFinEntrega;
@@ -131,60 +130,6 @@ class _Seccion3State extends State<Seccion3> {
           ),
           centerTitle: true,
         ),
-        drawer: Drawer(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color.fromARGB(255, 233, 227, 227),
-                  Color.fromARGB(255, 212, 206, 206),
-                ],
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  children: [
-                    const SizedBox(height: 60),
-                    const CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.grey,
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
-                    ),
-                    // Espacio entre el avatar y el nombre
-                    const SizedBox(height: 10),
-                    // Nombre del usuario
-                    Text(
-                      _usuario?.fullname ?? 'Nombre no disponible',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ListTile(
-                      leading: const Icon(Icons.dashboard),
-                      title: const Text('Menu Principal'),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/dashboard');
-                      },
-                    ),
-                  ],
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 35),
-                  child: Text(
-                    'Versión 1.0',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ), // <--- Agrega aquí tu Drawer personalizado
         body: SafeArea(
           child: Column(
             children: [
@@ -497,79 +442,88 @@ class _Seccion3State extends State<Seccion3> {
                                   },
                                 ),
                               ),
-Container(
-  margin: const EdgeInsets.symmetric(vertical: 6),
-  padding: const EdgeInsets.symmetric(horizontal: 16),
-  decoration: BoxDecoration(
-    color: const Color.fromARGB(255, 240, 240, 240),
-    borderRadius: BorderRadius.circular(20),
-    border: Border.all(
-      color: Colors.grey[300]!,
-      width: 1.5,
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    // ignore: deprecated_member_use
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+child: TextFormField(
+  controller: anticipoController,
+  decoration: InputDecoration(
+    labelText: 'Anticipo (%)',
+    labelStyle: const TextStyle(
+      color: Color(0xFF1565C0),
+      fontWeight: FontWeight.bold,
     ),
-    boxShadow: [
-      BoxShadow(
-        // ignore: deprecated_member_use
-        color: Colors.black.withOpacity(0.04),
-        blurRadius: 8,
-        offset: const Offset(0, 2),
-      ),
-    ],
+    border: InputBorder.none,
+    suffixIcon: anticipoController.text.isNotEmpty
+        ? IconButton(
+            icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+            onPressed: () {
+              anticipoController.clear();
+              setState(() {
+                anticipoSeleccionado = '';
+              });
+            },
+            splashRadius: 18,
+          )
+        : null,
   ),
-  child: TextFormField(
-    controller: anticipoController,
-    decoration: InputDecoration(
-      labelText: 'Anticipo (%)',
-      labelStyle: const TextStyle(
-        color: Color(0xFF1565C0),
-        fontWeight: FontWeight.bold,
-      ),
-      border: InputBorder.none,
-      suffixIcon: (anticipoController.text.isNotEmpty)
-          ? IconButton(
-              icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
-              onPressed: () {
-                anticipoController.clear();
-                setState(() {
-                  anticipoSeleccionado = '';
-                });
-              },
-              splashRadius: 18,
-            )
-          : null,
-    ),
-    keyboardType: TextInputType.number,
-    inputFormatters: [
-      FilteringTextInputFormatter.digitsOnly,
-      TextInputFormatter.withFunction((oldValue, newValue) {
-        if (newValue.text.isEmpty) return newValue;
-        final value = int.tryParse(newValue.text);
-        if (value == null || value < 0 || value > 100) {
-          return oldValue;
-        }
-        return newValue;
-      }),
-    ],
-    onChanged: (value) {
-      setState(() {
-        anticipoSeleccionado = value;
-      });
-    },
-    validator: (value) {
-      if (value == null || value.isEmpty) {
-        return 'Ingrese el porcentaje de anticipo';
+  keyboardType: TextInputType.number,
+  inputFormatters: [
+    FilteringTextInputFormatter.allow(RegExp(r'\d+%?')),
+    TextInputFormatter.withFunction((oldValue, newValue) {
+      // Permite solo números y máximo 3 dígitos antes del %
+      String clean = newValue.text.replaceAll('%', '');
+      if (clean.isEmpty) return newValue.copyWith(text: '');
+      final value = int.tryParse(clean);
+      if (value == null || value < 0 || value > 100) {
+        return oldValue;
       }
-      final numValue = int.tryParse(value);
-      if (numValue == null || numValue < 0 || numValue > 100) {
-        return 'Ingrese un valor entre 0 y 100';
-      }
-      return null;
-    },
-  ),
+      // Siempre termina en %
+      return TextEditingValue(
+        text: '$value%',
+        selection: TextSelection.collapsed(offset: '$value%'.length - 1),
+      );
+    }),
+  ],
+  onChanged: (value) {
+    String clean = value.replaceAll('%', '');
+    setState(() {
+      anticipoSeleccionado = clean;
+    });
+  },
+  validator: (value) {
+    String clean = value?.replaceAll('%', '') ?? '';
+    if (clean.isEmpty) {
+      return 'Ingrese el porcentaje de anticipo';
+    }
+    final numValue = int.tryParse(clean);
+    if (numValue == null || numValue < 0 || numValue > 100) {
+      return 'Ingrese un valor entre 0 y 100';
+    }
+    return null;
+  },
 ),
+                            ),
                           ],
                         ),
-                            
 
                         _buildSection(
                           title: "Información de Entrega",

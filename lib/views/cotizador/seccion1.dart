@@ -538,77 +538,12 @@ class _Seccion1 extends State<Seccion1> {
         backgroundColor: Colors.blue[800],
         appBar: AppBar(
           backgroundColor: Colors.white,
-          leading: Builder(
-            builder: (BuildContext context) {
-              return IconButton(
-                icon: const Icon(Icons.menu, color: Colors.black),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              );
-            },
-          ),
           title: const Text(
             'Datos Iniciales',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
           ),
           centerTitle: true,
         ),
-        drawer: Drawer(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color.fromARGB(255, 233, 227, 227),
-                  Color.fromARGB(255, 212, 206, 206),
-                ],
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  children: [
-                    const SizedBox(height: 60),
-                    const CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.grey,
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
-                    ),
-                    // Espacio entre el avatar y el nombre
-                    const SizedBox(height: 10),
-                    // Nombre del usuario
-                    Text(
-                      _usuario?.fullname ?? 'Nombre no disponible',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ListTile(
-                      leading: const Icon(Icons.dashboard),
-                      title: const Text('Menu Principal'),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/dashboard');
-                      },
-                    ),
-                  ],
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 35),
-                  child: Text(
-                    'Versión 1.0',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
         body: Column(
           children: [
             // Barra de progreso

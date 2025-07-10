@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/models/adicional_seleccionado.dart';
 import 'package:transtools/models/cotizacion.dart';
-import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 
 class Seccion2 extends StatefulWidget {
@@ -25,7 +23,6 @@ class Seccion2 extends StatefulWidget {
 
 class _Seccion2State extends State<Seccion2> {
   final ScrollController _scrollController = ScrollController();
-  Usuario? _usuario;
   String titulo =
       'Semirremolque tipo Plataforma'; // O puedes cambiarlo por el que venga desde la API si lo deseas
   Map<String, dynamic> especificaciones = {}; // Aquí se cargan los datos reales
@@ -61,7 +58,6 @@ class _Seccion2State extends State<Seccion2> {
   void initState() {
     super.initState();
     _cargarUsuario();
-    _cargarDatosModeloSeleccionado();
     _cargarCategoriasAdicionales();
   }
 
@@ -71,18 +67,6 @@ class _Seccion2State extends State<Seccion2> {
   }
 
   Future<void> _cargarUsuario() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('usuario');
-    if (jsonString != null) {
-      setState(() {
-        _usuario = Usuario.fromJson(
-          jsonString,
-        ); // Ya devuelve un objeto Usuario
-      });
-    }
-  }
-
-  void _cargarDatosModeloSeleccionado() async {
     const boardId = 9364424510; // Cambia esto por el ID del board correcto
 
     // Función auxiliar para extraer la clave hasta el 4º guion
@@ -357,76 +341,15 @@ class _Seccion2State extends State<Seccion2> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
-          leading: Builder(
-            builder: (BuildContext context) {
-              return IconButton(
-                icon: const Icon(Icons.menu, color: Colors.black),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              );
-            },
-          ),
+          // Quita el leading personalizado y deja que Flutter ponga la flechita
           title: const Text(
             'Estructura del Producto',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
           ),
           centerTitle: true,
         ),
-        drawer: Drawer(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color.fromARGB(255, 233, 227, 227),
-                  Color.fromARGB(255, 212, 206, 206),
-                ],
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  children: [
-                    const SizedBox(height: 60),
-                    const CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.grey,
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
-                    ),
-                    // Espacio entre el avatar y el nombre
-                    const SizedBox(height: 10),
-                    // Nombre del usuario
-                    Text(
-                      _usuario?.fullname ?? 'Nombre no disponible',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ListTile(
-                      leading: const Icon(Icons.dashboard),
-                      title: const Text('Menu Principal'),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/dashboard');
-                      },
-                    ),
-                  ],
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 35),
-                  child: Text(
-                    'Versión 1.0',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // Quita el drawer:
+        // drawer: Drawer(...),  <-- Elimina esta línea y su contenido
         backgroundColor: Colors.blue[800],
         body: (especificaciones.isEmpty || !_precioCargado)
             ? _buildLoader()
@@ -538,7 +461,7 @@ class _Seccion2State extends State<Seccion2> {
 
                                     if (resultado != null && resultado is Map && resultado['cotizacion'] != null) {
                                       setState(() {
-                                        // ¡ACTUALIZA tu cotización con lo que regresa S3!
+                          
                                         widget.cotizacion.estructura = resultado['cotizacion'].estructura;
                                         widget.cotizacion.adicionalesDeLinea = resultado['cotizacion'].adicionalesDeLinea;
                                         widget.cotizacion.adicionalesSeleccionados = resultado['cotizacion'].adicionalesSeleccionados;
@@ -1646,7 +1569,7 @@ class _Seccion2State extends State<Seccion2> {
       case 'p/revisión':
       case 'preparado p/revisión':
         label = 'P/Revisión';
-        chipColor = const Color.fromARGB(255, 255, 198, 29); // Naranja
+        chipColor = Color.fromARGB(255, 255, 198, 29); // Naranja
         textColor = Colors.black;
         break;
       case 'sin aprobar':

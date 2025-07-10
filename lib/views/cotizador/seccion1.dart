@@ -817,10 +817,28 @@ class _Seccion1 extends State<Seccion1> {
                                   fontSize: 16,
                                 ),
                               ),
-                              icon: const Icon(
-                                Icons.arrow_drop_down,
-                                color: Color(0xFF565656),
-                                size: 28,
+                              icon: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (colorSeleccionado != null)
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          colorSeleccionado = null;
+                                          marcaSeleccionada = null;
+                                        });
+                                      },
+                                      child: const Padding(
+                                        padding: EdgeInsets.only(right: 4),
+                                        child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                                      ),
+                                    ),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Color(0xFF565656),
+                                    size: 28,
+                                  ),
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(16),
                               menuMaxHeight: 210,
@@ -878,14 +896,32 @@ class _Seccion1 extends State<Seccion1> {
                                 hint: const Text(
                                   'Selecciona la marca',
                                   style: TextStyle(
+                                    color: Colors.black,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 16,
                                   ),
                                 ),
-                                icon: const Icon(
-                                  Icons.arrow_drop_down,
-                                  color: Color(0xFF565656),
-                                  size: 28,
+                                icon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (marcaSeleccionada != null)
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            marcaSeleccionada = null;
+                                          });
+                                        },
+                                        child: const Padding(
+                                          padding: EdgeInsets.only(right: 4),
+                                          child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                                        ),
+                                      ),
+                                    const Icon(
+                                      Icons.arrow_drop_down,
+                                      color: Color(0xFF565656),
+                                      size: 28,
+                                    ),
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(16),
                                 dropdownColor: Colors.white,

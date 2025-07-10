@@ -559,9 +559,7 @@ class _Seccion2State extends State<Seccion2> {
             padding: const EdgeInsets.only(top: 16, bottom: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _chipEstadoProducto(_estadoProducto ?? ''),
-              ],
+              children: [_chipEstadoProducto(_estadoProducto ?? '')],
             ),
           ),
           Theme(
@@ -603,7 +601,8 @@ class _Seccion2State extends State<Seccion2> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Muestra la configuración
-                      if (configuracionExtra != null && configuracionExtra.isNotEmpty)
+                      if (configuracionExtra != null &&
+                          configuracionExtra.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4, bottom: 8),
                           child: Text(
@@ -782,9 +781,8 @@ class _Seccion2State extends State<Seccion2> {
     return kits.map<TableRow>((kit) {
       final name = kit['name'] ?? '';
       final adicionales = kit['adicionales'] ?? '';
-
-      final isExcluded =
-          _excludedFeatures['Adicionales de Línea']?.contains(name) ?? false;
+      // El estado visual depende de _excludedFeatures, pero el estado funcional depende de 'excluido'
+      final isExcluded = kit['excluido'] == false;
 
       return TableRow(
         decoration: BoxDecoration(
@@ -821,7 +819,8 @@ class _Seccion2State extends State<Seccion2> {
               ),
               onPressed: () {
                 setState(() {
-                  if (isExcluded) {
+                  kit['excluido'] = !(kit['excluido'] == true);
+                  if (kit['excluido'] == true) {
                     _excludedFeatures['Adicionales de Línea']?.remove(name);
                   } else {
                     _excludedFeatures
@@ -1675,10 +1674,7 @@ class _Seccion2State extends State<Seccion2> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
         title: const Text(
           "Importe",
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         trailing: Text(
           formatCurrency(totalGeneral),

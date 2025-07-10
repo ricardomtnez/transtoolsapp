@@ -154,14 +154,15 @@ class Seccion4 extends StatelessWidget {
                         _tableRow('Producto: ', cotizacion.producto),
                         _tableRow('Línea: ', cotizacion.linea),
                         _tableRow('Modelo: ', cotizacion.modelo),
+                        _tableRow('Número de Ejes: ', cotizacion.numeroEjes.toString()),
                         _tableRow(
-                          'Número de Ejes: ',
-                          cotizacion.numeroEjes.toString(),
+                          'Precio c/u:',
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(cotizacion.precioProductoConAdicionales ?? 0),
                         ),
-                        _tableRow(
-                          'Unidades: ',
-                          cotizacion.numeroUnidades.toString(),
-                        ),
+                        _tableRow('Unidades: ', cotizacion.numeroUnidades.toString()),
                         _tableRow('Color: ', cotizacion.color),
                         _tableRow('Marca Color: ', cotizacion.marcaColor),
                         _tableRow(
@@ -318,18 +319,21 @@ class Seccion4 extends StatelessWidget {
                             color: Colors.black,
                           ),
                         ),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(
-                            (cotizacion.precioProductoConAdicionales ?? 0) *
-                                (cotizacion.numeroUnidades),
-                          ),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Color(0xFF1565C0),
+                        Tooltip(
+                          message: 'Este es el precio total para ${cotizacion.numeroUnidades} unidades',
+                          child: Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(
+                              (cotizacion.precioProductoConAdicionales ?? 0) *
+                                  (cotizacion.numeroUnidades),
+                            ),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Color(0xFF1565C0),
+                            ),
                           ),
                         ),
                       ],
@@ -347,18 +351,20 @@ class Seccion4 extends StatelessWidget {
                             color: Colors.black,
                           ),
                         ),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(
-                            (cotizacion.totalAdicionales ?? 0) *
-                                (cotizacion.numeroUnidades),
-                          ),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Color(0xFF1565C0),
+                        Tooltip(
+                          message: 'Este es el precio total de los adicionales para ${cotizacion.numeroUnidades} unidades',
+                          child: Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(
+                              (cotizacion.totalAdicionales ?? 0) * (cotizacion.numeroUnidades),
+                            ),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Color(0xFF1565C0),
+                            ),
                           ),
                         ),
                       ],
@@ -617,9 +623,31 @@ class Seccion4 extends StatelessWidget {
         .toList();
 
     // Agrega el título solo si hay adicionales de línea no excluidos
-    final adicionalesIncluidos = adicionalesDeLinea
-        .where((a) => a['excluido'] != true)
+    final adicionalesIncluidos = cotizacion.adicionalesDeLinea
+        .where((a) => a['excluido'] == true)
         .toList();
+
+    if (cotizacion.adicionalesDeLinea.isNotEmpty && adicionalesIncluidos.isEmpty) {
+      rows.add(
+        TableRow(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Sin adicional de línea',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+                textAlign: TextAlign.left,
+              ),
+            ),
+            const SizedBox(),
+          ],
+        ),
+      );
+    }
+
     if (adicionalesIncluidos.isNotEmpty) {
       rows.add(
         TableRow(

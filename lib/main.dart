@@ -59,7 +59,10 @@ class _MyAppState extends State<MyApp> {
           case "/seccion4":
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
-              builder: (_) => Seccion4(cotizacion: args['cotizacion']),
+              builder: (_) => Seccion4(
+                cotizacion: args['cotizacion'],
+                usuario: args['usuario'],
+              ),
             );
           default:
             return MaterialPageRoute(

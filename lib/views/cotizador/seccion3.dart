@@ -33,6 +33,7 @@ class _Seccion3State extends State<Seccion3> {
   final TextEditingController correoController = TextEditingController();
   final TextEditingController unidadesController = TextEditingController();
   final TextEditingController otroMetodoController = TextEditingController();
+  final TextEditingController anticipoController = TextEditingController();
 
   String? formaPago;
   String? metodoPago;
@@ -40,7 +41,6 @@ class _Seccion3State extends State<Seccion3> {
   String? moneda;
   String? entregaEn;
   String? tiempoEntrega;
-  String? garantia;
   String? cuentaSeleccionada;
 
   DateTime? fechaInicio;
@@ -57,10 +57,9 @@ class _Seccion3State extends State<Seccion3> {
   ];
 
   final List<String> anticipos = ['10%', '20%', '30%', '50%'];
-  
+
   String? anticipoSeleccionado;
 
-  final List<String> garantias = ['6 meses', '12 meses'];
   final List<String> cuentasMXN = [
     'BBVA Bancomer - 123456789 - Clabe: 012345678901234567',
     'Santander - 123456789 - Clabe: 002180123456789012',
@@ -82,9 +81,6 @@ class _Seccion3State extends State<Seccion3> {
   bool entregaEnError = false;
   String? entregaEnErrorText;
 
-  bool garantiaError = false;
-  String? garantiaErrorText;
-
   bool rangoEntregaError = false;
   String? rangoEntregaErrorText;
 
@@ -99,9 +95,9 @@ class _Seccion3State extends State<Seccion3> {
     metodoPago = widget.cotizacion.metodoPago;
     moneda = widget.cotizacion.moneda;
     entregaEn = widget.cotizacion.entregaEn;
-    garantia = widget.cotizacion.garantia;
     cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
     otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
+    anticipoController.text = anticipoSeleccionado ?? '';
     semanasEntrega = widget.cotizacion.semanasEntrega;
     fechaInicio = widget.cotizacion.fechaInicioEntrega;
     fechaFin = widget.cotizacion.fechaFinEntrega;
@@ -501,24 +497,79 @@ class _Seccion3State extends State<Seccion3> {
                                   },
                                 ),
                               ),
-                            _styledDropdown(
-                              label: 'Anticipo',
-                              value: anticipoSeleccionado,
-                              items: anticipos,
-                              onChanged: (value) {
-                                setState(() {
-                                  anticipoSeleccionado = value;
-                                });
-                              },
-                              showClear: anticipoSeleccionado != null,
-                              onClear: () {
-                                setState(() {
-                                  anticipoSeleccionado = null;
-                                });
-                              },
-                            ),
+Container(
+  margin: const EdgeInsets.symmetric(vertical: 6),
+  padding: const EdgeInsets.symmetric(horizontal: 16),
+  decoration: BoxDecoration(
+    color: const Color.fromARGB(255, 240, 240, 240),
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(
+      color: Colors.grey[300]!,
+      width: 1.5,
+    ),
+    boxShadow: [
+      BoxShadow(
+        // ignore: deprecated_member_use
+        color: Colors.black.withOpacity(0.04),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  ),
+  child: TextFormField(
+    controller: anticipoController,
+    decoration: InputDecoration(
+      labelText: 'Anticipo (%)',
+      labelStyle: const TextStyle(
+        color: Color(0xFF1565C0),
+        fontWeight: FontWeight.bold,
+      ),
+      border: InputBorder.none,
+      suffixIcon: (anticipoController.text.isNotEmpty)
+          ? IconButton(
+              icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+              onPressed: () {
+                anticipoController.clear();
+                setState(() {
+                  anticipoSeleccionado = '';
+                });
+              },
+              splashRadius: 18,
+            )
+          : null,
+    ),
+    keyboardType: TextInputType.number,
+    inputFormatters: [
+      FilteringTextInputFormatter.digitsOnly,
+      TextInputFormatter.withFunction((oldValue, newValue) {
+        if (newValue.text.isEmpty) return newValue;
+        final value = int.tryParse(newValue.text);
+        if (value == null || value < 0 || value > 100) {
+          return oldValue;
+        }
+        return newValue;
+      }),
+    ],
+    onChanged: (value) {
+      setState(() {
+        anticipoSeleccionado = value;
+      });
+    },
+    validator: (value) {
+      if (value == null || value.isEmpty) {
+        return 'Ingrese el porcentaje de anticipo';
+      }
+      final numValue = int.tryParse(value);
+      if (numValue == null || numValue < 0 || numValue > 100) {
+        return 'Ingrese un valor entre 0 y 100';
+      }
+      return null;
+    },
+  ),
+),
                           ],
                         ),
+                            
 
                         _buildSection(
                           title: "Información de Entrega",
@@ -625,14 +676,17 @@ class _Seccion3State extends State<Seccion3> {
                               label: 'Entrega en',
                               value: entregaEn,
                               items: const [
-                                'En Planta',
-                                'Acordar con el cliente',
+                                'Planta Titanium (El Carmen Tequexquitla)',
+                                'Planta LightWeight (Puebla)',
+                                'Instalaciones de Kenwort',
+                                'Instalaciones del Cliente',
                               ],
                               onChanged: (value) {
                                 setState(() {
                                   entregaEn = value;
                                   entregaEnError = false;
                                   entregaEnErrorText = null;
+                                  anticipoSeleccionado = value;
                                 });
                               },
                               error: entregaEnError,
@@ -643,31 +697,6 @@ class _Seccion3State extends State<Seccion3> {
                                   entregaEn = null;
                                   entregaEnError = false;
                                   entregaEnErrorText = null;
-                                });
-                              },
-                              validator: (value) => value == null
-                                  ? 'Seleccione una opción'
-                                  : null,
-                            ),
-                            _styledDropdown(
-                              label: 'Garantía',
-                              value: garantia,
-                              items: garantias,
-                              onChanged: (value) {
-                                setState(() {
-                                  garantia = value;
-                                  garantiaError = false;
-                                  garantiaErrorText = null;
-                                });
-                              },
-                              error: garantiaError,
-                              errorText: garantiaErrorText,
-                              showClear: garantia != null,
-                              onClear: () {
-                                setState(() {
-                                  garantia = null;
-                                  garantiaError = false;
-                                  garantiaErrorText = null;
                                 });
                               },
                               validator: (value) => value == null
@@ -690,7 +719,6 @@ class _Seccion3State extends State<Seccion3> {
                                       metodoPago: metodoPago,
                                       moneda: moneda,
                                       entregaEn: entregaEn,
-                                      garantia: garantia,
                                       cuentaSeleccionada: cuentaSeleccionada,
                                       otroMetodoPago:
                                           otroMetodoController.text.isNotEmpty
@@ -749,11 +777,6 @@ class _Seccion3State extends State<Seccion3> {
                                         ? 'Seleccione una opción'
                                         : null;
 
-                                    garantiaError = garantia == null;
-                                    garantiaErrorText = garantiaError
-                                        ? 'Seleccione una opción'
-                                        : null;
-
                                     rangoEntregaError =
                                         (fechaInicio == null ||
                                         fechaFin == null);
@@ -776,7 +799,6 @@ class _Seccion3State extends State<Seccion3> {
                                       monedaError ||
                                       cuentaError ||
                                       entregaEnError ||
-                                      garantiaError ||
                                       rangoEntregaError) {
                                     // Mostrar alerta o scroll al primer error
                                     return;
@@ -795,7 +817,6 @@ class _Seccion3State extends State<Seccion3> {
                                           metodoPago: metodoPago,
                                           moneda: moneda,
                                           entregaEn: entregaEn,
-                                          garantia: garantia,
                                           cuentaSeleccionada:
                                               cuentaSeleccionada,
                                           otroMetodoPago:
@@ -807,7 +828,8 @@ class _Seccion3State extends State<Seccion3> {
                                           fechaInicioEntrega: fechaInicio,
                                           fechaFinEntrega: fechaFin,
                                           semanasEntrega: semanasEntrega,
-                                          anticipoSeleccionado: anticipoSeleccionado,
+                                          anticipoSeleccionado:
+                                              anticipoSeleccionado,
                                         );
 
                                     // Navegar a la Sección 4 pasando el objeto cotización actualizado
@@ -816,6 +838,7 @@ class _Seccion3State extends State<Seccion3> {
                                       '/seccion4',
                                       arguments: {
                                         'cotizacion': cotizacionActualizada,
+                                        'usuario': _usuario,
                                       },
                                     );
                                   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:transtools/models/cotizacion.dart';
+import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
@@ -7,15 +8,18 @@ import 'package:printing/printing.dart';
 
 class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
+  final Usuario usuario;
 
   // Recibe la cotización en el constructor
-  Seccion4({Key? key, required this.cotizacion}) : super(key: key);
+  Seccion4({Key? key, required this.cotizacion, required this.usuario})
+    : super(key: key);
 
   // Método estático para facilitar crear la ruta con argumentos
   static Route route(RouteSettings settings) {
     final args = settings.arguments as Map<String, dynamic>;
     return MaterialPageRoute(
-      builder: (_) => Seccion4(cotizacion: args['cotizacion']),
+      builder: (_) =>
+          Seccion4(cotizacion: args['cotizacion'], usuario: args['usuario']),
     );
   }
 
@@ -61,6 +65,21 @@ class Seccion4 extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildTitulo('Información del Vendedor'),
+                  _buildCard([
+                    Table(
+                      columnWidths: const {
+                        0: IntrinsicColumnWidth(),
+                        1: FlexColumnWidth(),
+                      },
+                      defaultVerticalAlignment:
+                          TableCellVerticalAlignment.middle,
+                      children: [
+                        _tableRow('Nombre del Vendedor:', usuario.fullname),
+                      ],
+                    ),
+                  ]),
+
                   _buildTitulo('Datos Generales'),
                   _buildCard([
                     Table(
@@ -241,8 +260,13 @@ class Seccion4 extends StatelessWidget {
                           cotizacion.cuentaSeleccionada ?? '-',
                         ),
                         _tableRow('Entrega en: ', cotizacion.entregaEn ?? '-'),
-                        _tableRow('Garantía: ', cotizacion.garantia ?? '-'),
-                        _tableRow('Anticipo: ', cotizacion.anticipoSeleccionado ?? '-'),
+                        _tableRow(
+                          'Anticipo: ',
+                          cotizacion.anticipoSeleccionado != null &&
+                                  cotizacion.anticipoSeleccionado!.isNotEmpty
+                              ? '${cotizacion.anticipoSeleccionado}%'
+                              : '-',
+                        ),
                         _tableRow(
                           'Semanas de Entrega: ',
                           '${cotizacion.semanasEntrega ?? '-'} semanas',
@@ -257,7 +281,7 @@ class Seccion4 extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Unidades (${cotizacion.numeroUnidades}):',
+                          '${cotizacion.producto} (${cotizacion.numeroUnidades}):',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,

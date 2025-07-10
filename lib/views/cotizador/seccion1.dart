@@ -812,7 +812,7 @@ class _Seccion1 extends State<Seccion1> {
                               hint: Text(
                                 'Selecciona el color',
                                 style: TextStyle(
-                                  color: colorError ? Colors.red : Colors.grey,
+                                  color: colorError ? Colors.red : const Color.fromARGB(255, 0, 0, 0),
                                   fontWeight: FontWeight.w500,
                                   fontSize: 16,
                                 ),

@@ -1641,7 +1641,7 @@ class _Seccion2State extends State<Seccion2> {
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w500,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
           Text(

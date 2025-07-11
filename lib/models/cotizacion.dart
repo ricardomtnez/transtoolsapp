@@ -17,7 +17,7 @@ class Cotizacion {
   String color;
   String marcaColor;
   int generacion;
-  
+  bool datosCargados;
 
   // Guarda la estructura del producto (puede ser Map o List)
   Map<String, dynamic> estructura;
@@ -27,7 +27,6 @@ class Cotizacion {
 
   // Guarda los adicionales seleccionados, con detalles (nombre, cantidad, precio, estado)
   List<AdicionalSeleccionado> adicionalesSeleccionados;
-
 
   int numeroUnidades;
   String? formaPago;
@@ -40,10 +39,11 @@ class Cotizacion {
   DateTime? fechaInicioEntrega;
   DateTime? fechaFinEntrega;
   String? semanasEntrega;
-  double? importe; 
+  double? importe;
   double? totalAdicionales;
   double? precioProductoConAdicionales;
-  String? anticipoSeleccionado; 
+  String? anticipoSeleccionado;
+  String? estadoProducto; // <-- AGREGA ESTA LÍNEA
 
   Cotizacion({
     required this.folioCotizacion,
@@ -78,6 +78,7 @@ class Cotizacion {
     this.totalAdicionales,
     this.precioProductoConAdicionales, // <--- agrega esto
     this.anticipoSeleccionado,
+    this.datosCargados = false, // <-- AGREGA ESTO EN EL CONSTRUCTOR
   });
 
   factory Cotizacion.fromMap(Map<String, dynamic> map) {
@@ -233,6 +234,9 @@ class Cotizacion {
       totalAdicionales: totalAdicionales ?? this.totalAdicionales, // <-- Agrega esto
       precioProductoConAdicionales: precioProductoConAdicionales ?? this.precioProductoConAdicionales, // <--- agrega esto
       anticipoSeleccionado: anticipoSeleccionado ?? this.anticipoSeleccionado,
+      datosCargados: true, // <-- AGREGA ESTO PARA INDICAR QUE LOS DATOS HAN SIDO CARGADOS
     );
   }
 }
+
+Cotizacion? _cotizacionActual;

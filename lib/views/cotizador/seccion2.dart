@@ -57,8 +57,28 @@ class _Seccion2State extends State<Seccion2> {
   @override
   void initState() {
     super.initState();
-    _cargarUsuario();
-    _cargarCategoriasAdicionales();
+    if (!(widget.cotizacion.datosCargados ?? false)) {
+      // Primera vez: consulta y guarda todo
+      _cargarUsuario();
+      _cargarCategoriasAdicionales();
+    } else {
+      // Ya cargado: recupera los datos guardados
+      especificaciones['Estructura'] = widget.cotizacion.estructura;
+      especificaciones['Adicionales de Línea'] = widget.cotizacion.adicionalesDeLinea;
+      _precioProductoBase = widget.cotizacion.importe ?? 0.0;
+      _precioProductoConAdicionales = widget.cotizacion.precioProductoConAdicionales ?? 0.0;
+      _precioCargado = true;
+      _estadoProducto = widget.cotizacion.estadoProducto;
+      _adicionalesSeleccionados.clear();
+      _adicionalesSeleccionados.addAll(widget.cotizacion.adicionalesSeleccionados.map((a) => a.nombre));
+      for (var adicional in widget.cotizacion.adicionalesSeleccionados) {
+        _cantidadesAdicionales[adicional.nombre] = adicional.cantidad;
+        _preciosAdicionales[adicional.nombre] = adicional.precioUnitario;
+        _estadosAdicionales[adicional.nombre] = adicional.estado;
+      }
+      // Solo recarga las categorías, NO la estructura ni el precio
+      _cargarCategoriasAdicionales();
+    }
   }
 
   @override
@@ -213,19 +233,33 @@ class _Seccion2State extends State<Seccion2> {
   void _cargarPrecioProducto() async {
     try {
       final idProducto = int.tryParse(widget.modeloValue) ?? 0;
-      final precioData = await QuoteController.obtenerPrecioProducto(
-        idProducto,
-      );
+      final precioData = await QuoteController.obtenerPrecioProducto(idProducto);
       final subtotal = precioData['subtotal'] ?? 0.0;
       final rentabilidad = precioData['rentabilidad'] ?? 0.0;
-      final estado = precioData['estado'] ?? ''; // <-- agrega esto
+      final estado = precioData['estado'] ?? '';
 
       setState(() {
         _precioProductoBase = subtotal;
         _rentabilidad = rentabilidad;
         _precioCargado = true;
-        _estadoProducto = estado; // <-- guarda el estado aquí
+        _estadoProducto = estado;
         _actualizarPrecioConAdicionales();
+
+        // GUARDA LOS DATOS EN EL OBJETO COTIZACION
+        widget.cotizacion.datosCargados = true;
+        widget.cotizacion.estructura = especificaciones['Estructura'] ?? {};
+        widget.cotizacion.adicionalesDeLinea = especificaciones['Adicionales de Línea'] ?? [];
+        widget.cotizacion.importe = _precioProductoBase;
+        widget.cotizacion.precioProductoConAdicionales = _precioProductoConAdicionales;
+        widget.cotizacion.estadoProducto = _estadoProducto;
+        widget.cotizacion.adicionalesSeleccionados = _adicionalesSeleccionados.map((nombre) {
+          return AdicionalSeleccionado(
+            nombre: nombre,
+            cantidad: _cantidadesAdicionales[nombre] ?? 1,
+            precioUnitario: _preciosAdicionales[nombre] ?? 0.0,
+            estado: _estadosAdicionales[nombre] ?? 'Desconocido',
+          );
+        }).toList();
       });
     } catch (e) {
       if (!mounted) return;
@@ -632,7 +666,7 @@ class _Seccion2State extends State<Seccion2> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: Color.fromARGB(221, 0, 0, 0),
+                                color: Color(0xFF1565C0),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1540,6 +1574,38 @@ class _Seccion2State extends State<Seccion2> {
     );
   }
 
+  // Card to display the total general (importe)
+  Widget _buildTotalGeneralCard() {
+    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
+      0.0,
+      (sum, adicional) =>
+          sum +
+          ((_preciosAdicionales[adicional] ?? 0.0) *
+              (_cantidadesAdicionales[adicional] ?? 1)),
+    );
+    final totalGeneral =
+        _precioProductoConAdicionales + totalAdicionalesSeleccionados;
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 24),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+        title: const Text(
+          "Importe",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        trailing: Text(
+          formatCurrency(totalGeneral),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF1565C0),
+          ),
+        ),
+      ),
+    );
+  }
+
   // Widget to display the estado as a Chip
   Widget _chipEstado(String estado) {
     Color chipColor;
@@ -1653,38 +1719,6 @@ class _Seccion2State extends State<Seccion2> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTotalGeneralCard() {
-    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados
-        .fold<double>(
-          0.0,
-          (sum, adicional) =>
-              sum +
-              ((_preciosAdicionales[adicional] ?? 0.0) *
-                  (_cantidadesAdicionales[adicional] ?? 1)),
-        );
-    final totalGeneral =
-        _precioProductoConAdicionales + totalAdicionalesSeleccionados;
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 24),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
-        title: const Text(
-          "Importe",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        trailing: Text(
-          formatCurrency(totalGeneral),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Color(0xFF1565C0),
-          ),
-        ),
       ),
     );
   }

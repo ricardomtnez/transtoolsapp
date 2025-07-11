@@ -19,6 +19,7 @@ class Seccion1 extends StatefulWidget {
 
 class _Seccion1 extends State<Seccion1> {
   Usuario? _usuario;
+  Cotizacion? _cotizacionActual;
   var cotizacionCtrl = TextEditingController();
   final nombreCtrl = TextEditingController();
   final empresaCtrl = TextEditingController();
@@ -292,6 +293,23 @@ class _Seccion1 extends State<Seccion1> {
       )['text']!;
       final configuracionProducto =
           '$productoText, Linea: ${lineaSeleccionada ?? ""}, ${ejesSeleccionados ?? ""} Ejes, Modelo: $modeloSeleccionadoText, Generación: ${yearSeleccionado ?? ""}';
+      // Si ya existe y el modelo NO cambió, usa el mismo objeto
+      if (_cotizacionActual != null &&
+          _cotizacionActual!.modelo == modeloSeleccionadoText) {
+        Navigator.pushNamed(
+          context,
+          '/seccion2',
+          arguments: {
+            'cotizacion': _cotizacionActual!,
+            'modeloNombre': modeloSeleccionadoText,
+            'modeloValue': modeloSeleccionadoValue,
+            'configuracionProducto': configuracionProducto.trim(),
+          },
+        );
+        return;
+      }
+
+      // Si es la primera vez o cambió el modelo, crea uno nuevo
       final cotizacion = Cotizacion(
         folioCotizacion: cotizacionCtrl.text.trim(),
         fechaCotizacion: DateFormat('dd/MM/yyyy').parse(fechaCtrl.text),
@@ -310,9 +328,11 @@ class _Seccion1 extends State<Seccion1> {
         marcaColor: marcaSeleccionada ?? '',
         generacion: int.tryParse(yearSeleccionado ?? '0') ?? 0,
       );
+      _cotizacionActual = cotizacion;
+
       Navigator.pushNamed(
         context,
-        "/seccion2",
+        '/seccion2',
         arguments: {
           'cotizacion': cotizacion,
           'modeloNombre': modeloSeleccionadoText,

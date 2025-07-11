@@ -58,470 +58,472 @@ class Seccion4 extends StatelessWidget {
       body: SafeArea(
         child: Scrollbar(
           thumbVisibility: true,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Barra de navegación de pasos
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Barra amarilla superior
-                      Container(
-                        height: 8,
-                        width: double.infinity,
-                        color: const Color(0xFFD9D381), // Amarillo similar al de tu imagen
-                      ),
-                      // Barra azul con texto
-                      Container(
-                        width: double.infinity,
-                        color: const Color(0xFF1565C0), // Azul igual que tu app
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: const Center(
-                          child: Text(
-                            'Paso 4 de 4',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Barra amarilla pegada al AppBar
+              Container(
+                height: 8,
+                width: double.infinity,
+                color: const Color(0xFFD9D381), // Amarillo
+              ),
+              // Texto fijo sobre fondo azul
+              Container(
+                width: double.infinity,
+                color: const Color(0xFF1565C0), // Azul
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: const Center(
+                  child: Text(
+                    'Paso 4 de 4',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      fontSize: 14,
+                    ),
                   ),
+                ),
+              ),
+              // El resto del contenido scrollable
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [                     
+                       
 
-                  _buildTitulo('Información del Vendedor'),
-                  _buildCard([
-                    Table(
-                      columnWidths: const {
-                        0: IntrinsicColumnWidth(),
-                        1: FlexColumnWidth(),
-                      },
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      children: [
-                        _tableRow('Nombre del Vendedor:', usuario.fullname),
-                      ],
-                    ),
-                  ]),
+                        _buildTitulo('Información del Vendedor'),
+                        _buildCard([
+                          Table(
+                            columnWidths: const {
+                              0: IntrinsicColumnWidth(),
+                              1: FlexColumnWidth(),
+                            },
+                            defaultVerticalAlignment:
+                                TableCellVerticalAlignment.middle,
+                            children: [
+                              _tableRow('Nombre del Vendedor:', usuario.fullname),
+                            ],
+                          ),
+                        ]),
 
-                  _buildTitulo('Datos Generales'),
-                  _buildCard([
-                    Table(
-                      columnWidths: const {
-                        0: IntrinsicColumnWidth(),
-                        1: FlexColumnWidth(),
-                      },
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      children: [
-                        _tableRow('Folio:', cotizacion.folioCotizacion),
-                        _tableRow(
-                          'Fecha Cotización: ',
-                          DateFormat(
-                            'dd/MM/yyyy',
-                          ).format(cotizacion.fechaCotizacion),
-                        ),
-                        _tableRow(
-                          'Vigencia:',
-                          DateFormat(
-                            'dd/MM/yyyy',
-                          ).format(cotizacion.fechaVigencia),
-                        ),
-                        _tableRow('Cliente:', cotizacion.cliente),
-                        _tableRow('Empresa:', cotizacion.empresa),
-                        _tableRow('Teléfono:', cotizacion.telefono),
-                        _tableRow('Correo:', cotizacion.correo),
-                      ],
-                    ),
-                  ]),
+                        _buildTitulo('Datos Generales'),
+                        _buildCard([
+                          Table(
+                            columnWidths: const {
+                              0: IntrinsicColumnWidth(),
+                              1: FlexColumnWidth(),
+                            },
+                            defaultVerticalAlignment:
+                                TableCellVerticalAlignment.middle,
+                            children: [
+                              _tableRow('Folio:', cotizacion.folioCotizacion),
+                              _tableRow(
+                                'Fecha Cotización: ',
+                                DateFormat(
+                                  'dd/MM/yyyy',
+                                ).format(cotizacion.fechaCotizacion),
+                              ),
+                              _tableRow(
+                                'Vigencia:',
+                                DateFormat(
+                                  'dd/MM/yyyy',
+                                ).format(cotizacion.fechaVigencia),
+                              ),
+                              _tableRow('Cliente:', cotizacion.cliente),
+                              _tableRow('Empresa:', cotizacion.empresa),
+                              _tableRow('Teléfono:', cotizacion.telefono),
+                              _tableRow('Correo:', cotizacion.correo),
+                            ],
+                          ),
+                        ]),
 
-                  _buildTitulo('Producto'),
-                  _buildCard([
-                    Table(
-                      columnWidths: const {
-                        0: IntrinsicColumnWidth(),
-                        1: FlexColumnWidth(),
-                      },
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      children: [
-                        _tableRow('Producto: ', cotizacion.producto),
-                        _tableRow('Línea: ', cotizacion.linea),
-                        _tableRow('Modelo: ', cotizacion.modelo),
-                        _tableRow('Número de Ejes: ', cotizacion.numeroEjes.toString()),
-                        _tableRow(
-                          'Precio c/u:',
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(cotizacion.precioProductoConAdicionales ?? 0),
-                        ),
-                        _tableRow('Unidades: ', cotizacion.numeroUnidades.toString()),
-                        _tableRow('Color: ', cotizacion.color),
-                        _tableRow('Marca Color: ', cotizacion.marcaColor),
-                        _tableRow(
-                          'Generación: ',
-                          cotizacion.generacion.toString(),
-                        ),
-                      ],
-                    ),
-                  ]),
+                        _buildTitulo('Producto'),
+                        _buildCard([
+                          Table(
+                            columnWidths: const {
+                              0: IntrinsicColumnWidth(),
+                              1: FlexColumnWidth(),
+                            },
+                            defaultVerticalAlignment:
+                                TableCellVerticalAlignment.middle,
+                            children: [
+                              _tableRow('Producto: ', cotizacion.producto),
+                              _tableRow('Línea: ', cotizacion.linea),
+                              _tableRow('Modelo: ', cotizacion.modelo),
+                              _tableRow('Número de Ejes: ', cotizacion.numeroEjes.toString()),
+                              _tableRow(
+                                'Precio c/u:',
+                                NumberFormat.currency(
+                                  locale: 'es_MX',
+                                  symbol: '\$',
+                                ).format(cotizacion.precioProductoConAdicionales ?? 0),
+                              ),
+                              _tableRow('Unidades: ', cotizacion.numeroUnidades.toString()),
+                              _tableRow('Color: ', cotizacion.color),
+                              _tableRow('Marca Color: ', cotizacion.marcaColor),
+                              _tableRow(
+                                'Generación: ',
+                                cotizacion.generacion.toString(),
+                              ),
+                            ],
+                          ),
+                        ]),
 
-                  _buildTitulo('Estructura'),
-                  _buildCard([
-                    buildEstructuraTable(
-                      cotizacion.estructura.map(
-                        (k, v) => MapEntry(k, v.toString()),
-                      ),
-                      cotizacion.adicionalesDeLinea
-                          .cast<Map<String, dynamic>>(),
-                    ),
-                  ]),
+                        _buildTitulo('Estructura'),
+                        _buildCard([
+                          buildEstructuraTable(
+                            cotizacion.estructura.map(
+                              (k, v) => MapEntry(k, v.toString()),
+                            ),
+                            cotizacion.adicionalesDeLinea
+                                .cast<Map<String, dynamic>>(),
+                          ),
+                        ]),
 
-                  _buildTitulo('Adicionales Seleccionados'),
-                  if (cotizacion.adicionalesSeleccionados.isEmpty)
-                    _buildCard([
-                      const Text(
-                        'Sin adicionales agregados',
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 0, 0, 0),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ])
-                  else
-                    _buildCard([
-                      for (
-                        int i = 0;
-                        i < cotizacion.adicionalesSeleccionados.length;
-                        i++
-                      ) ...[
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              cotizacion.adicionalesSeleccionados[i].nombre,
-                              style: const TextStyle(
+                        _buildTitulo('Adicionales Seleccionados'),
+                        if (cotizacion.adicionalesSeleccionados.isEmpty)
+                          _buildCard([
+                            const Text(
+                              'Sin adicionales agregados',
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 0, 0, 0),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Cantidad:',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                          ])
+                        else
+                          _buildCard([
+                            for (
+                              int i = 0;
+                              i < cotizacion.adicionalesSeleccionados.length;
+                              i++
+                            ) ...[
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    cotizacion.adicionalesSeleccionados[i].nombre,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Cantidad:',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${cotizacion.adicionalesSeleccionados[i].cantidad}',
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Precio c/u:',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        NumberFormat.currency(
+                                          locale: 'es_MX',
+                                          symbol: '\$',
+                                        ).format(
+                                          cotizacion
+                                              .adicionalesSeleccionados[i]
+                                              .precioUnitario,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Estado:',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        cotizacion.adicionalesSeleccionados[i].estado,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              if (i != cotizacion.adicionalesSeleccionados.length - 1)
+                                const Divider(height: 32, thickness: 1),
+                            ],
+                          ]),
+
+                        _buildTitulo('Pago y Entrega'),
+                        _buildCard([
+                          Table(
+                            columnWidths: const {
+                              0: IntrinsicColumnWidth(),
+                              1: FlexColumnWidth(),
+                            },
+                            defaultVerticalAlignment:
+                                TableCellVerticalAlignment.middle,
+                            children: [
+                              _tableRow(
+                                'Forma de Pago: ',
+                                cotizacion.formaPago ?? '-',
+                              ),
+                              _tableRow(
+                                'Método de Pago: ',
+                                cotizacion.metodoPago ?? '-',
+                              ),
+                              _tableRow('Moneda: ', cotizacion.moneda ?? '-'),
+                              _tableRow(
+                                'Cuenta: ',
+                                cotizacion.cuentaSeleccionada ?? '-',
+                              ),
+                              _tableRow('Entrega en: ', cotizacion.entregaEn ?? '-'),
+                              _tableRow(
+                                'Anticipo: ',
+                                cotizacion.anticipoSeleccionado != null &&
+                                        cotizacion.anticipoSeleccionado!.isNotEmpty
+                                    ? '${cotizacion.anticipoSeleccionado}%'
+                                    : '-',
+                              ),
+                              _tableRow(
+                                'Semanas de Entrega: ',
+                                '${cotizacion.semanasEntrega ?? '-'} semanas',
+                              ),
+                            ],
+                          ),
+                        ]),
+
+                        _buildTitulo('Resumen de Pago'),
+                        _buildCard([
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${cotizacion.producto} (${cotizacion.numeroUnidades}):',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${cotizacion.adicionalesSeleccionados[i].cantidad}',
-                                ),
-                              ],
-                            ),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Precio:',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
+                              ),
+                              Tooltip(
+                                message: 'Este es el precio total para ${cotizacion.numeroUnidades} unidades',
+                                child: Text(
                                   NumberFormat.currency(
                                     locale: 'es_MX',
                                     symbol: '\$',
                                   ).format(
-                                    cotizacion
-                                        .adicionalesSeleccionados[i]
-                                        .precioUnitario,
+                                    (cotizacion.precioProductoConAdicionales ?? 0) *
+                                        (cotizacion.numeroUnidades),
+                                  ),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Color(0xFF1565C0),
                                   ),
                                 ),
-                              ],
-                            ),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Estado:',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                // ignore: unnecessary_brace_in_string_interps
+                                'Adicionales (${cantidadAdicionalesSeleccionados}):',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  cotizacion.adicionalesSeleccionados[i].estado,
+                              ),
+                              Tooltip(
+                                message: 'Este es el precio total de los adicionales para ${cotizacion.numeroUnidades} unidades',
+                                child: Text(
+                                  NumberFormat.currency(
+                                    locale: 'es_MX',
+                                    symbol: '\$',
+                                  ).format(
+                                    (cotizacion.totalAdicionales ?? 0) * (cotizacion.numeroUnidades),
+                                  ),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Color(0xFF1565C0),
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        if (i != cotizacion.adicionalesSeleccionados.length - 1)
-                          const Divider(height: 32, thickness: 1),
-                      ],
-                    ]),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Subtotal:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                NumberFormat.currency(
+                                  locale: 'es_MX',
+                                  symbol: '\$',
+                                ).format(subTotal),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Color(0xFF1565C0),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'IVA (16%):',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                NumberFormat.currency(
+                                  locale: 'es_MX',
+                                  symbol: '\$',
+                                ).format(iva),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Color(0xFF1565C0),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(thickness: 1, color: Colors.black26),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Total:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                NumberFormat.currency(
+                                  locale: 'es_MX',
+                                  symbol: '\$',
+                                ).format(totalFinal),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Color(0xFF1565C0),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ]),
 
-                  _buildTitulo('Pago y Entrega'),
-                  _buildCard([
-                    Table(
-                      columnWidths: const {
-                        0: IntrinsicColumnWidth(),
-                        1: FlexColumnWidth(),
-                      },
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      children: [
-                        _tableRow(
-                          'Forma de Pago: ',
-                          cotizacion.formaPago ?? '-',
-                        ),
-                        _tableRow(
-                          'Método de Pago: ',
-                          cotizacion.metodoPago ?? '-',
-                        ),
-                        _tableRow('Moneda: ', cotizacion.moneda ?? '-'),
-                        _tableRow(
-                          'Cuenta: ',
-                          cotizacion.cuentaSeleccionada ?? '-',
-                        ),
-                        _tableRow('Entrega en: ', cotizacion.entregaEn ?? '-'),
-                        _tableRow(
-                          'Anticipo: ',
-                          cotizacion.anticipoSeleccionado != null &&
-                                  cotizacion.anticipoSeleccionado!.isNotEmpty
-                              ? '${cotizacion.anticipoSeleccionado}%'
-                              : '-',
-                        ),
-                        _tableRow(
-                          'Semanas de Entrega: ',
-                          '${cotizacion.semanasEntrega ?? '-'} semanas',
-                        ),
-                      ],
-                    ),
-                  ]),
+                        const SizedBox(height: 24),
+                        Center(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final pdf = pw.Document();
 
-                  _buildTitulo('Resumen de Pago'),
-                  _buildCard([
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${cotizacion.producto} (${cotizacion.numeroUnidades}):',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Este es el precio total para ${cotizacion.numeroUnidades} unidades',
-                          child: Text(
-                            NumberFormat.currency(
-                              locale: 'es_MX',
-                              symbol: '\$',
-                            ).format(
-                              (cotizacion.precioProductoConAdicionales ?? 0) *
-                                  (cotizacion.numeroUnidades),
-                            ),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Color(0xFF1565C0),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          // ignore: unnecessary_brace_in_string_interps
-                          'Adicionales (${cantidadAdicionalesSeleccionados}):',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Este es el precio total de los adicionales para ${cotizacion.numeroUnidades} unidades',
-                          child: Text(
-                            NumberFormat.currency(
-                              locale: 'es_MX',
-                              symbol: '\$',
-                            ).format(
-                              (cotizacion.totalAdicionales ?? 0) * (cotizacion.numeroUnidades),
-                            ),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Color(0xFF1565C0),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Subtotal:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(subTotal),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Color(0xFF1565C0),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'IVA (16%):',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(iva),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Color(0xFF1565C0),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Divider(thickness: 1, color: Colors.black26),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(totalFinal),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Color(0xFF1565C0),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ]),
+                              pdf.addPage(
+                                pw.Page(
+                                  build: (pw.Context context) {
+                                    return pw.Column(
+                                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                      children: [
+                                        pw.Text(
+                                          'Resumen de Cotización',
+                                          style: pw.TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: pw.FontWeight.bold,
+                                          ),
+                                        ),
+                                        pw.SizedBox(height: 16),
+                                        pw.Text(
+                                          'Folio: ${cotizacion.folioCotizacion}',
+                                        ),
+                                        pw.Text('Cliente: ${cotizacion.cliente}'),
+                                        pw.Text('Producto: ${cotizacion.producto}'),
+                                        pw.Text(
+                                          'Unidades: ${cotizacion.numeroUnidades}',
+                                        ),
+                                        pw.SizedBox(height: 16),
+                                        pw.Text(
+                                          'Precio del producto: \$${cotizacion.precioProductoConAdicionales?.toStringAsFixed(2) ?? "0.00"}',
+                                        ),
+                                        pw.Text(
+                                          'Precio de adicionales: \$${cotizacion.totalAdicionales?.toStringAsFixed(2) ?? "0.00"}',
+                                        ),
+                                        pw.Text(
+                                          'Sub total: \$${subTotal.toStringAsFixed(2)}',
+                                        ),
+                                        pw.Text(
+                                          'IVA (16%): \$${iva.toStringAsFixed(2)}',
+                                        ),
+                                        pw.Text(
+                                          'Total Final: \$${totalFinal.toStringAsFixed(2)}',
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              );
 
-                  const SizedBox(height: 24),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final pdf = pw.Document();
-
-                        pdf.addPage(
-                          pw.Page(
-                            build: (pw.Context context) {
-                              return pw.Column(
-                                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                children: [
-                                  pw.Text(
-                                    'Resumen de Cotización',
-                                    style: pw.TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: pw.FontWeight.bold,
-                                    ),
-                                  ),
-                                  pw.SizedBox(height: 16),
-                                  pw.Text(
-                                    'Folio: ${cotizacion.folioCotizacion}',
-                                  ),
-                                  pw.Text('Cliente: ${cotizacion.cliente}'),
-                                  pw.Text('Producto: ${cotizacion.producto}'),
-                                  pw.Text(
-                                    'Unidades: ${cotizacion.numeroUnidades}',
-                                  ),
-                                  pw.SizedBox(height: 16),
-                                  pw.Text(
-                                    'Precio del producto: \$${cotizacion.precioProductoConAdicionales?.toStringAsFixed(2) ?? "0.00"}',
-                                  ),
-                                  pw.Text(
-                                    'Precio de adicionales: \$${cotizacion.totalAdicionales?.toStringAsFixed(2) ?? "0.00"}',
-                                  ),
-                                  pw.Text(
-                                    'Sub total: \$${subTotal.toStringAsFixed(2)}',
-                                  ),
-                                  pw.Text(
-                                    'IVA (16%): \$${iva.toStringAsFixed(2)}',
-                                  ),
-                                  pw.Text(
-                                    'Total Final: \$${totalFinal.toStringAsFixed(2)}',
-                                  ),
-                                ],
+                              // Mostrar diálogo para imprimir o guardar
+                              await Printing.layoutPdf(
+                                onLayout: (PdfPageFormat format) async => pdf.save(),
                               );
                             },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                              elevation: 2,
+                            ),
+                            child: const Text('Finalizar Cotización'),
                           ),
-                        );
-
-                        // Mostrar diálogo para imprimir o guardar
-                        await Printing.layoutPdf(
-                          onLayout: (PdfPageFormat format) async => pdf.save(),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 14,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                        elevation: 2,
-                      ),
-                      child: const Text('Finalizar Cotización'),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

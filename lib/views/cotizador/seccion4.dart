@@ -626,7 +626,7 @@ class Seccion4 extends StatelessWidget {
 
     // Agrega el título solo si hay adicionales de línea no excluidos
     final adicionalesIncluidos = cotizacion.adicionalesDeLinea
-        .where((a) => a['excluido'] == true)
+        .where((a) => a['excluido'] != true)
         .toList();
 
     if (cotizacion.adicionalesDeLinea.isNotEmpty && adicionalesIncluidos.isEmpty) {

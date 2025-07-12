@@ -57,12 +57,12 @@ class _Seccion2State extends State<Seccion2> {
   @override
   void initState() {
     super.initState();
-    if (!(widget.cotizacion.datosCargados ?? false)) {
-      // Primera vez: consulta y guarda todo
+    if (!widget.cotizacion.datosCargados) {
+      // Consulta y guarda todo
       _cargarUsuario();
       _cargarCategoriasAdicionales();
     } else {
-      // Ya cargado: recupera los datos guardados
+      // Recupera los datos guardados
       especificaciones['Estructura'] = widget.cotizacion.estructura;
       especificaciones['Adicionales de Línea'] = widget.cotizacion.adicionalesDeLinea;
       _precioProductoBase = widget.cotizacion.importe ?? 0.0;
@@ -329,37 +329,22 @@ class _Seccion2State extends State<Seccion2> {
   //
   void _actualizarPrecioConAdicionales() {
     double totalAdicionales = 0;
-
     final adicionales = especificaciones['Adicionales de Línea'] ?? [];
-
-    final excluidos = (_excludedFeatures['Adicionales de Línea'] ?? {})
-        .toList();
-
     try {
       for (var adicional in adicionales) {
         final cantidad = (adicional['cantidad'] is int)
             ? adicional['cantidad'] as int
             : int.tryParse(adicional['cantidad'].toString()) ?? 0;
-
         final precio = (adicional['precio'] is double)
             ? adicional['precio'] as double
             : double.tryParse(adicional['precio'].toString()) ?? 0.0;
-
-        final nombre = adicional['name'] ?? '';
-
-        if (!excluidos.contains(nombre)) {
+        if (!(adicional['excluido'] == true)) {
           totalAdicionales += cantidad * precio;
-        } else {
-          totalAdicionales += cantidad * precio * 0.2;
         }
       }
-    } catch (e) {
-      //print('Error al calcular adicionales: $e');
-    }
-
+    } catch (e) {}
     final subtotalConAdicionales = _precioProductoBase + totalAdicionales;
     final totalFinal = (subtotalConAdicionales / (1 - _rentabilidad)) / 1.16;
-
     setState(() {
       _precioProductoConAdicionales = totalFinal;
     });
@@ -816,8 +801,7 @@ class _Seccion2State extends State<Seccion2> {
     return kits.map<TableRow>((kit) {
       final name = kit['name'] ?? '';
       final adicionales = kit['adicionales'] ?? '';
-      // El estado visual depende de _excludedFeatures, pero el estado funcional depende de 'excluido'
-      final isExcluded = kit['excluido'] == false;
+      final isExcluded = kit['excluido'] == true;
 
       return TableRow(
         decoration: BoxDecoration(
@@ -854,14 +838,7 @@ class _Seccion2State extends State<Seccion2> {
               ),
               onPressed: () {
                 setState(() {
-                  kit['excluido'] = !(kit['excluido'] == true);
-                  if (kit['excluido'] == true) {
-                    _excludedFeatures['Adicionales de Línea']?.remove(name);
-                  } else {
-                    _excludedFeatures
-                        .putIfAbsent('Adicionales de Línea', () => <String>{})
-                        .add(name);
-                  }
+                  kit['excluido'] = !isExcluded;
                   _actualizarPrecioConAdicionales();
                 });
               },

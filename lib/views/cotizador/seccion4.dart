@@ -310,12 +310,16 @@ class Seccion4 extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                '${cotizacion.producto} (${cotizacion.numeroUnidades}):',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.black,
+                              Expanded(
+                                child: Text(
+                                  '${cotizacion.producto} (${cotizacion.numeroUnidades}):',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               Tooltip(
@@ -596,33 +600,28 @@ class Seccion4 extends StatelessWidget {
     Map<String, String> estructura,
     List<Map<String, dynamic>> adicionalesDeLinea,
   ) {
-    final rows = estructuraOrden
-        .where((campo) => estructura[campo['key']] != null)
-        .map(
-          (campo) => TableRow(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  campo['label']!,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8,
-                ).copyWith(left: 8),
-                child: Text(
-                  estructura[campo['key']]!,
-                  textAlign: TextAlign.justify, // <-- Justificado
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ],
+    final rows = estructura.entries.map(
+      (entry) => TableRow(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              entry.key,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
           ),
-        )
-        .toList();
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8).copyWith(left: 8),
+            child: Text(
+              entry.value,
+              textAlign: TextAlign.justify,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    ).toList();
 
     // Agrega el título solo si hay adicionales de línea no excluidos
     final adicionalesIncluidos = cotizacion.adicionalesDeLinea

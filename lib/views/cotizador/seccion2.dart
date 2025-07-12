@@ -342,6 +342,7 @@ class _Seccion2State extends State<Seccion2> {
           totalAdicionales += cantidad * precio;
         }
       }
+    // ignore: empty_catches
     } catch (e) {}
     final subtotalConAdicionales = _precioProductoBase + totalAdicionales;
     final totalFinal = (subtotalConAdicionales / (1 - _rentabilidad)) / 1.16;
@@ -592,28 +593,31 @@ class _Seccion2State extends State<Seccion2> {
                 });
               },
               title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    dollyName,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blue[800],
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    formatCurrency(_precioProductoConAdicionales),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Color(0xFF1565C0),
-                    ),
-                  ),
-                ],
-              ),
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Expanded(
+      child: Text(
+        dollyName,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.blue[800],
+        ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 2,
+      ),
+    ),
+    const SizedBox(width: 8),
+    Text(
+      formatCurrency(_precioProductoConAdicionales),
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 16,
+        color: Color(0xFF1565C0),
+      ),
+    ),
+  ],
+),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16),

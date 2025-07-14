@@ -64,13 +64,17 @@ class _Seccion2State extends State<Seccion2> {
     } else {
       // Recupera los datos guardados
       especificaciones['Estructura'] = widget.cotizacion.estructura;
-      especificaciones['Adicionales de Línea'] = widget.cotizacion.adicionalesDeLinea;
+      especificaciones['Adicionales de Línea'] =
+          widget.cotizacion.adicionalesDeLinea;
       _precioProductoBase = widget.cotizacion.importe ?? 0.0;
-      _precioProductoConAdicionales = widget.cotizacion.precioProductoConAdicionales ?? 0.0;
+      _precioProductoConAdicionales =
+          widget.cotizacion.precioProductoConAdicionales ?? 0.0;
       _precioCargado = true;
       _estadoProducto = widget.cotizacion.estadoProducto;
       _adicionalesSeleccionados.clear();
-      _adicionalesSeleccionados.addAll(widget.cotizacion.adicionalesSeleccionados.map((a) => a.nombre));
+      _adicionalesSeleccionados.addAll(
+        widget.cotizacion.adicionalesSeleccionados.map((a) => a.nombre),
+      );
       for (var adicional in widget.cotizacion.adicionalesSeleccionados) {
         _cantidadesAdicionales[adicional.nombre] = adicional.cantidad;
         _preciosAdicionales[adicional.nombre] = adicional.precioUnitario;
@@ -233,7 +237,9 @@ class _Seccion2State extends State<Seccion2> {
   void _cargarPrecioProducto() async {
     try {
       final idProducto = int.tryParse(widget.modeloValue) ?? 0;
-      final precioData = await QuoteController.obtenerPrecioProducto(idProducto);
+      final precioData = await QuoteController.obtenerPrecioProducto(
+        idProducto,
+      );
       final subtotal = precioData['subtotal'] ?? 0.0;
       final rentabilidad = precioData['rentabilidad'] ?? 0.0;
       final estado = precioData['estado'] ?? '';
@@ -248,18 +254,22 @@ class _Seccion2State extends State<Seccion2> {
         // GUARDA LOS DATOS EN EL OBJETO COTIZACION
         widget.cotizacion.datosCargados = true;
         widget.cotizacion.estructura = especificaciones['Estructura'] ?? {};
-        widget.cotizacion.adicionalesDeLinea = especificaciones['Adicionales de Línea'] ?? [];
+        widget.cotizacion.adicionalesDeLinea =
+            especificaciones['Adicionales de Línea'] ?? [];
         widget.cotizacion.importe = _precioProductoBase;
-        widget.cotizacion.precioProductoConAdicionales = _precioProductoConAdicionales;
+        widget.cotizacion.precioProductoConAdicionales =
+            _precioProductoConAdicionales;
         widget.cotizacion.estadoProducto = _estadoProducto;
-        widget.cotizacion.adicionalesSeleccionados = _adicionalesSeleccionados.map((nombre) {
-          return AdicionalSeleccionado(
-            nombre: nombre,
-            cantidad: _cantidadesAdicionales[nombre] ?? 1,
-            precioUnitario: _preciosAdicionales[nombre] ?? 0.0,
-            estado: _estadosAdicionales[nombre] ?? 'Desconocido',
-          );
-        }).toList();
+        widget.cotizacion.adicionalesSeleccionados = _adicionalesSeleccionados
+            .map((nombre) {
+              return AdicionalSeleccionado(
+                nombre: nombre,
+                cantidad: _cantidadesAdicionales[nombre] ?? 1,
+                precioUnitario: _preciosAdicionales[nombre] ?? 0.0,
+                estado: _estadosAdicionales[nombre] ?? 'Desconocido',
+              );
+            })
+            .toList();
       });
     } catch (e) {
       if (!mounted) return;
@@ -342,7 +352,7 @@ class _Seccion2State extends State<Seccion2> {
           totalAdicionales += cantidad * precio;
         }
       }
-    // ignore: empty_catches
+      // ignore: empty_catches
     } catch (e) {}
     final subtotalConAdicionales = _precioProductoBase + totalAdicionales;
     final totalFinal = (subtotalConAdicionales / (1 - _rentabilidad)) / 1.16;
@@ -463,6 +473,7 @@ class _Seccion2State extends State<Seccion2> {
                                               totalAdicionalesSeleccionados,
                                           precioProductoConAdicionales:
                                               _precioProductoConAdicionales,
+                                              excludedFeatures: _excludedFeatures,
                                         );
 
                                     final resultado = await Navigator.pushNamed(
@@ -525,8 +536,14 @@ class _Seccion2State extends State<Seccion2> {
                                         widget.cotizacion.numeroUnidades =
                                             resultado['cotizacion']
                                                 .numeroUnidades;
-                                        widget.cotizacion.anticipoSeleccionado = resultado['cotizacion'].anticipoSeleccionado;
-                                      });
+                                        widget.cotizacion.anticipoSeleccionado =
+                                            resultado['cotizacion']
+                                                .anticipoSeleccionado;
+                                        ( _excludedFeatures,
+                                        ); // Verifica qué claves están excluidas
+                                        widget.cotizacion.excludedFeatures =
+                                            _excludedFeatures;
+                                             });
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
@@ -593,31 +610,31 @@ class _Seccion2State extends State<Seccion2> {
                 });
               },
               title: Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    Expanded(
-      child: Text(
-        dollyName,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Colors.blue[800],
-        ),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 2,
-      ),
-    ),
-    const SizedBox(width: 8),
-    Text(
-      formatCurrency(_precioProductoConAdicionales),
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
-        color: Color(0xFF1565C0),
-      ),
-    ),
-  ],
-),
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      dollyName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue[800],
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    formatCurrency(_precioProductoConAdicionales),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF1565C0),
+                    ),
+                  ),
+                ],
+              ),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -777,6 +794,7 @@ class _Seccion2State extends State<Seccion2> {
                               .putIfAbsent(sectionName, () => <String>{})
                               .add(key);
                         }
+                        (_excludedFeatures);
                       });
                     },
                     tooltip: isExcluded ? 'Incluir' : 'Excluir',
@@ -1557,13 +1575,14 @@ class _Seccion2State extends State<Seccion2> {
 
   // Card to display the total general (importe)
   Widget _buildTotalGeneralCard() {
-    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
-      0.0,
-      (sum, adicional) =>
-          sum +
-          ((_preciosAdicionales[adicional] ?? 0.0) *
-              (_cantidadesAdicionales[adicional] ?? 1)),
-    );
+    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados
+        .fold<double>(
+          0.0,
+          (sum, adicional) =>
+              sum +
+              ((_preciosAdicionales[adicional] ?? 0.0) *
+                  (_cantidadesAdicionales[adicional] ?? 1)),
+        );
     final totalGeneral =
         _precioProductoConAdicionales + totalAdicionalesSeleccionados;
     return Card(

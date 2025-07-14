@@ -44,6 +44,7 @@ class Cotizacion {
   double? precioProductoConAdicionales;
   String? anticipoSeleccionado;
   String? estadoProducto; // <-- AGREGA ESTA LÍNEA
+  Map<String, Set<String>>? excludedFeatures; // <-- AGREGA ESTO
 
   Cotizacion({
     required this.folioCotizacion,
@@ -79,6 +80,7 @@ class Cotizacion {
     this.precioProductoConAdicionales, // <--- agrega esto
     this.anticipoSeleccionado,
     this.datosCargados = false, // <-- AGREGA ESTO EN EL CONSTRUCTOR
+    this.excludedFeatures,
   });
 
   factory Cotizacion.fromMap(Map<String, dynamic> map) {
@@ -199,6 +201,7 @@ class Cotizacion {
     double? importe, 
     double? totalAdicionales,
     double? precioProductoConAdicionales, 
+    Map<String, Set<String>>? excludedFeatures,
   }) {
     return Cotizacion(
       folioCotizacion: folioCotizacion ?? this.folioCotizacion,
@@ -235,6 +238,7 @@ class Cotizacion {
       precioProductoConAdicionales: precioProductoConAdicionales ?? this.precioProductoConAdicionales, 
       anticipoSeleccionado: anticipoSeleccionado ?? this.anticipoSeleccionado,
       datosCargados: true, 
+      excludedFeatures: excludedFeatures ?? this.excludedFeatures,
     );
   }
 }

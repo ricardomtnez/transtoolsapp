@@ -600,28 +600,35 @@ class Seccion4 extends StatelessWidget {
     Map<String, String> estructura,
     List<Map<String, dynamic>> adicionalesDeLinea,
   ) {
-    final rows = estructura.entries.map(
-      (entry) => TableRow(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              entry.key,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
+    // Obtén los excluidos desde cotizacion
+    final excludedKeys = cotizacion.excludedFeatures?['Estructura'] ?? <String>{};
+
+  
+    final rows = estructura.entries
+        .where((entry) => !excludedKeys.contains(entry.key)) // <-- FILTRA EXCLUIDOS
+        .map(
+          (entry) => TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  entry.key,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8).copyWith(left: 8),
+                child: Text(
+                  entry.value,
+                  textAlign: TextAlign.justify,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8).copyWith(left: 8),
-            child: Text(
-              entry.value,
-              textAlign: TextAlign.justify,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    ).toList();
+        )
+        .toList();
 
     // Agrega el título solo si hay adicionales de línea no excluidos
     final adicionalesIncluidos = cotizacion.adicionalesDeLinea

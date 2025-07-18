@@ -43,8 +43,8 @@ class Cotizacion {
   double? totalAdicionales;
   double? precioProductoConAdicionales;
   String? anticipoSeleccionado;
-  String? estadoProducto; // <-- AGREGA ESTA LÍNEA
-  Map<String, Set<String>>? excludedFeatures; // <-- AGREGA ESTO
+  String? estadoProducto; 
+  Map<String, Set<String>>? excludedFeatures; 
 
   Cotizacion({
     required this.folioCotizacion,
@@ -75,11 +75,11 @@ class Cotizacion {
     this.fechaInicioEntrega,
     this.fechaFinEntrega,
     this.semanasEntrega,
-    this.importe, // <-- Agrega esto
+    this.importe, 
     this.totalAdicionales,
-    this.precioProductoConAdicionales, // <--- agrega esto
+    this.precioProductoConAdicionales, 
     this.anticipoSeleccionado,
-    this.datosCargados = false, // <-- AGREGA ESTO EN EL CONSTRUCTOR
+    this.datosCargados = false, 
     this.excludedFeatures,
   });
 
@@ -158,8 +158,8 @@ class Cotizacion {
       'fechaInicioEntrega': fechaInicioEntrega?.toIso8601String(),
       'fechaFinEntrega': fechaFinEntrega?.toIso8601String(),
       'semanasEntrega': semanasEntrega,
-      'importe': importe, // <-- Agrega esto
-      'totalAdicionales': totalAdicionales, // <-- Agrega esto
+      'importe': importe, 
+      'totalAdicionales': totalAdicionales, 
     };
   }
 

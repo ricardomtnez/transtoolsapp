@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:transtools/views/cotizador/seccion2.dart';
 import 'package:transtools/views/cotizador/seccion3.dart';
 import 'package:transtools/views/cotizador/seccion4.dart';
 import 'package:transtools/views/dashboard.dart';
 import 'package:transtools/views/login.dart';
 import 'package:transtools/views/cotizador/seccion1.dart';
+import 'package:transtools/views/cotizaciones.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,6 +37,9 @@ class _MyAppState extends State<MyApp> {
 
           case "/dashboard":
             return MaterialPageRoute(builder: (_) => const Dashboard());
+
+            case "/cotizaciones":
+            return MaterialPageRoute(builder: (_) => CotizacionesPage(fullname: 'Nombre de usuario'));
 
           case "/seccion1":
             return MaterialPageRoute(builder: (_) => const Seccion1());
@@ -72,6 +77,15 @@ class _MyAppState extends State<MyApp> {
             );
         }
       },
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        const Locale('es', 'MX'), // Español México
+        const Locale('en', 'US'), // Inglés
+      ],
     );
   }
 }

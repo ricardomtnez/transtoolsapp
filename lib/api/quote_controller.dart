@@ -570,6 +570,77 @@ query {
   }
   throw Exception('Error al obtener ejes compatibles');
 }
+// Método para obtener las cotizaciones realizadas
+static Future<List<Map<String, String>>> obtenerCotizacionesRealizadas() async {
+  const boardId = 9523399732;
+  final query = '''
+    query {
+      boards(ids: $boardId) {
+        items_page {
+          items {
+            id
+            name
+            assets { 
+              public_url
+            }
+            column_values(ids: [
+              "file_mkshqnfa", 
+              "date",
+              "text_mkshwgaf", 
+              "text_mkshakw7", 
+              "numeric_mkshj6rr", 
+              "text_mkshrf49", 
+              "text_mkshgz4r"
+            ]) {
+              id
+              text
+              value
+            }
+          }
+        }
+      }
+    }
+  ''';
+
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json', 'Authorization': token},
+    body: jsonEncode({'query': query}),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    final items = data['data']?['boards']?[0]?['items_page']?['items'];
+    if (items is List) {
+      return items.map<Map<String, String>>((item) {
+        final columns = item['column_values'] as List;
+        String getCol(String id) {
+          final col = columns.firstWhere((c) => c['id'] == id, orElse: () => {});
+          return (col['text'] != null && col['text'].toString().isNotEmpty)
+              ? col['text']
+              : (col['value'] ?? '');
+        }
+        // Extrae el public_url del primer asset (puedes ajustar si hay varios)
+        final publicUrl = (item['assets'] is List && item['assets'].isNotEmpty)
+            ? item['assets'][0]['public_url'] ?? ''
+            : '';
+        return {
+          'cotizacion': item['name'] ?? '',
+          'archivo_pdf': publicUrl,
+          'producto': getCol('text_mkshwgaf'),
+          'linea': getCol('text_mkshakw7'),
+          'ejes': getCol('numeric_mkshj6rr'),
+          'modelo': getCol('text_mkshrf49'),
+          'vendedor': getCol('text_mkshgz4r'),
+          'date': getCol('date'),
+        };
+      }).toList();
+    }
+    return [];
+  } else {
+    throw Exception('Error al obtener cotizaciones: ${response.body}');
+  }
+}
 }
 
 

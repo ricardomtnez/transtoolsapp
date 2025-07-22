@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/models/usuario.dart';
+import 'package:transtools/views/cotizaciones.dart';// Asegúrate de importar la página de Cotizaciones
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key}); // sin parámetros
@@ -223,7 +224,17 @@ class DashboardState extends State<Dashboard> {
                       ),
                       const SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // Navigator.pushNamed(context, "/cotizaciones");
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CotizacionesPage(
+                                fullname: _usuario!.fullname,
+                              ),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue[800],
                           shape: RoundedRectangleBorder(

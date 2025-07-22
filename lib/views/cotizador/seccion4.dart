@@ -486,26 +486,52 @@ class Seccion4 extends StatelessWidget {
 
                         const SizedBox(height: 24),
                         Center(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await generarPDF(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                              elevation: 2,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    await generarPDF(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12), // Menor padding
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15, // Menor tamaño de fuente
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: const Text('Vista Previa'),
+                                ),
+                                const SizedBox(width: 16), // Menor espacio entre botones
+                                ElevatedButton(
+                                  onPressed: () {
+                                    // Acción para finalizar cotización
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12), // Menor padding
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15, // Menor tamaño de fuente
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: const Text('Finalizar Cotización'),
+                                ),
+                              ],
                             ),
-                            child: const Text('Finalizar Cotización'),
                           ),
                         ),
                       ],
@@ -522,6 +548,18 @@ class Seccion4 extends StatelessWidget {
 
   Future<void> generarPDF(BuildContext context) async {
     final pdf = pw.Document();
+
+    // Carga los logos ANTES de cualquier await que dependa de context
+    final logoBytes = await DefaultAssetBundle.of(
+      context,
+    ).load('assets/transtools_logo_white.png');
+    // ignore: use_build_context_synchronously
+    final logo10Bytes = await DefaultAssetBundle.of(
+      // ignore: use_build_context_synchronously
+      context,
+    ).load('assets/10sinfondo.png');
+    final logo10 = pw.MemoryImage(logo10Bytes.buffer.asUint8List());
+    final logo = pw.MemoryImage(logoBytes.buffer.asUint8List());
 
     // Calcular totales para el PDF
     final double precioProductoConAdicionales =
@@ -544,27 +582,15 @@ class Seccion4 extends StatelessWidget {
         .adicionalesSeleccionados
         .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
-    final logoBytes = await DefaultAssetBundle.of(
-      context,
-    ).load('assets/transtools_logo_white.png');
-    final logo10Bytes = await DefaultAssetBundle.of(
-      // ignore: use_build_context_synchronously
-      context,
-    ).load('assets/10sinfondo.png');
-    final logo10 = pw.MemoryImage(logo10Bytes.buffer.asUint8List());
-
-    final logo = pw.MemoryImage(logoBytes.buffer.asUint8List());
-
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: PdfPageFormat.letter,
         margin: pw.EdgeInsets.zero,
         header: (pw.Context context) {
           if (context.pageNumber == 1) {
             return pw.Container(
               color: PdfColors.blue900,
               height: 100,
-              // Agrega margen derecho de 1 cm (28.35 puntos)
               padding: pw.EdgeInsets.only(
                 right: 28.35,
                 left: 0,
@@ -1071,9 +1097,7 @@ class Seccion4 extends StatelessWidget {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Container(
-                          alignment: pw
-                              .Alignment
-                              .center, 
+                          alignment: pw.Alignment.center,
                           child: pw.Text(
                             'CANTIDAD',
                             style: pw.TextStyle(
@@ -1098,9 +1122,7 @@ class Seccion4 extends StatelessWidget {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Container(
-                          alignment: pw
-                              .Alignment
-                              .center,
+                          alignment: pw.Alignment.center,
                           child: pw.Text(
                             'TOTAL',
                             style: pw.TextStyle(
@@ -1160,7 +1182,7 @@ class Seccion4 extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ],
+                ],
               ),
             ),
           ],
@@ -1224,8 +1246,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Container(
-                        alignment:
-                            pw.Alignment.center, 
+                        alignment: pw.Alignment.center,
                         child: pw.Text(
                           'TOTAL',
                           style: pw.TextStyle(
@@ -1470,14 +1491,17 @@ class Seccion4 extends StatelessWidget {
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Column(
               children: [
-                pw.SizedBox(height: 10), 
+                pw.SizedBox(height: 10),
                 pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Expanded(
                       child: pw.Container(
                         decoration: pw.BoxDecoration(
-                          border: pw.Border.all(color: PdfColors.blue900, width: 1),
+                          border: pw.Border.all(
+                            color: PdfColors.blue900,
+                            width: 1,
+                          ),
                         ),
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1516,7 +1540,10 @@ class Seccion4 extends StatelessWidget {
                     pw.Expanded(
                       child: pw.Container(
                         decoration: pw.BoxDecoration(
-                          border: pw.Border.all(color: PdfColors.blue900, width: 1),
+                          border: pw.Border.all(
+                            color: PdfColors.blue900,
+                            width: 1,
+                          ),
                         ),
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1543,7 +1570,7 @@ class Seccion4 extends StatelessWidget {
                             pw.Padding(
                               padding: const pw.EdgeInsets.all(6),
                               child: pw.Text(
-                                'Entrega en: ${cotizacion.entregaEn}', 
+                                'Entrega en: ${cotizacion.entregaEn}',
                                 style: pw.TextStyle(fontSize: 11),
                               ),
                             ),
@@ -1618,10 +1645,25 @@ class Seccion4 extends StatelessWidget {
       ),
     ); //
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      format: PdfPageFormat.a4,
-      name: '${cotizacion.folioCotizacion} - ${cotizacion.cliente}.pdf',
+    // Antes de usar context después de await, verifica que el widget esté montado
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: SizedBox(
+          width: 400,
+          height: 600,
+          child: PdfPreview(
+            build: (format) => pdf.save(),
+            allowPrinting: true,
+            allowSharing: true,
+            canChangePageFormat: false,
+            pdfFileName:
+                '${cotizacion.folioCotizacion} - ${cotizacion.cliente}.pdf',
+          ),
+        ),
+      ),
     );
   }
 

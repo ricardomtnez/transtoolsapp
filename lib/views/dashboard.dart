@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/models/usuario.dart';
 import 'package:transtools/views/cotizaciones.dart';// Asegúrate de importar la página de Cotizaciones
 
@@ -12,6 +13,7 @@ class Dashboard extends StatefulWidget {
 
 class DashboardState extends State<Dashboard> {
   Usuario? _usuario; // Variable para guardar el usuario cargado
+  int cotizacionesUsuario = 0;
 
   @override
   void initState() {
@@ -24,11 +26,19 @@ class DashboardState extends State<Dashboard> {
     final jsonString = prefs.getString('usuario');
     if (jsonString != null) {
       setState(() {
-        _usuario = Usuario.fromJson(
-          jsonString,
-        ); // Ya devuelve un objeto Usuario
+        _usuario = Usuario.fromJson(jsonString);
       });
+      await _contarCotizacionesUsuario(); // <-- Aquí
     }
+  }
+
+  Future<void> _contarCotizacionesUsuario() async {
+    final cotizaciones = await QuoteController.obtenerCotizacionesRealizadas();
+    setState(() {
+      cotizacionesUsuario = cotizaciones
+        .where((cot) => cot['vendedor']?.toUpperCase() == _usuario!.fullname.toUpperCase())
+        .length;
+    });
   }
 
   @override
@@ -84,12 +94,28 @@ class DashboardState extends State<Dashboard> {
                   ),
                 ],
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 35),
-                child: Text(
-                  'Versión 1.0',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
+              Column(
+                children: [
+                  Divider(),
+                  ListTile(
+                    leading: Icon(Icons.logout, color: Colors.red),
+                    title: Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
+                    onTap: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.clear();
+                      if (!mounted) return;
+                      // ignore: use_build_context_synchronously
+                      Navigator.pushReplacementNamed(context, "/");
+                    },
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 35),
+                    child: Text(
+                      'Versión 1.0',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -150,7 +176,7 @@ class DashboardState extends State<Dashboard> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text("0", style: TextStyle(fontSize: 30)),
+                      Text("$cotizacionesUsuario", style: TextStyle(fontSize: 30)),
                       const SizedBox(height: 15),
                       ElevatedButton(
                         onPressed: () {

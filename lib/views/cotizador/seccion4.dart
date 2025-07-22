@@ -1,10 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/models/cotizacion.dart';
 import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
 
 class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
@@ -493,12 +495,15 @@ class Seccion4 extends StatelessWidget {
                               children: [
                                 ElevatedButton(
                                   onPressed: () async {
-                                    await generarPDF(context);
+                                    await finalizarCotizacionEnMonday(context);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12), // Menor padding
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 12,
+                                    ), // Menor padding
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(30),
                                     ),
@@ -508,28 +513,11 @@ class Seccion4 extends StatelessWidget {
                                     ),
                                     elevation: 2,
                                   ),
-                                  child: const Text('Vista Previa'),
+                                  child: const Text('Guardar Cotización'),
                                 ),
-                                const SizedBox(width: 16), // Menor espacio entre botones
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // Acción para finalizar cotización
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12), // Menor padding
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15, // Menor tamaño de fuente
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                  child: const Text('Finalizar Cotización'),
-                                ),
+                                const SizedBox(
+                                  width: 16,
+                                ), // Menor espacio entre botones
                               ],
                             ),
                           ),
@@ -546,7 +534,7 @@ class Seccion4 extends StatelessWidget {
     );
   }
 
-  Future<void> generarPDF(BuildContext context) async {
+  Future<Uint8List> _generarPDF(BuildContext context) async {
     final pdf = pw.Document();
 
     // Carga los logos ANTES de cualquier await que dependa de context
@@ -1645,26 +1633,7 @@ class Seccion4 extends StatelessWidget {
       ),
     ); //
 
-    // Antes de usar context después de await, verifica que el widget esté montado
-    if (!context.mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        child: SizedBox(
-          width: 400,
-          height: 600,
-          child: PdfPreview(
-            build: (format) => pdf.save(),
-            allowPrinting: true,
-            allowSharing: true,
-            canChangePageFormat: false,
-            pdfFileName:
-                '${cotizacion.folioCotizacion} - ${cotizacion.cliente}.pdf',
-          ),
-        ),
-      ),
-    );
+    return await pdf.save();
   }
 
   Widget _buildTitulo(String titulo) {
@@ -1863,4 +1832,115 @@ class Seccion4 extends StatelessWidget {
     {'key': 'ALINEACION', 'label': 'ALINEACION'},
     {'key': 'PINTURA', 'label': 'PINTURA'},
   ];
+
+  //metodo con pasos:
+  //Método que nos permite finalizar la cotización
+  Future<void> finalizarCotizacionEnMonday(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_upload, size: 48, color: Colors.blue[900]),
+              const SizedBox(height: 16),
+              const Text(
+                'Subiendo cotización...',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+              CircularProgressIndicator(
+                color: Colors.blue[900],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final Uint8List pdfBytes = await _generarPDF(context);
+      final String mesActual = DateTime.now().month.toString().padLeft(2, '0');
+      final int itemId = await QuoteController.crearItemCotizacion(
+        cotizacion,
+        usuario,
+        mesActual,
+      );
+      await QuoteController.subirArchivoCotizacionPdf(
+        itemId,
+        pdfBytes,
+        cotizacion,
+      );
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Cierra el loader
+
+      // Diálogo de éxito
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, size: 48, color: Colors.green[600]),
+                const SizedBox(height: 16),
+                const Text(
+                  'Cotización realizada con éxito',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'La cotización se subió correctamente a Monday.',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[900],
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/dashboard',
+                        (Route<dynamic> route) => false,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // Cierra el loader
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ocurrió un error al subir la cotización.')),
+      );
+    }
+  }
 }

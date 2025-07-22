@@ -1,5 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:transtools/models/cotizacion.dart';
+import 'package:transtools/models/usuario.dart';
+
 
 class QuoteController {
   static const token =
@@ -92,8 +97,6 @@ query {
       }
     }
   ''';
-
-    
 
     final response = await http.post(
       url,
@@ -412,7 +415,8 @@ query {
   }
 
   static Future<Map<String, dynamic>> obtenerPrecioProducto(int itemId) async {
-    final query = """
+    final query =
+        """
     query {
       items(ids: $itemId) {
         name
@@ -469,7 +473,7 @@ query {
       return {
         'subtotal': subtotal,
         'rentabilidad': rentabilidadPorcentaje,
-        'estado': estado, 
+        'estado': estado,
       };
     } else {
       throw Exception(
@@ -478,9 +482,13 @@ query {
     }
   }
 
-  static Future<int> obtenerConsecutivoCotizacion(String nombreCompleto, String mes) async {
-  const boardId = 9523399732;
-  final query = '''
+  static Future<int> obtenerConsecutivoCotizacion(
+    String nombreCompleto,
+    String mes,
+  ) async {
+    const boardId = 9523399732;
+    final query =
+        '''
     query {
       items_page_by_column_values (
         limit: 200,
@@ -498,30 +506,31 @@ query {
     }
   ''';
 
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json', 'Authorization': token},
-    body: jsonEncode({'query': query}),
-  );
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
 
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    final items = data['data']?['items_page_by_column_values']?['items'];
-    if (items is List) {
-      return items.length;
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final items = data['data']?['items_page_by_column_values']?['items'];
+      if (items is List) {
+        return items.length;
+      }
+      return 0;
+    } else {
+      throw Exception('Error al consultar cotizaciones: ${response.body}');
     }
-    return 0;
-  } else {
-    throw Exception('Error al consultar cotizaciones: ${response.body}');
   }
- }
 
- static Future<List<Map<String, String>>> obtenerEjesCompatibles(
-  String producto,
-  String linea,
-) async {
-  const boardId = 4863963204;
-  final query = '''
+  static Future<List<Map<String, String>>> obtenerEjesCompatibles(
+    String producto,
+    String linea,
+  ) async {
+    const boardId = 4863963204;
+    final query =
+        '''
     query {
       boards(ids: $boardId) {
         groups(ids: ["$producto"]) {
@@ -542,38 +551,49 @@ query {
     }
   ''';
 
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json', 'Authorization': token},
-    body: jsonEncode({'query': query}),
-  );
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
 
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    final items = data['data']?['boards']?[0]?['groups']?[0]?['items_page']?['items'];
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final items =
+          data['data']?['boards']?[0]?['groups']?[0]?['items_page']?['items'];
 
-    if (items is List) {
-      // Extrae los valores únicos de ejes
-      final ejesSet = <String>{};
-      for (var item in items) {
-        final colVals = item['column_values'] as List?;
-        if (colVals != null && colVals.isNotEmpty) {
-          final eje = colVals[0]['text']?.toString();
-          if (eje != null && eje.isNotEmpty) {
-            ejesSet.add(eje);
+      if (items is List) {
+        // Extrae los valores únicos de ejes
+        final ejesSet = <String>{};
+        for (var item in items) {
+          final colVals = item['column_values'] as List?;
+          if (colVals != null && colVals.isNotEmpty) {
+            final eje = colVals[0]['text']?.toString();
+            if (eje != null && eje.isNotEmpty) {
+              ejesSet.add(eje);
+            }
           }
         }
+        // Devuelve la lista para el dropdown
+        return ejesSet
+            .map(
+              (eje) => {
+                'value': eje,
+                'text': '$eje Eje${eje == "1" ? "" : "s"}',
+              },
+            )
+            .toList();
       }
-      // Devuelve la lista para el dropdown
-      return ejesSet.map((eje) => {'value': eje, 'text': '$eje Eje${eje == "1" ? "" : "s"}'}).toList();
     }
+    throw Exception('Error al obtener ejes compatibles');
   }
-  throw Exception('Error al obtener ejes compatibles');
-}
-// Método para obtener las cotizaciones realizadas
-static Future<List<Map<String, String>>> obtenerCotizacionesRealizadas() async {
-  const boardId = 9523399732;
-  final query = '''
+
+  // Método para obtener las cotizaciones realizadas
+  static Future<List<Map<String, String>>>
+  obtenerCotizacionesRealizadas() async {
+    const boardId = 9523399732;
+    final query =
+        '''
     query {
       boards(ids: $boardId) {
         items_page {
@@ -602,45 +622,140 @@ static Future<List<Map<String, String>>> obtenerCotizacionesRealizadas() async {
     }
   ''';
 
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json', 'Authorization': token},
-    body: jsonEncode({'query': query}),
-  );
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
 
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    final items = data['data']?['boards']?[0]?['items_page']?['items'];
-    if (items is List) {
-      return items.map<Map<String, String>>((item) {
-        final columns = item['column_values'] as List;
-        String getCol(String id) {
-          final col = columns.firstWhere((c) => c['id'] == id, orElse: () => {});
-          return (col['text'] != null && col['text'].toString().isNotEmpty)
-              ? col['text']
-              : (col['value'] ?? '');
-        }
-        // Extrae el public_url del primer asset (puedes ajustar si hay varios)
-        final publicUrl = (item['assets'] is List && item['assets'].isNotEmpty)
-            ? item['assets'][0]['public_url'] ?? ''
-            : '';
-        return {
-          'cotizacion': item['name'] ?? '',
-          'archivo_pdf': publicUrl,
-          'producto': getCol('text_mkshwgaf'),
-          'linea': getCol('text_mkshakw7'),
-          'ejes': getCol('numeric_mkshj6rr'),
-          'modelo': getCol('text_mkshrf49'),
-          'vendedor': getCol('text_mkshgz4r'),
-          'date': getCol('date'),
-        };
-      }).toList();
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final items = data['data']?['boards']?[0]?['items_page']?['items'];
+      if (items is List) {
+        return items.map<Map<String, String>>((item) {
+          final columns = item['column_values'] as List;
+          String getCol(String id) {
+            final col = columns.firstWhere(
+              (c) => c['id'] == id,
+              orElse: () => {},
+            );
+            return (col['text'] != null && col['text'].toString().isNotEmpty)
+                ? col['text']
+                : (col['value'] ?? '');
+          }
+
+          // Extrae el public_url del primer asset (puedes ajustar si hay varios)
+          final publicUrl =
+              (item['assets'] is List && item['assets'].isNotEmpty)
+              ? item['assets'][0]['public_url'] ?? ''
+              : '';
+          return {
+            'cotizacion': item['name'] ?? '',
+            'archivo_pdf': publicUrl,
+            'producto': getCol('text_mkshwgaf'),
+            'linea': getCol('text_mkshakw7'),
+            'ejes': getCol('numeric_mkshj6rr'),
+            'modelo': getCol('text_mkshrf49'),
+            'vendedor': getCol('text_mkshgz4r'),
+            'date': getCol('date'),
+          };
+        }).toList();
+      }
+      return [];
+    } else {
+      throw Exception('Error al obtener cotizaciones: ${response.body}');
     }
-    return [];
-  } else {
-    throw Exception('Error al obtener cotizaciones: ${response.body}');
+  }
+
+  //Guarda los datos de la cotización en el tablero cotizaciones
+  static Future<int> crearItemCotizacion(
+    Cotizacion cotizacion,
+    Usuario usuario,
+    String mesActual,
+  ) async {
+    final String folio = cotizacion.folioCotizacion;
+
+    // Preparamos los valores de las columnas, asegúrate de que los ID coincidan con los de Monday
+   final Map<String, dynamic> columnas = {
+  "text_mkshwgaf": cotizacion.producto,
+  "text_mkshakw7": cotizacion.linea,
+  "numeric_mkshj6rr": cotizacion.numeroEjes,
+  "text_mkshrf49": cotizacion.modelo,
+  "text_mkshgz4r": usuario.fullname,
+  "text_mkshpxr7": mesActual,
+};
+
+final String columnValuesJson = jsonEncode(columnas).replaceAll('"', r'\"');
+
+    const boardId = 9523399732;
+    final String mutation =
+        '''
+      mutation {
+        create_item(
+          board_id: $boardId,
+          group_id: "topics",
+          item_name: "$folio",
+           column_values: "$columnValuesJson"
+
+        ) {
+          id
+        }
+      }
+    ''';
+
+    final response = await http.post(
+      Uri.parse('https://api.monday.com/v2'),
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: json.encode({'query': mutation}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (data['data']?['create_item']?['id'] == null) {
+      throw Exception(
+        'Error al crear ítem en Monday: ${data['errors'] ?? response.body}',
+      );
+    }
+
+    return int.parse(data['data']['create_item']['id']);
+  }
+
+  //Método que sube el archivo a monday
+  static Future<void> subirArchivoCotizacionPdf(
+    int itemId,
+    Uint8List archivoBytes,
+    Cotizacion cotizacion,
+  ) async {
+    final uri = Uri.parse('https://api.monday.com/v2/file');
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = token
+      ..fields['query'] =
+          '''
+        mutation (\$file: File!) {
+          add_file_to_column(file: \$file, item_id: $itemId, column_id: "file_mkshqnfa") {
+            id
+          }
+        }
+      '''
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          'variables[file]',
+          archivoBytes,
+          filename: '${cotizacion.folioCotizacion}-${cotizacion.cliente}.pdf',
+          contentType: MediaType('application', 'pdf'),
+        ),
+      );
+
+    try {
+      final response = await request.send();
+
+      if (response.statusCode != 200) {
+        final responseBody = await response.stream.bytesToString();
+        throw Exception('Error al subir PDF: $responseBody');
+      }
+    } catch (e) {
+      throw Exception('Fallo al subir archivo a Monday: $e');
+    }
   }
 }
-}
-
-

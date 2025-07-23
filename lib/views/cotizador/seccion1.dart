@@ -67,6 +67,9 @@ class _Seccion1 extends State<Seccion1> {
   bool ejesError = false;
   String? ejesErrorText;
 
+  // ignore: unused_field
+  bool _loadingEjes = false;
+
   bool modeloError = false;
   String? modeloErrorText;
 
@@ -740,14 +743,66 @@ class _Seccion1 extends State<Seccion1> {
                               _ejesDisponibles = [];
                             });
                             if (productoSeleccionado != null && v != null) {
+                              setState(() => _loadingEjes = true);
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (BuildContext dialogContext) {
+                                  return Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Colors.black26,
+                                            blurRadius: 10,
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 60,
+                                            height: 60,
+                                            child: CircularProgressIndicator(
+                                              color: Color(0xFF1565C0),
+                                              strokeWidth: 4,
+                                            ),
+                                          ),
+                                          SizedBox(height: 16),
+                                          Text(
+                                            'Cargando ejes',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF1565C0),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
                               final ejes =
                                   await QuoteController.obtenerEjesCompatibles(
                                     productoSeleccionado!,
                                     v,
                                   );
-                              setState(() {
-                                _ejesDisponibles = ejes;
-                              });
+                              if (mounted) {
+                                Navigator.of(
+                                  // ignore: use_build_context_synchronously
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                setState(() {
+                                  _ejesDisponibles = ejes;
+                                  _loadingEjes = false;
+                                });
+                              }
                             }
                             _verificarYConsultarGrupo();
                           },
@@ -774,7 +829,6 @@ class _Seccion1 extends State<Seccion1> {
                         ),
                       ],
                     ),
-
                     // Aquí se determina si el modelo está disponible
                     _buildSection(
                       title: 'Modelo/Gama',
@@ -832,7 +886,9 @@ class _Seccion1 extends State<Seccion1> {
                               hint: Text(
                                 'Selecciona el color',
                                 style: TextStyle(
-                                  color: colorError ? Colors.red : const Color.fromARGB(255, 0, 0, 0),
+                                  color: colorError
+                                      ? Colors.red
+                                      : const Color.fromARGB(255, 0, 0, 0),
                                   fontWeight: FontWeight.w500,
                                   fontSize: 16,
                                 ),
@@ -850,7 +906,11 @@ class _Seccion1 extends State<Seccion1> {
                                       },
                                       child: const Padding(
                                         padding: EdgeInsets.only(right: 4),
-                                        child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                                        child: Icon(
+                                          Icons.clear,
+                                          color: Colors.grey,
+                                          size: 22,
+                                        ),
                                       ),
                                     ),
                                   const Icon(
@@ -933,7 +993,11 @@ class _Seccion1 extends State<Seccion1> {
                                         },
                                         child: const Padding(
                                           padding: EdgeInsets.only(right: 4),
-                                          child: Icon(Icons.clear, color: Colors.grey, size: 22),
+                                          child: Icon(
+                                            Icons.clear,
+                                            color: Colors.grey,
+                                            size: 22,
+                                          ),
                                         ),
                                       ),
                                     const Icon(

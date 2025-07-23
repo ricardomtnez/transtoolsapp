@@ -1474,7 +1474,6 @@ class Seccion4 extends StatelessWidget {
               ],
             ),
           ),
-          pw.NewPage(),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Column(
@@ -1799,7 +1798,7 @@ class Seccion4 extends StatelessWidget {
                   '${a['adicionales'] ?? ''}',
                   textAlign: TextAlign.justify,
                   style: const TextStyle(
-                    fontSize: 14, // <-- Cambiado a 14
+                    fontSize: 14, 
                   ),
                 ),
               ),

@@ -42,14 +42,13 @@ class _Seccion3State extends State<Seccion3> {
   String? entregaEn;
   String? tiempoEntrega;
   String? cuentaSeleccionada;
-  
 
   DateTime? fechaInicio;
   DateTime? fechaFin;
   String? semanasEntrega;
 
   final List<String> formasPago = ['Contado'];
-  final List<String> metodosPago = ['Transferencia', 'Cheque'];
+  final List<String> metodosPago = ['Transferencia'];
   final List<String> monedas = ['MXN', 'USD'];
   final List<String> tiemposEntrega = [
     '4 semanas a partir de su anticipo',
@@ -59,13 +58,13 @@ class _Seccion3State extends State<Seccion3> {
 
   final List<String> anticipos = ['10%', '20%', '30%', '50%'];
 
-String anticipoSeleccionado = '';
+  String anticipoSeleccionado = '';
 
   final List<String> cuentasMXN = [
-    'BBVA Bancomer - 0172940930 - Clabe: 012830001729409301'
+    'BBVA Bancomer - 0172940930 - Clabe: 012830001729409301',
   ];
   final List<String> cuentasUSD = [
-    'BBVA Bancomer USD - 0117396880 - Clabe: 012830001173968809'
+    'BBVA Bancomer USD - 0117396880 - Clabe: 012830001173968809',
   ];
 
   bool metodoPagoError = false;
@@ -86,23 +85,28 @@ String anticipoSeleccionado = '';
   bool unidadesError = false;
   String? unidadesErrorText;
 
-@override
-void initState() {
-  super.initState();
-  _cargarUsuario();
-  formaPago = widget.cotizacion.formaPago ?? 'Contado';
-  metodoPago = widget.cotizacion.metodoPago;
-  moneda = widget.cotizacion.moneda;
-  entregaEn = widget.cotizacion.entregaEn;
-  cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
-  otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
-  anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? '';
-  anticipoController.text = anticipoSeleccionado.isNotEmpty ? '$anticipoSeleccionado%' : '';
-  semanasEntrega = widget.cotizacion.semanasEntrega;
-  fechaInicio = widget.cotizacion.fechaInicioEntrega;
-  fechaFin = widget.cotizacion.fechaFinEntrega;
-  unidadesController.text = widget.cotizacion.numeroUnidades.toString();
-}
+  bool anticipoError = false;
+  String? anticipoErrorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarUsuario();
+    formaPago = widget.cotizacion.formaPago ?? 'Contado';
+    metodoPago = widget.cotizacion.metodoPago;
+    moneda = widget.cotizacion.moneda;
+    entregaEn = widget.cotizacion.entregaEn;
+    cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
+    otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
+    anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? '';
+    anticipoController.text = anticipoSeleccionado.isNotEmpty
+        ? '$anticipoSeleccionado%'
+        : '';
+    semanasEntrega = widget.cotizacion.semanasEntrega;
+    fechaInicio = widget.cotizacion.fechaInicioEntrega;
+    fechaFin = widget.cotizacion.fechaFinEntrega;
+    unidadesController.text = widget.cotizacion.numeroUnidades.toString();
+  }
 
   Future<void> _cargarUsuario() async {
     final prefs = await SharedPreferences.getInstance();
@@ -452,7 +456,7 @@ void initState() {
                                 color: const Color.fromARGB(255, 240, 240, 240),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: Colors.grey[300]!,
+                                  color: anticipoError ? Colors.red : Colors.grey[300]!,
                                   width: 1.5,
                                 ),
                                 boxShadow: [
@@ -464,64 +468,80 @@ void initState() {
                                   ),
                                 ],
                               ),
-child: TextFormField(
-  controller: anticipoController,
-  decoration: InputDecoration(
-    labelText: 'Anticipo (%)',
-    labelStyle: const TextStyle(
-      color: Color(0xFF1565C0),
-      fontWeight: FontWeight.bold,
-    ),
-    border: InputBorder.none,
-    suffixIcon: anticipoController.text.isNotEmpty
-        ? IconButton(
-            icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
-            onPressed: () {
-              anticipoController.clear();
-              setState(() {
-                anticipoSeleccionado = '';
-              });
-            },
-            splashRadius: 18,
-          )
-        : null,
-  ),
-  keyboardType: TextInputType.number,
-  inputFormatters: [
-    FilteringTextInputFormatter.allow(RegExp(r'\d+%?')),
-    TextInputFormatter.withFunction((oldValue, newValue) {
-      // Permite solo números y máximo 3 dígitos antes del %
-      String clean = newValue.text.replaceAll('%', '');
-      if (clean.isEmpty) return newValue.copyWith(text: '');
-      final value = int.tryParse(clean);
-      if (value == null || value < 0 || value > 100) {
-        return oldValue;
-      }
-      // Siempre termina en %
-      return TextEditingValue(
-        text: '$value%',
-        selection: TextSelection.collapsed(offset: '$value%'.length - 1),
-      );
-    }),
-  ],
-onChanged: (value) {
-  String clean = value.replaceAll('%', '');
-  setState(() {
-    anticipoSeleccionado = clean;
-  });
-},
-  validator: (value) {
-    String clean = value?.replaceAll('%', '') ?? '';
-    if (clean.isEmpty) {
-      return 'Ingrese el porcentaje de anticipo';
-    }
-    final numValue = int.tryParse(clean);
-    if (numValue == null || numValue < 0 || numValue > 100) {
-      return 'Ingrese un valor entre 0 y 100';
-    }
-    return null;
-  },
-),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller: anticipoController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Anticipo (%)',
+                                      labelStyle: TextStyle(
+                                        color: anticipoError ? Colors.red : const Color(0xFF1565C0),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      border: InputBorder.none,
+                                      suffixIcon: anticipoController.text.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                                              onPressed: () {
+                                                anticipoController.clear();
+                                                setState(() {
+                                                  anticipoSeleccionado = '';
+                                                });
+                                              },
+                                              splashRadius: 18,
+                                            )
+                                          : null,
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(RegExp(r'\d+%?')),
+                                      TextInputFormatter.withFunction((
+                                        oldValue,
+                                        newValue,
+                                      ) {
+                                        // Permite solo números y máximo 3 dígitos antes del %
+                                        String clean = newValue.text.replaceAll(
+                                          '%',
+                                          '',
+                                        );
+                                        if (clean.isEmpty) {
+                                          return newValue.copyWith(text: '');
+                                        }
+                                        final value = int.tryParse(clean);
+                                        if (value == null ||
+                                            value < 0 ||
+                                            value > 100) {
+                                          return oldValue;
+                                        }
+                                        // Siempre termina en %
+                                        return TextEditingValue(
+                                          text: '$value%',
+                                          selection: TextSelection.collapsed(
+                                            offset: '$value%'.length - 1,
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                    onChanged: (value) {
+                                      String clean = value.replaceAll('%', '');
+                                      setState(() {
+                                        anticipoSeleccionado = clean;
+                                        anticipoError = false;
+                                        anticipoErrorText = null;
+                                      });
+                                    },
+                                  ),
+                                  if (anticipoError && anticipoErrorText != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 4, top: 4),
+                                      child: Text(
+                                        anticipoErrorText!,
+                                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -641,7 +661,6 @@ onChanged: (value) {
                                   entregaEn = value;
                                   entregaEnError = false;
                                   entregaEnErrorText = null;
-                                  
                                 });
                               },
                               error: entregaEnError,
@@ -682,10 +701,10 @@ onChanged: (value) {
                                       fechaInicioEntrega: fechaInicio,
                                       fechaFinEntrega: fechaFin,
                                       semanasEntrega: semanasEntrega,
-                                      anticipoSeleccionado: anticipoSeleccionado,
+                                      anticipoSeleccionado:
+                                          anticipoSeleccionado,
                                       numeroUnidades: int.tryParse(
                                         unidadesController.text,
-                                        
                                       ),
                                     ),
                                   });
@@ -749,6 +768,20 @@ onChanged: (value) {
                                     unidadesErrorText = unidadesError
                                         ? 'Ingrese un número válido de unidades'
                                         : null;
+
+                                    anticipoError = anticipoController.text.isEmpty;
+                                    anticipoErrorText = anticipoError
+                                        ? 'Ingrese un anticipo'
+                                        : null;
+
+                                    String clean = anticipoController.text.replaceAll('%', '');
+                                    final numValue = int.tryParse(clean);
+                                    anticipoError = clean.isEmpty || numValue == null || numValue < 0 || numValue > 100;
+                                    anticipoErrorText = clean.isEmpty
+                                        ? 'Ingrese el porcentaje de anticipo'
+                                        : (numValue == null || numValue < 0 || numValue > 100
+                                            ? 'Ingrese un valor entre 0 y 100'
+                                            : null);
                                   });
 
                                   if (unidadesError ||
@@ -756,7 +789,8 @@ onChanged: (value) {
                                       monedaError ||
                                       cuentaError ||
                                       entregaEnError ||
-                                      rangoEntregaError) {
+                                      rangoEntregaError ||
+                                      anticipoError) {
                                     // Mostrar alerta o scroll al primer error
                                     return;
                                   }

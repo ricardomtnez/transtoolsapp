@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/models/usuario.dart';
-import 'package:transtools/views/cotizaciones.dart';// Asegúrate de importar la página de Cotizaciones
+import 'package:transtools/views/cotizaciones.dart';
+import 'package:intl/intl.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key}); // sin parámetros
@@ -14,6 +15,7 @@ class Dashboard extends StatefulWidget {
 class DashboardState extends State<Dashboard> {
   Usuario? _usuario; // Variable para guardar el usuario cargado
   int cotizacionesUsuario = 0;
+  List<Map<String, dynamic>> cotizacionesRecientes = [];
 
   @override
   void initState() {
@@ -34,10 +36,12 @@ class DashboardState extends State<Dashboard> {
 
   Future<void> _contarCotizacionesUsuario() async {
     final cotizaciones = await QuoteController.obtenerCotizacionesRealizadas();
-    setState(() {
-      cotizacionesUsuario = cotizaciones
+    final recientes = cotizaciones
         .where((cot) => cot['vendedor']?.toUpperCase() == _usuario!.fullname.toUpperCase())
-        .length;
+        .toList();
+    setState(() {
+      cotizacionesUsuario = recientes.length;
+      cotizacionesRecientes = recientes.reversed.take(3).toList(); // Últimas 3
     });
   }
 
@@ -133,7 +137,7 @@ class DashboardState extends State<Dashboard> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                const SizedBox(height: 10),
+                const SizedBox(height: 0), 
                 const Text(
                   "Bienvenido",
                   style: TextStyle(
@@ -152,16 +156,16 @@ class DashboardState extends State<Dashboard> {
                 ),
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8), // antes 10
                   child: Image.asset(
                     'assets/transtools_logo_white.png',
-                    width: 180,
+                    width: 150, // antes 180
                     fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: 20),
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(12), 
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -203,24 +207,6 @@ class DashboardState extends State<Dashboard> {
                         ),
                       ),
                       const SizedBox(height: 10),
-
-                      ElevatedButton(
-                        onPressed: () {
-                        Navigator.pushNamed(context, "/seccion3");
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[800],
-                          minimumSize: const Size(163, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          "Borradores",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
                       const Text(
                         "Cotizaciones Recientes",
                         style: TextStyle(fontWeight: FontWeight.bold),
@@ -231,21 +217,50 @@ class DashboardState extends State<Dashboard> {
                         columnWidths: const {
                           0: FlexColumnWidth(),
                           1: FlexColumnWidth(),
-                          2: FlexColumnWidth(),
                         },
                         border: const TableBorder.symmetric(
                           inside: BorderSide(width: 0.5, color: Colors.grey),
                         ),
-                        children: const [
-                          TableRow(
+                        children: [
+                          const TableRow(
                             children: [
-                              Text("Nombre", textAlign: TextAlign.center),
-                              Text("Cliente", textAlign: TextAlign.center),
-                              Text("Fecha", textAlign: TextAlign.center),
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Text("Cotización", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Text("Fecha", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
                             ],
                           ),
-                          TableRow(children: [Text(""), Text(""), Text("")]),
-                          TableRow(children: [Text(""), Text(""), Text("")]),
+                          ...cotizacionesRecientes.map((cot) => TableRow(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                child: Text(
+                                  cot['cotizacion'] ?? '',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                child: Text(
+                                  cot['date'] != null && cot['date']!.isNotEmpty
+                                    ? (() {
+                                        try {
+                                          final fecha = DateTime.parse(cot['date']!);
+                                          return DateFormat('dd/MM/yyyy').format(fecha);
+                                        } catch (_) {
+                                          return cot['date']!;
+                                        }
+                                      })()
+                                    : '',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          )),
                         ],
                       ),
                       const SizedBox(height: 10),

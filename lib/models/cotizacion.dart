@@ -15,7 +15,6 @@ class Cotizacion {
   int numeroEjes;
   String modelo;
   String color;
-  String marcaColor;
   int generacion;
   bool datosCargados;
 
@@ -59,7 +58,7 @@ class Cotizacion {
     required this.numeroEjes,
     required this.modelo,
     required this.color,
-    required this.marcaColor,
+
     required this.generacion,
     this.estructura = const {},
     this.adicionalesDeLinea = const [],
@@ -97,7 +96,7 @@ class Cotizacion {
       numeroEjes: map['numeroEjes'] ?? 0,
       modelo: map['modelo'] ?? '',
       color: map['color'] ?? '',
-      marcaColor: map['marcaColor'] ?? '',
+
       generacion: map['generacion'] ?? 0,
       estructura: Map<String, dynamic>.from(map['estructura'] ?? {}),
       adicionalesDeLinea: List<dynamic>.from(map['adicionalesDeLinea'] ?? []),
@@ -140,7 +139,6 @@ class Cotizacion {
       'numeroEjes': numeroEjes,
       'modelo': modelo,
       'color': color,
-      'marcaColor': marcaColor,
       'generacion': generacion,
       'estructura': estructura,
       'adicionalesDeLinea': adicionalesDeLinea,
@@ -216,7 +214,6 @@ class Cotizacion {
       numeroEjes: numeroEjes ?? this.numeroEjes,
       modelo: modelo ?? this.modelo,
       color: color ?? this.color,
-      marcaColor: marcaColor ?? this.marcaColor,
       generacion: generacion ?? this.generacion,
       estructura: estructura ?? this.estructura,
       adicionalesDeLinea: adicionalesDeLinea ?? this.adicionalesDeLinea,

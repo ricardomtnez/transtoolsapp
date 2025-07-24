@@ -78,11 +78,7 @@ class _Seccion1 extends State<Seccion1> {
 
   bool colorError = false;
   String? colorErrorText;
-  bool marcaError = false;
-  String? marcaErrorText;
-
   String? colorSeleccionado;
-  String? marcaSeleccionada;
 
   static const List<String> _colores = [
     'NEGRO BRILLANTE',
@@ -107,8 +103,6 @@ class _Seccion1 extends State<Seccion1> {
     'NARANJA': Color(0xFFFF9800),
     'ROJO VIPER': Color(0xFFD32F2F),
   };
-
-  static const List<String> _marcas = ['SHERWINS', 'PPG', 'COMEX'];
 
   bool get _modeloDisponible {
     return productoSeleccionado != null &&
@@ -235,11 +229,9 @@ class _Seccion1 extends State<Seccion1> {
       colorError = colorSeleccionado == null;
       colorErrorText = colorError ? 'Favor de seleccionar el color' : null;
 
-      marcaError = marcaSeleccionada == null;
-      marcaErrorText = marcaError ? 'Favor de seleccionar la marca' : null;
     });
 
-    if (colorError || marcaError) {
+    if (colorError) {
       mostrarAlertaError(
         context,
         'Por favor llena todos los campos obligatorios',
@@ -328,7 +320,7 @@ class _Seccion1 extends State<Seccion1> {
         numeroEjes: int.tryParse(ejesSeleccionados ?? '0') ?? 0,
         modelo: modeloSeleccionadoText,
         color: colorSeleccionado ?? '',
-        marcaColor: marcaSeleccionada ?? '',
+        
         generacion: int.tryParse(yearSeleccionado ?? '0') ?? 0,
       );
       _cotizacionActual = cotizacion;
@@ -443,7 +435,7 @@ class _Seccion1 extends State<Seccion1> {
       modeloSeleccionado = null;
       yearSeleccionado = null;
       colorSeleccionado = null;
-      marcaSeleccionada = null;
+
       _modelos = [];
     });
     await _cargarUsuario();
@@ -901,7 +893,6 @@ class _Seccion1 extends State<Seccion1> {
                                       onTap: () {
                                         setState(() {
                                           colorSeleccionado = null;
-                                          marcaSeleccionada = null;
                                         });
                                       },
                                       child: const Padding(
@@ -926,12 +917,9 @@ class _Seccion1 extends State<Seccion1> {
                               onChanged: (value) {
                                 setState(() {
                                   colorSeleccionado = value;
-                                  marcaSeleccionada = null;
                                   colorError = false;
                                   colorErrorText = null;
                                   // También puedes limpiar el error de marca si lo deseas
-                                  marcaError = false;
-                                  marcaErrorText = null;
                                 });
                               },
                               items: _colores.map((color) {
@@ -942,103 +930,9 @@ class _Seccion1 extends State<Seccion1> {
                               }).toList(),
                             ),
                           ),
-                        ),
-                        if (colorError && colorErrorText != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 12, top: 2),
-                            child: Text(
-                              colorErrorText!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        // Dropdown de marca
-                        if (colorSeleccionado != null)
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 240, 240, 240),
-                              borderRadius: BorderRadius.circular(29),
-                              border: Border.all(
-                                color: marcaError
-                                    ? Colors.red
-                                    : Colors.grey[300]!,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                isExpanded: true,
-                                value: marcaSeleccionada,
-                                hint: const Text(
-                                  'Selecciona la marca',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                icon: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (marcaSeleccionada != null)
-                                      GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            marcaSeleccionada = null;
-                                          });
-                                        },
-                                        child: const Padding(
-                                          padding: EdgeInsets.only(right: 4),
-                                          child: Icon(
-                                            Icons.clear,
-                                            color: Colors.grey,
-                                            size: 22,
-                                          ),
-                                        ),
-                                      ),
-                                    const Icon(
-                                      Icons.arrow_drop_down,
-                                      color: Color(0xFF565656),
-                                      size: 28,
-                                    ),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                dropdownColor: Colors.white,
-                                onChanged: (value) {
-                                  setState(() {
-                                    marcaSeleccionada = value;
-                                    marcaError = false;
-                                    marcaErrorText = null;
-                                  });
-                                },
-                                items: _marcas.map((marca) {
-                                  return DropdownMenuItem<String>(
-                                    value: marca,
-                                    child: Text(marca),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                        if (marcaError && marcaErrorText != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 12, top: 2),
-                            child: Text(
-                              marcaErrorText!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
+                        ),                                          
                         // Muestra la selección final y la muestra de color abajo a la derecha
-                        if (colorSeleccionado != null &&
-                            marcaSeleccionada != null)
+                        if (colorSeleccionado != null)
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -1046,7 +940,8 @@ class _Seccion1 extends State<Seccion1> {
                                 child: Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Text(
-                                    'Color elegido: $colorSeleccionado\nMarca: $marcaSeleccionada',
+                                    'Color elegido:'
+                                    ' $colorSeleccionado',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF1565C0),
@@ -1078,7 +973,6 @@ class _Seccion1 extends State<Seccion1> {
                           ),
                       ],
                     ),
-
                     _buildSection(
                       title: 'Generación',
                       children: [

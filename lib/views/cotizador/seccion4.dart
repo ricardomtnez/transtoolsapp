@@ -174,7 +174,6 @@ class Seccion4 extends StatelessWidget {
                                 cotizacion.numeroUnidades.toString(),
                               ),
                               _tableRow('Color: ', cotizacion.color),
-                              _tableRow('Marca Color: ', cotizacion.marcaColor),
                               _tableRow(
                                 'Generación: ',
                                 cotizacion.generacion.toString(),
@@ -908,7 +907,7 @@ class Seccion4 extends StatelessWidget {
                             ),
                           ),
                           pw.Text(
-                            '${cotizacion.color} ${cotizacion.marcaColor}',
+                            cotizacion.color,
                             style: pw.TextStyle(fontSize: 11),
                           ),
                         ],

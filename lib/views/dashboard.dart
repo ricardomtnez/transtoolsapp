@@ -55,12 +55,20 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
 
   Future<void> _contarCotizacionesUsuario() async {
     final cotizaciones = await QuoteController.obtenerCotizacionesRealizadas();
-    final recientes = cotizaciones
-        .where((cot) => cot['vendedor']?.toUpperCase() == _usuario!.fullname.toUpperCase())
-        .toList();
+    final ahora = DateTime.now();
+    final recientes = cotizaciones.where((cot) {
+      if (cot['vendedor']?.toUpperCase() != _usuario!.fullname.toUpperCase()) return false;
+      if (cot['date'] == null || cot['date']?.isEmpty == true) return false;
+      try {
+        final fecha = DateTime.parse(cot['date'] ?? '');
+        return fecha.month == ahora.month && fecha.year == ahora.year;
+      } catch (_) {
+        return false;
+      }
+    }).toList();
     setState(() {
       cotizacionesUsuario = recientes.length;
-      cotizacionesRecientes = recientes.reversed.take(3).toList(); // Últimas 3
+      cotizacionesRecientes = recientes.reversed.take(3).toList(); 
     });
   }
 

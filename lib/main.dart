@@ -7,6 +7,7 @@ import 'package:transtools/views/dashboard.dart';
 import 'package:transtools/views/login.dart';
 import 'package:transtools/views/cotizador/seccion1.dart';
 import 'package:transtools/views/cotizaciones.dart';
+import 'package:transtools/views/listprices.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,11 +39,17 @@ class _MyAppState extends State<MyApp> {
           case "/dashboard":
             return MaterialPageRoute(builder: (_) => const Dashboard());
 
+            case "/listprices":
+            return MaterialPageRoute(builder: (_) => ListPricesPage());
+
             case "/cotizaciones":
             return MaterialPageRoute(builder: (_) => CotizacionesPage(fullname: 'Nombre de usuario'));
 
           case "/seccion1":
-            return MaterialPageRoute(builder: (_) => const Seccion1());
+            return MaterialPageRoute(
+              builder: (_) => Seccion1(),
+              settings: settings, // <-- Esto permite que los argumentos lleguen
+            );
 
           case "/seccion2":
             final args = settings.arguments as Map<String, dynamic>;

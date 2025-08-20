@@ -80,6 +80,8 @@ class _Seccion1 extends State<Seccion1> {
   String? colorErrorText;
   String? colorSeleccionado;
 
+  bool _mostroAdvertenciaFaltantes = false;
+
   static const List<String> _colores = [
     'NEGRO BRILLANTE',
     'NEGRO MATE',
@@ -416,12 +418,13 @@ class _Seccion1 extends State<Seccion1> {
     }
   }
 
-  Future<void> _cargarGruposMonday() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Borra la cache para forzar recarga de datos nuevos
-    await prefs.remove('grupos');
+Future<void> _cargarGruposMonday() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('grupos');
 
-    // Limpia todos los campos del formulario
+  final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+  if (args == null) {
     setState(() {
       nombreCtrl.clear();
       empresaCtrl.clear();
@@ -435,10 +438,13 @@ class _Seccion1 extends State<Seccion1> {
       modeloSeleccionado = null;
       yearSeleccionado = null;
       colorSeleccionado = null;
-
       _modelos = [];
     });
-    await _cargarUsuario();
+  }
+
+  await _cargarUsuario();
+
+  // ...resto de la función igual...
 
     final gruposCacheString = prefs.getString('grupos');
 
@@ -459,17 +465,55 @@ class _Seccion1 extends State<Seccion1> {
         final gruposApi = await QuoteController.obtenerGrupos(boardId);
         await prefs.setString('grupos', jsonEncode(gruposApi));
 
-        setState(() {
-          _grupos = gruposApi.map<Map<String, String>>((g) {
-            return {
-              'value': g['value']?.toString() ?? '',
-              'text': g['text']?.toString() ?? '',
-            };
-          }).toList();
-        });
-      } catch (e) {
-        // Manejar error
+      setState(() {
+        _grupos = gruposApi.map<Map<String, String>>((g) {
+          return {
+            'value': g['value']?.toString() ?? '',
+            'text': g['text']?.toString() ?? '',
+          };
+        }).toList();
+      });
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      print("Grupos cargados: $_grupos");
+      print("Args recibidos: $args");
+      print("Producto seleccionado antes: $productoSeleccionado");
+      print("Linea seleccionada antes: $lineaSeleccionada");
+      print("Ejes seleccionados antes: $ejesSeleccionados");
+      // ...relleno automático...
+    } catch (e) {
+      // Manejar error
+    }
+  }
+
+    if (args != null) {
+      final grupo = args['grupo'];
+      final producto = args['producto'];
+
+      if (grupo != null) {
+        final existeGrupo = _grupos.any((g) => g['value'] == grupo['value']);
+        if (existeGrupo) {
+          setState(() {
+            productoSeleccionado = grupo['value'];
+          });
+        }
       }
+      if (producto != null) {
+        setState(() {
+          lineaSeleccionada = producto['linea'];
+          ejesSeleccionados = producto['ejes'];
+        });
+      }
+      
+      // Si tienes que cargar ejes compatibles, hazlo aquí:
+      if (productoSeleccionado != null && lineaSeleccionada != null) {
+        QuoteController.obtenerEjesCompatibles(productoSeleccionado!, lineaSeleccionada!).then((ejes) {
+          setState(() {
+            _ejesDisponibles = ejes;
+          });
+        });
+      }
+      // Si necesitas cargar modelos, llama a _verificarYConsultarGrupo();
+      _verificarYConsultarGrupo();
     }
   }
 
@@ -532,6 +576,17 @@ class _Seccion1 extends State<Seccion1> {
         _modelos =
             modelos; // Asegúrate de tener esta lista definida en tu State
       });
+
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+if (args != null && args['producto'] != null) {
+  final modeloValue = args['producto']['text'];
+  final existeModelo = _modelos.any((m) => m['text'] == modeloValue);
+  if (existeModelo) {
+    setState(() {
+      modeloSeleccionado = _modelos.firstWhere((m) => m['text'] == modeloValue)['value'];
+    });
+  }
+}
     } catch (e) {
       if (!mounted) return;
       mostrarAlertaError(context, 'Error al cargar modelos');
@@ -542,8 +597,57 @@ class _Seccion1 extends State<Seccion1> {
     }
   }
 
+
+
   @override
   Widget build(BuildContext context) {
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+  if (!_mostroAdvertenciaFaltantes &&
+      productoSeleccionado != null &&
+      lineaSeleccionada != null &&
+      ejesSeleccionados != null &&
+      modeloSeleccionado != null &&
+      (nombreCtrl.text.isEmpty ||
+       empresaCtrl.text.isEmpty ||
+       telefonoCtrl.text.isEmpty ||
+       correoCtrl.text.isEmpty ||
+       vigenciaSeleccionada == null ||
+       yearSeleccionado == null ||
+       colorSeleccionado == null)) {
+    _mostroAdvertenciaFaltantes = true;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.blue[900], size: 32),
+            const SizedBox(width: 10),
+            const Text('Datos faltantes', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Por favor, rellena los datos faltantes de la sección 1 para continuar.',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.blue[900],
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Aceptar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+});
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -579,7 +683,6 @@ class _Seccion1 extends State<Seccion1> {
               ),
             ),
             const SizedBox(height: 12),
-
             // El contenido scrollable
             Expanded(
               child: RefreshIndicator(

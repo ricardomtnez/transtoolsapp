@@ -122,6 +122,83 @@ query {
     throw Exception('Error al obtener modelos');
   }
 
+  //Método que permite obtener los modelos de los productos seleccionados sin por (Producto, Línea, Ejes)
+    static Future<List<Map<String, String>>> obtenerModelosPorGrupoSinFiltros(
+    String grupoId,
+  ) async {
+    const boardId = 4863963204;
+    final query = '''
+      query {
+        boards(ids: $boardId) {
+          groups(ids: ["$grupoId"]) {
+            items_page(limit: 25) {
+              items {
+                id
+                name
+                column_values {
+                  id
+                  column { title }
+                  text
+                  ... on BoardRelationValue { linked_items { name } }
+                  ... on MirrorValue { display_value }
+                }
+              }
+            }
+          }
+        }
+      }
+    ''';
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': query}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final items =
+          data['data']?['boards']?[0]?['groups']?[0]?['items_page']?['items'];
+
+      if (items is List) {
+        return items.map<Map<String, String>>((item) {
+          final columnValues = item['column_values'] as List<dynamic>? ?? [];
+          String linea = '';
+          String ejes = '';
+          String precio = '';
+          String estado = '';
+          
+          for (final col in columnValues) {
+            if (col['column']?['title'] == 'Línea') {
+              linea = col['text'] ?? '';
+            }
+            if (col['column']?['title'] == 'Núm. Ejes' || col['column']?['title'] == 'Ejes') {
+              ejes = col['text'] ?? '';
+            }
+            // Aquí es donde extraemos el precio usando el ID correcto
+            if (col['id'] == 'numeric_mkpxpkc5') {
+              precio = col['display_value'] ?? col['text'] ?? '';
+            }
+            if (col['id'] == 'estado33') {
+            estado = col['text'] ?? '';
+          }
+          }
+          
+          return {
+            'value': item['id']?.toString() ?? '',
+            'producto': item['name']?.toString() ?? '',
+            'linea': linea,
+            'ejes': ejes,
+            'precio': precio, 
+            'estado': estado, 
+          };
+        }).toList();
+      }
+    }
+
+    throw Exception('Error al obtener modelos');
+  }
+
   //Método que permite extraer todas las estructuras para sacar la ficha técnica del modelo seleccionado
   static Future<List<Map<String, dynamic>>> obtenerGruposEstructura(
     int boardId,
@@ -414,6 +491,7 @@ query {
     throw Exception('Error al obtener modelos');
   }
 
+  /// Obtiene el precio de un producto específico.
   static Future<Map<String, dynamic>> obtenerPrecioProducto(int itemId) async {
     final query =
         """
@@ -758,4 +836,6 @@ final String columnValuesJson = jsonEncode(columnas).replaceAll('"', r'\"');
       throw Exception('Fallo al subir archivo a Monday: $e');
     }
   }
+
+  static Future obtenerPrecios() async {}
 }

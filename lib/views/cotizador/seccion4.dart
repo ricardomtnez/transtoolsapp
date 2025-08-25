@@ -742,7 +742,7 @@ class Seccion4 extends StatelessWidget {
                   text: pw.TextSpan(
                     children: [
                       pw.TextSpan(
-                        text: 'A QUIEN CORRESPONDA: ',
+                        text: 'ATENCIÓN: ',
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 12,
@@ -945,9 +945,10 @@ class Seccion4 extends StatelessWidget {
                 1: pw.FlexColumnWidth(220),
               },
               children: [
-                // Campos de estructura ordenados
+                // Campos de estructura ordenados FILTRANDO EXCLUIDOS
                 for (final campo in estructuraOrden)
-                  if (cotizacion.estructura[campo['key']] != null)
+                  if (cotizacion.estructura[campo['key']] != null &&
+                      !(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(campo['key']))
                     pw.TableRow(
                       children: [
                         pw.Padding(
@@ -970,11 +971,10 @@ class Seccion4 extends StatelessWidget {
                         ),
                       ],
                     ),
-                // Extras de estructura
+                // Extras de estructura FILTRANDO EXCLUIDOS
                 for (final entry in cotizacion.estructura.entries)
-                  if (!estructuraOrden.any(
-                    (campo) => campo['key'] == entry.key,
-                  ))
+                  if (!estructuraOrden.any((campo) => campo['key'] == entry.key) &&
+                      !(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(entry.key))
                     pw.TableRow(
                       children: [
                         pw.Padding(
@@ -1015,7 +1015,7 @@ class Seccion4 extends StatelessWidget {
                       pw.SizedBox(),
                     ],
                   ),
-                // Adicionales de línea como filas
+                // Adicionales de línea como filas FILTRANDO EXCLUIDOS
                 for (final adicional in cotizacion.adicionalesDeLinea)
                   if (adicional['excluido'] != true)
                     pw.TableRow(
@@ -1580,7 +1580,8 @@ class Seccion4 extends StatelessWidget {
           ),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: pw.Center(
+            child: pw.Align(
+              alignment: pw.Alignment.centerRight,
               child: pw.Text('Atentamente,', style: pw.TextStyle(fontSize: 11)),
             ),
           ),
@@ -1796,9 +1797,7 @@ class Seccion4 extends StatelessWidget {
                 child: Text(
                   '${a['adicionales'] ?? ''}',
                   textAlign: TextAlign.justify,
-                  style: const TextStyle(
-                    fontSize: 14, 
-                  ),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
             ],
@@ -1852,9 +1851,7 @@ class Seccion4 extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 16),
-              CircularProgressIndicator(
-                color: Colors.blue[900],
-              ),
+              CircularProgressIndicator(color: Colors.blue[900]),
             ],
           ),
         ),

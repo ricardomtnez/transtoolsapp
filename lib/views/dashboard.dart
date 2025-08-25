@@ -55,16 +55,11 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
 
   Future<void> _contarCotizacionesUsuario() async {
     final cotizaciones = await QuoteController.obtenerCotizacionesRealizadas();
-    final ahora = DateTime.now();
+    final mesActual = DateTime.now().month.toString().padLeft(2, '0');
     final recientes = cotizaciones.where((cot) {
       if (cot['vendedor']?.toUpperCase() != _usuario!.fullname.toUpperCase()) return false;
-      if (cot['date'] == null || cot['date']?.isEmpty == true) return false;
-      try {
-        final fecha = DateTime.parse(cot['date'] ?? '');
-        return fecha.month == ahora.month && fecha.year == ahora.year;
-      } catch (_) {
-        return false;
-      }
+      if (cot['mes'] == null || cot['mes']?.isEmpty == true) return false;
+      return cot['mes'] == mesActual;
     }).toList();
     setState(() {
       cotizacionesUsuario = recientes.length;
@@ -100,8 +95,8 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color.fromARGB(255, 233, 227, 227),
-                Color.fromARGB(255, 212, 206, 206),
+                Colors.white, // Fondo blanco arriba
+                Color(0xFFE3F2FD), // Azul muy claro abajo
               ],
             ),
           ),

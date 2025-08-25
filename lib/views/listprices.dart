@@ -26,6 +26,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
   final ScrollController _scrollController = ScrollController(); 
 
+  // ignore: unused_field
   String _searchText = '';
   String? _selectedLinea;
   List<String> _lineasUnicas = [];
@@ -144,6 +145,18 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
         _modelos = modelos;
         _loadingModelos = false;
       });
+
+      // Ahora consulta los precios en segundo plano
+      for (var modelo in modelos) {
+        final itemId = modelo['value'] ?? '';
+        if (!_preciosProductos.containsKey(itemId)) {
+          obtenerPrecioConAdicionales(itemId).then((precio) {
+            setState(() {
+              _preciosProductos[itemId] = precio;
+            });
+          });
+        }
+      }
     } catch (e) {
       setState(() {
         _modelos = [];
@@ -207,12 +220,8 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
     // Filtrar modelos por nombre o línea
     final modelosFiltrados = _modelos.where((item) {
-      final nombre = (item['producto'] ?? '').toLowerCase();
-      final linea = (item['linea'] ?? '').toLowerCase();
-      final query = _searchText.toLowerCase();
-      final coincideBusqueda = _searchText.isEmpty || nombre.contains(query) || linea.contains(query);
-      final coincideLinea = _selectedLinea == null || item['linea'] == _selectedLinea;
-      return coincideBusqueda && coincideLinea;
+      final estado = (item['estado'] ?? '').toUpperCase();
+      return estado == 'APROBADO';
     }).toList();
 
     return Scaffold(
@@ -408,7 +417,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                           itemBuilder: (context, index) {
                             final item = modelosFiltrados[index];
                             final String itemId = item['value'] ?? '';
-                            final precio = _preciosProductos[itemId] ?? 0.0;
+                            final precio = _preciosProductos[itemId];
 
                             return Container(
                               decoration: BoxDecoration(
@@ -416,6 +425,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                                 borderRadius: BorderRadius.circular(18),
                                 boxShadow: [
                                   BoxShadow(
+                                    // ignore: deprecated_member_use
                                     color: Colors.black.withOpacity(0.12),
                                     blurRadius: 12,
                                     offset: const Offset(0, 4),
@@ -464,8 +474,10 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          'Precio: ${_formatCurrency(precio)}',
-                                          style: const TextStyle(
+                                          precio != null
+                                            ? 'Precio: ${_formatCurrency(precio)}'
+                                            : 'Consultando precio...',
+                                          style: TextStyle(
                                             color: Color(0xFF1565C0),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 18,
@@ -476,14 +488,12 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                                         onPressed: () {
                                           final grupoId = _grupos[_tabController.index]['value'];
                                           final grupoNombre = _grupos[_tabController.index]['text'];
+                                          // ignore: unused_local_variable
                                           final productoId = item['value'];
                                           final productoNombre = item['producto'];
                                           final linea = item['linea'];
                                           final ejes = item['ejes'];
-
-                                          print('Cotizar grupo: $grupoId, texto: $grupoNombre');
-                                          print('Cotizar producto: $grupoNombre, texto: $productoNombre, linea: $linea, ejes: $ejes');
-
+                                          // Navegar a la sección de cotización con los datos del grupo y producto
                                           Navigator.pushNamed(
                                             context,
                                             '/seccion1',
@@ -523,6 +533,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                                         alignment: Alignment.centerLeft,
                                         child: Container(
                                           decoration: BoxDecoration(
+                                            // ignore: deprecated_member_use
                                             color: Colors.green.withOpacity(0.08),
                                             borderRadius: BorderRadius.circular(6),
                                           ),

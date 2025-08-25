@@ -422,6 +422,7 @@ Future<void> _cargarGruposMonday() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('grupos');
 
+  // ignore: use_build_context_synchronously
   final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
   if (args == null) {
@@ -473,13 +474,9 @@ Future<void> _cargarGruposMonday() async {
           };
         }).toList();
       });
+      // ignore: unused_local_variable, use_build_context_synchronously
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      print("Grupos cargados: $_grupos");
-      print("Args recibidos: $args");
-      print("Producto seleccionado antes: $productoSeleccionado");
-      print("Linea seleccionada antes: $lineaSeleccionada");
-      print("Ejes seleccionados antes: $ejesSeleccionados");
-      // ...relleno automático...
+      // Relleno automático
     } catch (e) {
       // Manejar error
     }

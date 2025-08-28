@@ -131,7 +131,7 @@ query {
       query {
         boards(ids: $boardId) {
           groups(ids: ["$grupoId"]) {
-            items_page(limit: 25) {
+            items_page(limit: 100) {
               items {
                 id
                 name
@@ -247,8 +247,8 @@ query {
 query {
   boards (ids: $boardId) {
     groups (ids: "$grupoId") {
-      items_page {
-        items{
+     items_page(limit: 100) {
+      items {
         name
         column_values(ids: ["text_mkrvr1vr"]) {
           text
@@ -414,8 +414,8 @@ query {
     query {
       boards(ids: $boardId) {
         groups(ids: ["$grupoId"]) {
-            items_page {
-              items{
+          items_page(limit: 100) {
+            items {
               name
               column_values(ids: ["reflejo3", "n_meros81", "numeric_mkp11qxn", "n_meros5", "estado33"]){
                 column {

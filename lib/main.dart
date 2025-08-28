@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/views/cotizador/seccion2.dart';
 import 'package:transtools/views/cotizador/seccion3.dart';
 import 'package:transtools/views/cotizador/seccion4.dart';
@@ -9,12 +10,16 @@ import 'package:transtools/views/cotizador/seccion1.dart';
 import 'package:transtools/views/cotizaciones.dart';
 import 'package:transtools/views/listprices.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final usuario = prefs.getString('usuario');
+  runApp(MyApp(initialRoute: usuario != null ? '/dashboard' : '/'));
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -30,7 +35,7 @@ class _MyAppState extends State<MyApp> {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      initialRoute: widget.initialRoute, // <-- Usa la ruta inicial correcta
       onGenerateRoute: (RouteSettings settings) {
         switch (settings.name) {
           case '/':
@@ -48,7 +53,7 @@ class _MyAppState extends State<MyApp> {
           case "/seccion1":
             return MaterialPageRoute(
               builder: (_) => Seccion1(),
-              settings: settings, // <-- Esto permite que los argumentos lleguen
+              settings: settings, //Esto permite que los argumentos lleguen
             );
 
           case "/seccion2":

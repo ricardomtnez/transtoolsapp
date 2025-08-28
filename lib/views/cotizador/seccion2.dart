@@ -93,28 +93,14 @@ class _Seccion2State extends State<Seccion2> {
   Future<void> _cargarUsuario() async {
     const boardId = 9364424510; // Cambia esto por el ID del board correcto
 
-    // Función auxiliar para extraer la clave hasta el 4º guion
-    String extraerClaveHastaCuartoGuion(String texto) {
-      final partes = texto.split('-');
-      if (partes.length >= 4) {
-        return partes.sublist(0, 4).join('-');
-      } else {
-        return texto; // Si no tiene 4 guiones, regresa el texto completo
-      }
-    }
-
     try {
       final grupos = await QuoteController.obtenerGruposEstructura(boardId);
 
       Map<String, dynamic>? grupoCoincidente;
       try {
         grupoCoincidente = grupos.firstWhere((grupo) {
-          final grupoClave = extraerClaveHastaCuartoGuion(
-            grupo['text']!.toLowerCase(),
-          );
-          final modeloClave = extraerClaveHastaCuartoGuion(
-            widget.modeloNombre.toLowerCase(),
-          );
+          final grupoClave = grupo['text']!.toLowerCase().trim();
+          final modeloClave = widget.modeloNombre.toLowerCase().trim();
           return grupoClave == modeloClave;
         });
       } catch (e) {

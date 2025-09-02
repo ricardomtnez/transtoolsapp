@@ -175,8 +175,8 @@ query {
             if (col['column']?['title'] == 'Núm. Ejes' || col['column']?['title'] == 'Ejes') {
               ejes = col['text'] ?? '';
             }
-            // Aquí es donde extraemos el precio usando el ID correcto
-            if (col['id'] == 'numeric_mkpxpkc5') {
+            // Aquí es donde extraemos el precio usando el ID correcto (PRECIO FIJO SIN IVA)
+            if (col['id'] == 'numeric_mkv8eyqc' || col['id'] == 'numeric_mkpxpkc5') {
               precio = col['display_value'] ?? col['text'] ?? '';
             }
             if (col['id'] == 'estado33') {
@@ -493,12 +493,12 @@ query {
 
   /// Obtiene el precio de un producto específico.
   static Future<Map<String, dynamic>> obtenerPrecioProducto(int itemId) async {
-    final query =
-        """
+    final query = """
     query {
       items(ids: $itemId) {
         name
-        column_values(ids: ["reflejo3", "n_meros81", "numeric_mkp11qxn", "n_meros5", "estado33"]) {
+        column_values(ids: ["numeric_mkv8eyqc", "estado33"]) {
+          id
           column {
             title
           }
@@ -522,36 +522,27 @@ query {
       final item = data['data']['items'][0];
       final columnValues = item['column_values'] as List;
 
-      double costoMateriales = 0;
-      double manoObra = 0;
-      double ponderacion = 0;
-      double rentabilidad = 0;
+      double precio = 0;
       String estado = '';
 
       for (var col in columnValues) {
-        final title = col['column']['title'];
-        final display = col['display_value'] ?? col['text'] ?? '';
-
-        if (title == "Costo de Materiales") {
-          costoMateriales = double.tryParse(display) ?? 0;
-        } else if (title == "Mano de Obra Estandár") {
-          manoObra = double.tryParse(display) ?? 0;
-        } else if (title == "Ponderación") {
-          ponderacion = double.tryParse(display) ?? 0;
-        } else if (title == "Rentabilidad/Ganancia Esperada") {
-          rentabilidad = double.tryParse(display) ?? 0;
-        } else if (title == "Estado del costeo") {
+        if (col['id'] == 'numeric_mkv8eyqc') {
+          final valor = col['display_value'] ?? col['text'] ?? '';
+          precio = double.tryParse(valor.replaceAll('\$', '').replaceAll(',', '')) ?? 0;
+        }
+        if (col['id'] == 'estado33') {
           estado = col['text'] ?? '';
         }
       }
 
-      final subtotal = costoMateriales + (manoObra * ponderacion);
-      final rentabilidadPorcentaje = rentabilidad / 100;
+  // removed debug prints
 
       return {
-        'subtotal': subtotal,
-        'rentabilidad': rentabilidadPorcentaje,
-        'estado': estado,
+  // Devolvemos varias claves por compatibilidad con el cálculo
+  'precio': precio,
+  'subtotal': precio, // alias: algunos consumidores esperan 'subtotal'
+  'rentabilidad': 0.0, // si no existe columna, devolvemos 0 por defecto
+  'estado': estado,
       };
     } else {
       throw Exception(

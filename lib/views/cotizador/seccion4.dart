@@ -1073,7 +1073,7 @@ class Seccion4 extends StatelessWidget {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
-                          'ADICIONALES',
+                          'EQUIPAMIENTO PERSONALIZADO',
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             color: PdfColors.white,
@@ -1174,6 +1174,8 @@ class Seccion4 extends StatelessWidget {
             ),
           ],
           // Tabla de totales
+          // Forzar salto de página para que los totales no queden cortados
+          pw.NewPage(),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Table(
@@ -1196,7 +1198,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
-                        'CONCEPTO',
+                        'RESUMEN DE COMPRA',
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           color: PdfColors.white,
@@ -1235,7 +1237,7 @@ class Seccion4 extends StatelessWidget {
                       child: pw.Container(
                         alignment: pw.Alignment.center,
                         child: pw.Text(
-                          'TOTAL',
+                          'IMPORTE',
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             color: PdfColors.white,
@@ -1298,7 +1300,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
-                        'ADICIONALES',
+                        'EQUIPAMIENTO PERSONALIZADO',
                         style: pw.TextStyle(
                           fontSize: 11,
                           fontWeight: pw.FontWeight.bold,
@@ -1373,7 +1375,7 @@ class Seccion4 extends StatelessWidget {
                       color: PdfColors.blue900,
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
-                        'SubTotal',
+                        'SUBTOTAL',
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 12,
@@ -1443,7 +1445,7 @@ class Seccion4 extends StatelessWidget {
                       color: PdfColors.blue900,
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
-                        'Total',
+                        'TOTAL',
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 12,

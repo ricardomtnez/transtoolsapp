@@ -294,16 +294,6 @@ class _Seccion3State extends State<Seccion3> {
                           title: "Información de Pago",
                           children: [
                             _styledDropdown(
-                              label: 'Forma de Pago',
-                              value: formaPago,
-                              items: formasPago,
-                              onChanged:
-                                  null, // <-- Esto lo deshabilita completamente
-                              validator: (value) => value == null
-                                  ? 'Seleccione una forma de pago'
-                                  : null,
-                            ),
-                            _styledDropdown(
                               label: 'Método de Pago',
                               value: metodoPago,
                               items: metodosPago,

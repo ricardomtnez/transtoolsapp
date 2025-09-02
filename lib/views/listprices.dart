@@ -102,6 +102,20 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
       final modelos = await QuoteController.obtenerModelosPorGrupoSinFiltros(grupoId);
       _progresoTotal = modelos.length;
 
+      // Prefill precios desde la respuesta de modelos si incluyen 'precio' o 'subtotal'
+      for (var modelo in modelos) {
+        final id = modelo['value'] ?? '';
+        double? p;
+        if (modelo.containsKey('precio') && (modelo['precio']?.toString().isNotEmpty ?? false)) {
+          p = double.tryParse(modelo['precio'].toString().replaceAll('\$', '').replaceAll(',', ''));
+        } else if (modelo.containsKey('subtotal') && (modelo['subtotal']?.toString().isNotEmpty ?? false)) {
+          p = double.tryParse(modelo['subtotal'].toString().replaceAll('\$', '').replaceAll(',', ''));
+        }
+        if (p != null) {
+          _preciosProductos[id] = p;
+        }
+      }
+
       // Crea una lista de futures para consultar los precios en paralelo
       final futures = modelos.map((modelo) async {
         final itemId = modelo['value'] ?? '';
@@ -146,6 +160,20 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
         _loadingModelos = false;
       });
 
+      // Prefill precios desde la respuesta de modelos si incluyen 'precio' o 'subtotal'
+      for (var modelo in modelos) {
+        final id = modelo['value'] ?? '';
+        double? p;
+        if (modelo.containsKey('precio') && (modelo['precio']?.toString().isNotEmpty ?? false)) {
+          p = double.tryParse(modelo['precio'].toString().replaceAll('\$', '').replaceAll(',', ''));
+        } else if (modelo.containsKey('subtotal') && (modelo['subtotal']?.toString().isNotEmpty ?? false)) {
+          p = double.tryParse(modelo['subtotal'].toString().replaceAll('\$', '').replaceAll(',', ''));
+        }
+        if (p != null) {
+          _preciosProductos[id] = p;
+        }
+      }
+
       // Ahora consulta los precios en segundo plano
       for (var modelo in modelos) {
         final itemId = modelo['value'] ?? '';
@@ -177,29 +205,22 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
     final idProducto = int.tryParse(itemId) ?? 0;
     // 1. Obtener datos base
     final precioData = await QuoteController.obtenerPrecioProducto(idProducto);
-    final subtotal = precioData['subtotal'] ?? 0.0;
-    final rentabilidad = precioData['rentabilidad'] ?? 0.0; // Ya decimal
-
-    // 2. Obtener adicionales
-    final adicionales = await QuoteController.obtenerKitsAdicionales(idProducto);
-
-    double totalAdicionales = 0.0;
-    for (var adicional in adicionales) {
-      final cantidad = (adicional['cantidad'] is int)
-          ? adicional['cantidad'] as int
-          : int.tryParse(adicional['cantidad'].toString()) ?? 0;
-      final precio = (adicional['precio'] is double)
-          ? adicional['precio'] as double
-          : double.tryParse(adicional['precio'].toString()) ?? 0.0;
-      if (!(adicional['excluido'] == true)) {
-        totalAdicionales += cantidad * precio;
-      }
+    // Normalizamos el valor que devuelve QuoteController (precio o subtotal)
+    double subtotal = 0.0;
+    if (precioData['subtotal'] != null) {
+      subtotal = (precioData['subtotal'] is double)
+          ? precioData['subtotal'] as double
+          : double.tryParse(precioData['subtotal'].toString()) ?? 0.0;
+    } else if (precioData['precio'] != null) {
+      subtotal = (precioData['precio'] is double)
+          ? precioData['precio'] as double
+          : double.tryParse(precioData['precio'].toString()) ?? 0.0;
     }
 
-    // 3. Calcular precio final
-    final subtotalConAdicionales = subtotal + totalAdicionales;
-    final precioFinal = (subtotalConAdicionales / (1 - rentabilidad)) / 1.16;
-    return precioFinal;
+  // returning PRECIO FIJO SIN IVA
+
+    // Retornamos directamente el PRECIO FIJO SIN IVA (sin adicionales ni IVA)
+    return subtotal;
   }
 
   @override
@@ -218,10 +239,15 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
       );
     }
 
-    // Filtrar modelos por nombre o línea
+    // Filtrar modelos por estado (aceptar APROBADO o TERMINADO) y por búsqueda
     final modelosFiltrados = _modelos.where((item) {
-      final estado = (item['estado'] ?? '').toUpperCase();
-      return estado == 'APROBADO';
+      final estado = (item['estado'] ?? '').toString().toUpperCase();
+      final aceptado = estado == 'APROBADO' || estado.contains('TERMIN');
+      if (!aceptado) return false;
+
+      if (_searchText.isEmpty) return true;
+      final nombre = (item['producto'] ?? '').toString().toLowerCase();
+      return nombre.contains(_searchText.toLowerCase());
     }).toList();
 
     return Scaffold(

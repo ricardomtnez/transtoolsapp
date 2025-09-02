@@ -5,39 +5,35 @@ import 'package:transtools/models/cotizacion.dart';
 import 'package:intl/intl.dart';
 
 class Seccion2 extends StatefulWidget {
-  final String modeloNombre; // 👈 Aquí defines la propiedad
+  final String modeloNombre;
   final String modeloValue;
   final String configuracionProducto;
   final Cotizacion cotizacion;
 
   const Seccion2({
     super.key,
-    required this.modeloNombre, // 👈 Aquí lo asignas
+    required this.modeloNombre,
     required this.modeloValue,
     required this.configuracionProducto,
     required this.cotizacion,
   });
+
   @override
   State<Seccion2> createState() => _Seccion2State();
 }
 
 class _Seccion2State extends State<Seccion2> {
   final ScrollController _scrollController = ScrollController();
-  String titulo =
-      'Semirremolque tipo Plataforma'; // O puedes cambiarlo por el que venga desde la API si lo deseas
-  Map<String, dynamic> especificaciones = {}; // Aquí se cargan los datos reales
+  Map<String, dynamic> especificaciones = {};
 
   String? _estadoProducto;
-
   final Map<String, bool> _expandedMainSections = {
     'Especificaciones Técnicas': true,
     'Adicionales': true,
   };
   final Map<String, Set<String>> _excludedFeatures = {};
 
-  // VARIABLES
-  final List<Map<String, String>> _gruposAdicionales =
-      []; // [{value: id, text: titulo}]
+  final List<Map<String, String>> _gruposAdicionales = [];
   String? _grupoSeleccionadoId;
   final List<Map<String, String>> _itemsDelGrupo = [];
   final List<String> _adicionalesSeleccionados = [];
@@ -45,57 +41,42 @@ class _Seccion2State extends State<Seccion2> {
 
   final Map<String, int> _cantidadesAdicionales = {};
   final Map<String, double> _preciosAdicionales = {};
-  final Map<String, String> _estadosAdicionales = {}; // <-- NUEVO
+  final Map<String, String> _estadosAdicionales = {};
 
-  bool _adicionalesTileExpanded = true; // <-- NUEVO
+  bool _adicionalesTileExpanded = true;
 
-  // Variables de control y datos
-  double _precioProductoBase = 0;
-  double _precioProductoConAdicionales = 0;
-  double _rentabilidad = 0.0;
   bool _precioCargado = false;
+  double _precioProductoBase = 0.0;
+  double _precioProductoConAdicionales = 0.0;
+
   @override
   void initState() {
     super.initState();
     if (!widget.cotizacion.datosCargados) {
-      // Consulta y guarda todo
       _cargarUsuario();
       _cargarCategoriasAdicionales();
     } else {
-      // Recupera los datos guardados
       especificaciones['Estructura'] = widget.cotizacion.estructura;
-      especificaciones['Adicionales de Línea'] =
-          widget.cotizacion.adicionalesDeLinea;
-      _precioProductoBase = widget.cotizacion.importe ?? 0.0;
-      _precioProductoConAdicionales =
-          widget.cotizacion.precioProductoConAdicionales ?? 0.0;
+      especificaciones['Adicionales de Línea'] = widget.cotizacion.adicionalesDeLinea;
+      _precioProductoConAdicionales = widget.cotizacion.precioProductoConAdicionales ?? 0.0;
+      _precioProductoBase = widget.cotizacion.precioProductoConAdicionales ?? 0.0;
       _precioCargado = true;
       _estadoProducto = widget.cotizacion.estadoProducto;
       _adicionalesSeleccionados.clear();
-      _adicionalesSeleccionados.addAll(
-        widget.cotizacion.adicionalesSeleccionados.map((a) => a.nombre),
-      );
+      _adicionalesSeleccionados.addAll(widget.cotizacion.adicionalesSeleccionados.map((a) => a.nombre));
       for (var adicional in widget.cotizacion.adicionalesSeleccionados) {
         _cantidadesAdicionales[adicional.nombre] = adicional.cantidad;
         _preciosAdicionales[adicional.nombre] = adicional.precioUnitario;
         _estadosAdicionales[adicional.nombre] = adicional.estado;
       }
-      // Solo recarga las categorías, NO la estructura ni el precio
       _cargarCategoriasAdicionales();
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Future<void> _cargarUsuario() async {
-    const boardId = 9364424510; // Cambia esto por el ID del board correcto
-
+    const boardId = 9364424510;
     try {
       final grupos = await QuoteController.obtenerGruposEstructura(boardId);
-
       Map<String, dynamic>? grupoCoincidente;
       try {
         grupoCoincidente = grupos.firstWhere((grupo) {
@@ -104,23 +85,18 @@ class _Seccion2State extends State<Seccion2> {
           return grupoClave == modeloClave;
         });
       } catch (e) {
-        grupoCoincidente = null; // No se encontró grupo coincidente
+        grupoCoincidente = null;
       }
-
       if (grupoCoincidente != null) {
         final String grupoId = grupoCoincidente['value']!;
-        // Llama la función para cargar ficha técnica con grupoId y otroBoardId
         _cargarFichaTecnica(grupoId, boardId);
       } else {
         if (!mounted) return;
-        // Mostrar alerta de no encontrado
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Grupo no encontrado'),
-            content: Text(
-              'No se encontró la estructura del modelo: ${widget.modeloNombre}',
-            ),
+            content: Text('No se encontró la estructura del modelo: ${widget.modeloNombre}'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -132,7 +108,6 @@ class _Seccion2State extends State<Seccion2> {
       }
     } catch (e) {
       if (!mounted) return;
-      // Mostrar alerta de error
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -152,14 +127,12 @@ class _Seccion2State extends State<Seccion2> {
   void _cargarFichaTecnica(String grupoId, int boardId) async {
     try {
       final ficha = await QuoteController.obtenerFichaTecnica(grupoId, boardId);
-
       final Map<String, dynamic> estructura = {};
       for (final item in ficha) {
         final config = item['configuracion'] ?? '';
         final descripcion = item['descripcion'] ?? '';
         estructura[config] = descripcion;
       }
-
       setState(() {
         especificaciones = {'Estructura': estructura};
       });
@@ -188,15 +161,10 @@ class _Seccion2State extends State<Seccion2> {
         _cargandoAdicionales = true;
       });
       final idItemInt = int.tryParse(widget.modeloValue) ?? 0;
-
-      final adicionales = await QuoteController.obtenerKitsAdicionales(
-        idItemInt,
-      );
-
+      final adicionales = await QuoteController.obtenerKitsAdicionales(idItemInt);
       setState(() {
         especificaciones['Adicionales de Línea'] = adicionales;
       });
-      // Después de guardar adicionales, ahora sí carga el precio
       _cargarPrecioProducto();
     } catch (e) {
       if (!mounted) return;
@@ -223,39 +191,14 @@ class _Seccion2State extends State<Seccion2> {
   void _cargarPrecioProducto() async {
     try {
       final idProducto = int.tryParse(widget.modeloValue) ?? 0;
-      final precioData = await QuoteController.obtenerPrecioProducto(
-        idProducto,
-      );
-      final subtotal = precioData['subtotal'] ?? 0.0;
-      final rentabilidad = precioData['rentabilidad'] ?? 0.0;
+      final precioData = await QuoteController.obtenerPrecioProducto(idProducto);
+      final precio = precioData['precio'] ?? 0.0;
       final estado = precioData['estado'] ?? '';
-
       setState(() {
-        _precioProductoBase = subtotal;
-        _rentabilidad = rentabilidad;
+        _precioProductoBase = precio;
+        _precioProductoConAdicionales = precio;
         _precioCargado = true;
         _estadoProducto = estado;
-        _actualizarPrecioConAdicionales();
-
-        // GUARDA LOS DATOS EN EL OBJETO COTIZACION
-        widget.cotizacion.datosCargados = true;
-        widget.cotizacion.estructura = especificaciones['Estructura'] ?? {};
-        widget.cotizacion.adicionalesDeLinea =
-            especificaciones['Adicionales de Línea'] ?? [];
-        widget.cotizacion.importe = _precioProductoBase;
-        widget.cotizacion.precioProductoConAdicionales =
-            _precioProductoConAdicionales;
-        widget.cotizacion.estadoProducto = _estadoProducto;
-        widget.cotizacion.adicionalesSeleccionados = _adicionalesSeleccionados
-            .map((nombre) {
-              return AdicionalSeleccionado(
-                nombre: nombre,
-                cantidad: _cantidadesAdicionales[nombre] ?? 1,
-                precioUnitario: _preciosAdicionales[nombre] ?? 0.0,
-                estado: _estadosAdicionales[nombre] ?? 'Desconocido',
-              );
-            })
-            .toList();
       });
     } catch (e) {
       if (!mounted) return;
@@ -275,14 +218,10 @@ class _Seccion2State extends State<Seccion2> {
     }
   }
 
-  //Cargar categorias de adicionales seleccionados
   Future<void> _cargarCategoriasAdicionales() async {
     try {
       const boardId = 8890947131;
-      final gruposApi = await QuoteController.obtenerCategoriasAdicionales(
-        boardId,
-      );
-      // print(gruposApi);
+      final gruposApi = await QuoteController.obtenerCategoriasAdicionales(boardId);
       setState(() {
         _gruposAdicionales.clear();
         _gruposAdicionales.addAll(
@@ -294,27 +233,20 @@ class _Seccion2State extends State<Seccion2> {
           }),
         );
       });
-      //print('Grupos adicionales cargados: $_gruposAdicionales');
-    } catch (e) {
-      // Manejar error
-    }
+    // ignore: empty_catches
+    } catch (e) {}
   }
 
-  //Cargar adicionales de la categoria seleccionada.
   Future<void> _cargarItemsDelGrupo(String grupoId) async {
     setState(() {
       _cargandoAdicionales = true;
     });
     try {
-      final itemsApi = await QuoteController.obtenerAdicionalesPorCategoria(
-        grupoId,
-      );
+      final itemsApi = await QuoteController.obtenerAdicionalesPorCategoria(grupoId);
       setState(() {
         _itemsDelGrupo.clear();
         _itemsDelGrupo.addAll(itemsApi);
       });
-    } catch (e) {
-      // Maneja error
     } finally {
       setState(() {
         _cargandoAdicionales = false;
@@ -322,7 +254,6 @@ class _Seccion2State extends State<Seccion2> {
     }
   }
 
-  //
   void _actualizarPrecioConAdicionales() {
     double totalAdicionales = 0;
     final adicionales = especificaciones['Adicionales de Línea'] ?? [];
@@ -338,10 +269,9 @@ class _Seccion2State extends State<Seccion2> {
           totalAdicionales += cantidad * precio;
         }
       }
-      // ignore: empty_catches
+    // ignore: empty_catches
     } catch (e) {}
-    final subtotalConAdicionales = _precioProductoBase + totalAdicionales;
-    final totalFinal = (subtotalConAdicionales / (1 - _rentabilidad)) / 1.16;
+    final totalFinal = _precioProductoBase + totalAdicionales;
     setState(() {
       _precioProductoConAdicionales = totalFinal;
     });
@@ -357,15 +287,12 @@ class _Seccion2State extends State<Seccion2> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
-          // Quita el leading personalizado y deja que Flutter ponga la flechita
           title: const Text(
             'Estructura del Producto',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
           ),
           centerTitle: true,
         ),
-        // Quita el drawer:
-        // drawer: Drawer(...),  <-- Elimina esta línea y su contenido
         backgroundColor: Colors.blue[800],
         body: (especificaciones.isEmpty || !_precioCargado)
             ? _buildLoader()
@@ -397,15 +324,11 @@ class _Seccion2State extends State<Seccion2> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(30),
                                     ),
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
                                     elevation: 0,
                                   ),
                                   child: const Text('Atrás'),
@@ -416,51 +339,32 @@ class _Seccion2State extends State<Seccion2> {
                                 width: 140,
                                 child: ElevatedButton(
                                   onPressed: () async {
-                                    widget.cotizacion.estructura =
-                                        especificaciones['Estructura'] ?? {};
-                                    widget.cotizacion.adicionalesDeLinea =
-                                        especificaciones['Adicionales de Línea'] ??
-                                        [];
-                                    widget.cotizacion.adicionalesSeleccionados =
-                                        _adicionalesSeleccionados.map((nombre) {
-                                          return AdicionalSeleccionado(
-                                            nombre: nombre,
-                                            cantidad:
-                                                _cantidadesAdicionales[nombre] ??
-                                                1,
-                                            precioUnitario:
-                                                _preciosAdicionales[nombre] ??
-                                                0.0,
-                                            estado:
-                                                _estadosAdicionales[nombre] ??
-                                                'Desconocido',
-                                          );
-                                        }).toList();
+                                    widget.cotizacion.estructura = especificaciones['Estructura'] ?? {};
+                                    widget.cotizacion.adicionalesDeLinea = especificaciones['Adicionales de Línea'] ?? [];
+                                    widget.cotizacion.adicionalesSeleccionados = _adicionalesSeleccionados.map((nombre) {
+                                      return AdicionalSeleccionado(
+                                        nombre: nombre,
+                                        cantidad: _cantidadesAdicionales[nombre] ?? 1,
+                                        precioUnitario: _preciosAdicionales[nombre] ?? 0.0,
+                                        estado: _estadosAdicionales[nombre] ?? 'Desconocido',
+                                      );
+                                    }).toList();
 
-                                    final double totalAdicionalesSeleccionados =
-                                        _adicionalesSeleccionados.fold<double>(
-                                          0.0,
-                                          (sum, adicional) =>
-                                              sum +
-                                              ((_preciosAdicionales[adicional] ??
-                                                      0.0) *
-                                                  (_cantidadesAdicionales[adicional] ??
-                                                      1)),
-                                        );
-                                    final totalGeneral =
-                                        _precioProductoConAdicionales +
-                                        totalAdicionalesSeleccionados;
+                                    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
+                                      0.0,
+                                      (sum, adicional) =>
+                                          sum +
+                                          ((_preciosAdicionales[adicional] ?? 0.0) *
+                                              (_cantidadesAdicionales[adicional] ?? 1)),
+                                    );
+                                    final totalGeneral = _precioProductoConAdicionales + totalAdicionalesSeleccionados;
 
-                                    final cotizacionActualizada = widget
-                                        .cotizacion
-                                        .copyWith(
-                                          importe: totalGeneral,
-                                          totalAdicionales:
-                                              totalAdicionalesSeleccionados,
-                                          precioProductoConAdicionales:
-                                              _precioProductoConAdicionales,
-                                              excludedFeatures: _excludedFeatures,
-                                        );
+                                    final cotizacionActualizada = widget.cotizacion.copyWith(
+                                      importe: totalGeneral,
+                                      totalAdicionales: totalAdicionalesSeleccionados,
+                                      precioProductoConAdicionales: _precioProductoConAdicionales,
+                                      excludedFeatures: _excludedFeatures,
+                                    );
 
                                     final resultado = await Navigator.pushNamed(
                                       context,
@@ -474,76 +378,36 @@ class _Seccion2State extends State<Seccion2> {
                                         resultado is Map &&
                                         resultado['cotizacion'] != null) {
                                       setState(() {
-                                        widget.cotizacion.estructura =
-                                            resultado['cotizacion'].estructura;
-                                        widget.cotizacion.adicionalesDeLinea =
-                                            resultado['cotizacion']
-                                                .adicionalesDeLinea;
-                                        widget
-                                                .cotizacion
-                                                .adicionalesSeleccionados =
-                                            resultado['cotizacion']
-                                                .adicionalesSeleccionados;
-                                        widget.cotizacion.importe =
-                                            resultado['cotizacion'].importe;
-                                        widget.cotizacion.totalAdicionales =
-                                            resultado['cotizacion']
-                                                .totalAdicionales;
-                                        widget
-                                                .cotizacion
-                                                .precioProductoConAdicionales =
-                                            resultado['cotizacion']
-                                                .precioProductoConAdicionales;
-                                        widget.cotizacion.formaPago =
-                                            resultado['cotizacion'].formaPago;
-                                        widget.cotizacion.metodoPago =
-                                            resultado['cotizacion'].metodoPago;
-                                        widget.cotizacion.moneda =
-                                            resultado['cotizacion'].moneda;
-                                        widget.cotizacion.entregaEn =
-                                            resultado['cotizacion'].entregaEn;
-                                        widget.cotizacion.garantia =
-                                            resultado['cotizacion'].garantia;
-                                        widget.cotizacion.cuentaSeleccionada =
-                                            resultado['cotizacion']
-                                                .cuentaSeleccionada;
-                                        widget.cotizacion.otroMetodoPago =
-                                            resultado['cotizacion']
-                                                .otroMetodoPago;
-                                        widget.cotizacion.fechaInicioEntrega =
-                                            resultado['cotizacion']
-                                                .fechaInicioEntrega;
-                                        widget.cotizacion.fechaFinEntrega =
-                                            resultado['cotizacion']
-                                                .fechaFinEntrega;
-                                        widget.cotizacion.semanasEntrega =
-                                            resultado['cotizacion']
-                                                .semanasEntrega;
-                                        widget.cotizacion.numeroUnidades =
-                                            resultado['cotizacion']
-                                                .numeroUnidades;
-                                        widget.cotizacion.anticipoSeleccionado =
-                                            resultado['cotizacion']
-                                                .anticipoSeleccionado;
-                                        ( _excludedFeatures,
-                                        ); // Verifica qué claves están excluidas
-                                        widget.cotizacion.excludedFeatures =
-                                            _excludedFeatures;
-                                             });
+                                        widget.cotizacion.estructura = resultado['cotizacion'].estructura;
+                                        widget.cotizacion.adicionalesDeLinea = resultado['cotizacion'].adicionalesDeLinea;
+                                        widget.cotizacion.adicionalesSeleccionados = resultado['cotizacion'].adicionalesSeleccionados;
+                                        widget.cotizacion.importe = resultado['cotizacion'].importe;
+                                        widget.cotizacion.totalAdicionales = resultado['cotizacion'].totalAdicionales;
+                                        widget.cotizacion.precioProductoConAdicionales = resultado['cotizacion'].precioProductoConAdicionales;
+                                        widget.cotizacion.formaPago = resultado['cotizacion'].formaPago;
+                                        widget.cotizacion.metodoPago = resultado['cotizacion'].metodoPago;
+                                        widget.cotizacion.moneda = resultado['cotizacion'].moneda;
+                                        widget.cotizacion.entregaEn = resultado['cotizacion'].entregaEn;
+                                        widget.cotizacion.garantia = resultado['cotizacion'].garantia;
+                                        widget.cotizacion.cuentaSeleccionada = resultado['cotizacion'].cuentaSeleccionada;
+                                        widget.cotizacion.otroMetodoPago = resultado['cotizacion'].otroMetodoPago;
+                                        widget.cotizacion.fechaInicioEntrega = resultado['cotizacion'].fechaInicioEntrega;
+                                        widget.cotizacion.fechaFinEntrega = resultado['cotizacion'].fechaFinEntrega;
+                                        widget.cotizacion.semanasEntrega = resultado['cotizacion'].semanasEntrega;
+                                        widget.cotizacion.numeroUnidades = resultado['cotizacion'].numeroUnidades;
+                                        widget.cotizacion.anticipoSeleccionado = resultado['cotizacion'].anticipoSeleccionado;
+                                        widget.cotizacion.excludedFeatures = _excludedFeatures;
+                                      });
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(30),
                                     ),
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
                                     elevation: 0,
                                   ),
                                   child: const Text('Siguiente'),
@@ -1531,7 +1395,6 @@ class _Seccion2State extends State<Seccion2> {
           boxShadow: [
             BoxShadow(
               // ignore: deprecated_member_use
-              // ignore: deprecated_member_use
               color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.15),
               blurRadius: 12,
               offset: const Offset(0, 4),
@@ -1559,18 +1422,15 @@ class _Seccion2State extends State<Seccion2> {
     );
   }
 
-  // Card to display the total general (importe)
   Widget _buildTotalGeneralCard() {
-    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados
-        .fold<double>(
-          0.0,
-          (sum, adicional) =>
-              sum +
-              ((_preciosAdicionales[adicional] ?? 0.0) *
-                  (_cantidadesAdicionales[adicional] ?? 1)),
-        );
-    final totalGeneral =
-        _precioProductoConAdicionales + totalAdicionalesSeleccionados;
+    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
+      0.0,
+      (sum, adicional) =>
+          sum +
+          ((_preciosAdicionales[adicional] ?? 0.0) *
+              (_cantidadesAdicionales[adicional] ?? 1)),
+    );
+    final totalGeneral = _precioProductoConAdicionales + totalAdicionalesSeleccionados;
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 24),

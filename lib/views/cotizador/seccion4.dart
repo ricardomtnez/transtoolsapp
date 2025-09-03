@@ -42,9 +42,9 @@ class Seccion4 extends StatelessWidget {
     final iva = subTotal * 0.16;
     final totalFinal = subTotal + iva;
 
-    final int cantidadAdicionalesSeleccionados = cotizacion
-        .adicionalesSeleccionados
-        .fold(0, (sum, adicional) => sum + (adicional.cantidad));
+  final int cantidadAdicionalesSeleccionados = cotizacion
+    .adicionalesSeleccionados
+    .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
     return Scaffold(
       backgroundColor: Colors.blue[800],
@@ -565,9 +565,7 @@ class Seccion4 extends StatelessWidget {
         .difference(cotizacion.fechaCotizacion)
         .inDays;
 
-    final int cantidadAdicionalesSeleccionados = cotizacion
-        .adicionalesSeleccionados
-        .fold(0, (sum, adicional) => sum + (adicional.cantidad));
+  // cantidadAdicionalesSeleccionados no se necesita en el PDF (se muestra numeroUnidades en el resumen)
 
     pdf.addPage(
       pw.MultiPage(
@@ -1312,7 +1310,7 @@ class Seccion4 extends StatelessWidget {
                       child: pw.Container(
                         alignment: pw.Alignment.center,
                         child: pw.Text(
-                          '$cantidadAdicionalesSeleccionados', // <-- Muestra el número correcto
+                          '$numeroUnidades', // Mostrar número de unidades aquí
                           style: pw.TextStyle(fontSize: 11),
                           textAlign: pw.TextAlign.center,
                         ),

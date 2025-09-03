@@ -227,7 +227,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
   void dispose() {
     if (!_loading) _tabController.dispose();
     _searchController.dispose();
-    _scrollController.dispose(); // Agrega esto
+    _scrollController.dispose(); 
     super.dispose();
   }
 

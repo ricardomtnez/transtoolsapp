@@ -31,11 +31,12 @@ class _Seccion2State extends State<Seccion2> {
     'Especificaciones Técnicas': true,
     'Adicionales': true,
   };
-  final Map<String, Set<String>> _excludedFeatures = {};
 
   final List<Map<String, String>> _gruposAdicionales = [];
   String? _grupoSeleccionadoId;
   final List<Map<String, String>> _itemsDelGrupo = [];
+  List<Map<String, String>> _filteredItemsDelGrupo = [];
+  final TextEditingController _searchAdicionalesCtrl = TextEditingController();
   final List<String> _adicionalesSeleccionados = [];
   bool _cargandoAdicionales = false;
 
@@ -46,31 +47,13 @@ class _Seccion2State extends State<Seccion2> {
   bool _adicionalesTileExpanded = true;
 
   bool _precioCargado = false;
-  double _precioProductoBase = 0.0;
   double _precioProductoConAdicionales = 0.0;
 
   @override
   void initState() {
     super.initState();
-    if (!widget.cotizacion.datosCargados) {
-      _cargarUsuario();
-      _cargarCategoriasAdicionales();
-    } else {
-      especificaciones['Estructura'] = widget.cotizacion.estructura;
-      especificaciones['Adicionales de Línea'] = widget.cotizacion.adicionalesDeLinea;
-      _precioProductoConAdicionales = widget.cotizacion.precioProductoConAdicionales ?? 0.0;
-      _precioProductoBase = widget.cotizacion.precioProductoConAdicionales ?? 0.0;
-      _precioCargado = true;
-      _estadoProducto = widget.cotizacion.estadoProducto;
-      _adicionalesSeleccionados.clear();
-      _adicionalesSeleccionados.addAll(widget.cotizacion.adicionalesSeleccionados.map((a) => a.nombre));
-      for (var adicional in widget.cotizacion.adicionalesSeleccionados) {
-        _cantidadesAdicionales[adicional.nombre] = adicional.cantidad;
-        _preciosAdicionales[adicional.nombre] = adicional.precioUnitario;
-        _estadosAdicionales[adicional.nombre] = adicional.estado;
-      }
-      _cargarCategoriasAdicionales();
-    }
+    _cargarUsuario();
+    _cargarCategoriasAdicionales();
   }
 
   Future<void> _cargarUsuario() async {
@@ -154,7 +137,6 @@ class _Seccion2State extends State<Seccion2> {
       );
     }
   }
-
   void _cargarAdicionales() async {
     try {
       setState(() {
@@ -195,11 +177,21 @@ class _Seccion2State extends State<Seccion2> {
       final precio = precioData['precio'] ?? 0.0;
       final estado = precioData['estado'] ?? '';
       setState(() {
-        _precioProductoBase = precio;
         _precioProductoConAdicionales = precio;
         _precioCargado = true;
         _estadoProducto = estado;
+        // Persist into the Cotizacion object so subsequent opens reuse data
+        try {
+          widget.cotizacion.estructura = especificaciones['Estructura'] ?? {};
+          widget.cotizacion.adicionalesDeLinea = especificaciones['Adicionales de Línea'] ?? [];
+          widget.cotizacion.precioProductoConAdicionales = _precioProductoConAdicionales;
+          widget.cotizacion.estadoProducto = _estadoProducto;
+          widget.cotizacion.datosCargados = true;
+        } catch (_) {
+          // ignore errors when persisting optional fields
+        }
       });
+  // no-op: caching removed to always fetch fresh data
     } catch (e) {
       if (!mounted) return;
       showDialog(
@@ -246,6 +238,8 @@ class _Seccion2State extends State<Seccion2> {
       setState(() {
         _itemsDelGrupo.clear();
         _itemsDelGrupo.addAll(itemsApi);
+        // initialize filtered list to show all when first loaded
+        _filteredItemsDelGrupo = List<Map<String, String>>.from(_itemsDelGrupo);
       });
     } finally {
       setState(() {
@@ -254,27 +248,11 @@ class _Seccion2State extends State<Seccion2> {
     }
   }
 
-  void _actualizarPrecioConAdicionales() {
-    double totalAdicionales = 0;
-    final adicionales = especificaciones['Adicionales de Línea'] ?? [];
-    try {
-      for (var adicional in adicionales) {
-        final cantidad = (adicional['cantidad'] is int)
-            ? adicional['cantidad'] as int
-            : int.tryParse(adicional['cantidad'].toString()) ?? 0;
-        final precio = (adicional['precio'] is double)
-            ? adicional['precio'] as double
-            : double.tryParse(adicional['precio'].toString()) ?? 0.0;
-        if (!(adicional['excluido'] == true)) {
-          totalAdicionales += cantidad * precio;
-        }
-      }
-    // ignore: empty_catches
-    } catch (e) {}
-    final totalFinal = _precioProductoBase + totalAdicionales;
-    setState(() {
-      _precioProductoConAdicionales = totalFinal;
-    });
+  @override
+  void dispose() {
+    _searchAdicionalesCtrl.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -359,11 +337,10 @@ class _Seccion2State extends State<Seccion2> {
                                     );
                                     final totalGeneral = _precioProductoConAdicionales + totalAdicionalesSeleccionados;
 
-                                    final cotizacionActualizada = widget.cotizacion.copyWith(
+                                  final cotizacionActualizada = widget.cotizacion.copyWith(
                                       importe: totalGeneral,
                                       totalAdicionales: totalAdicionalesSeleccionados,
                                       precioProductoConAdicionales: _precioProductoConAdicionales,
-                                      excludedFeatures: _excludedFeatures,
                                     );
 
                                     final resultado = await Navigator.pushNamed(
@@ -396,7 +373,7 @@ class _Seccion2State extends State<Seccion2> {
                                         widget.cotizacion.semanasEntrega = resultado['cotizacion'].semanasEntrega;
                                         widget.cotizacion.numeroUnidades = resultado['cotizacion'].numeroUnidades;
                                         widget.cotizacion.anticipoSeleccionado = resultado['cotizacion'].anticipoSeleccionado;
-                                        widget.cotizacion.excludedFeatures = _excludedFeatures;
+                                        // excluded features removed from UI
                                       });
                                     }
                                   },
@@ -436,7 +413,6 @@ class _Seccion2State extends State<Seccion2> {
     String? configuracionExtra = title.contains(',')
         ? title.substring(title.indexOf(',') + 1).trim()
         : null;
-
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 24),
@@ -491,9 +467,7 @@ class _Seccion2State extends State<Seccion2> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Muestra la configuración
-                      if (configuracionExtra != null &&
-                          configuracionExtra.isNotEmpty)
+                      if (configuracionExtra != null && configuracionExtra.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4, bottom: 8),
                           child: Text(
@@ -505,7 +479,6 @@ class _Seccion2State extends State<Seccion2> {
                             ),
                           ),
                         ),
-                      // Aquí va la tabla
                       _buildUnifiedTable(content),
                       const Divider(
                         height: 32,
@@ -567,7 +540,6 @@ class _Seccion2State extends State<Seccion2> {
               ),
             ),
             const SizedBox(),
-            const SizedBox(),
           ],
         ),
       );
@@ -576,25 +548,16 @@ class _Seccion2State extends State<Seccion2> {
         rows.addAll(_buildKitsAdicionalesRows(sectionContent));
       } else if (sectionContent is Map<String, dynamic>) {
         sectionContent.forEach((key, value) {
-          final isExcluded =
-              _excludedFeatures[sectionName]?.contains(key) ?? false;
-
+          // show feature row without exclusion toggle
           rows.add(
             TableRow(
-              decoration: BoxDecoration(
-                color: isExcluded ? Colors.red.shade50 : null,
-              ),
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     key,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: isExcluded ? Colors.red : null,
-                      decoration: isExcluded
-                          ? TextDecoration.lineThrough
-                          : null,
                     ),
                   ),
                 ),
@@ -604,51 +567,13 @@ class _Seccion2State extends State<Seccion2> {
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: value
-                              .map<Widget>(
-                                (item) => Text(
-                                  '• $item',
-                                  textAlign: TextAlign.justify,
-                                  style: TextStyle(
-                                    color: isExcluded ? Colors.red : null,
-                                    decoration: isExcluded
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                ),
-                              )
+                              .map<Widget>((item) => Text('• $item', textAlign: TextAlign.justify))
                               .toList(),
                         )
                       : Text(
                           value.toString(),
                           textAlign: TextAlign.justify,
-                          style: TextStyle(
-                            color: isExcluded ? Colors.red : null,
-                            decoration: isExcluded
-                                ? TextDecoration.lineThrough
-                                : null,
-                          ),
                         ),
-                ),
-                Center(
-                  child: IconButton(
-                    icon: Icon(
-                      isExcluded ? Icons.add : Icons.remove,
-                      color: isExcluded ? Colors.green : Colors.red,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        if (isExcluded) {
-                          _excludedFeatures[sectionName]?.remove(key);
-                        } else {
-                          _excludedFeatures
-                              .putIfAbsent(sectionName, () => <String>{})
-                              .add(key);
-                        }
-                        (_excludedFeatures);
-                      });
-                    },
-                    tooltip: isExcluded ? 'Incluir' : 'Excluir',
-                  ),
                 ),
               ],
             ),
@@ -659,8 +584,7 @@ class _Seccion2State extends State<Seccion2> {
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(1.8),
-        1: FlexColumnWidth(2.5),
-        2: FlexColumnWidth(0.5),
+        1: FlexColumnWidth(3.0),
       },
       border: TableBorder(
         horizontalInside: BorderSide(color: Colors.grey.shade300, width: 1),
@@ -673,22 +597,14 @@ class _Seccion2State extends State<Seccion2> {
     return kits.map<TableRow>((kit) {
       final name = kit['name'] ?? '';
       final adicionales = kit['adicionales'] ?? '';
-      final isExcluded = kit['excluido'] == true;
 
       return TableRow(
-        decoration: BoxDecoration(
-          color: isExcluded ? Colors.red.shade50 : null,
-        ),
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               name,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isExcluded ? Colors.red : null,
-                decoration: isExcluded ? TextDecoration.lineThrough : null,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
           Padding(
@@ -696,27 +612,9 @@ class _Seccion2State extends State<Seccion2> {
             child: Text(
               adicionales,
               textAlign: TextAlign.justify,
-              style: TextStyle(
-                color: isExcluded ? Colors.red : null,
-                decoration: isExcluded ? TextDecoration.lineThrough : null,
-              ),
             ),
           ),
-          Center(
-            child: IconButton(
-              icon: Icon(
-                isExcluded ? Icons.add : Icons.remove,
-                color: isExcluded ? Colors.green : Colors.red,
-              ),
-              onPressed: () {
-                setState(() {
-                  kit['excluido'] = !isExcluded;
-                  _actualizarPrecioConAdicionales();
-                });
-              },
-              tooltip: isExcluded ? 'Incluir' : 'Excluir',
-            ),
-          ),
+          // removed empty third column to match two-column table layout
         ],
       );
     }).toList();
@@ -924,6 +822,29 @@ class _Seccion2State extends State<Seccion2> {
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 8),
+                                // Search field
+                                TextField(
+                                  controller: _searchAdicionalesCtrl,
+                                  decoration: InputDecoration(
+                                    hintText: 'Buscar adicionales',
+                                    prefixIcon: const Icon(Icons.search),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onChanged: (q) {
+                                    final query = q.toLowerCase();
+                                    setState(() {
+                                      _filteredItemsDelGrupo = _itemsDelGrupo.where((item) {
+                                        final name = (item['name'] ?? '').toLowerCase();
+                                        final estado = (item['estado'] ?? '').toLowerCase();
+                                        final precio = (item['precio'] ?? '').toLowerCase();
+                                        return name.contains(query) || estado.contains(query) || precio.contains(query);
+                                      }).toList();
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 8),
                                 SizedBox(
                                   height: 300,
                                   child: Scrollbar(
@@ -933,9 +854,9 @@ class _Seccion2State extends State<Seccion2> {
                                     radius: const Radius.circular(8),
                                     child: ListView.builder(
                                       controller: _scrollController,
-                                      itemCount: _itemsDelGrupo.length,
+                                      itemCount: _filteredItemsDelGrupo.length,
                                       itemBuilder: (context, index) {
-                                        final item = _itemsDelGrupo[index];
+                                        final item = _filteredItemsDelGrupo[index];
                                         final nombre = item['name'] ?? '';
                                         final precio = item['precio'] ?? '';
                                         final estado = item['estado'] ?? '';
@@ -972,158 +893,99 @@ class _Seccion2State extends State<Seccion2> {
                                               ),
                                             ),
                                             child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 18,
-                                                    horizontal: 22,
-                                                  ),
-                                              child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  // IZQUIERDA: Chip y texto
-                                                  Expanded(
-                                                    flex: 2,
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        _chipEstado(estado),
-                                                        const SizedBox(
-                                                          height: 12,
-                                                        ),
-                                                        Text(
-                                                          nombre,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 13,
-                                                                color: Colors
-                                                                    .black87,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                              ),
-                                                          maxLines: 3,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                        ),
-                                                      ],
+                                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                                              child: SizedBox(
+                                                height: 116,
+                                                child: Stack(
+                                                  children: [
+                                                    // Top-left chip
+                                                    Positioned(
+                                                      left: 6,
+                                                      top: 6,
+                                                      child: _chipEstado(estado),
                                                     ),
-                                                  ),
-                                                  // DERECHA: Botón + y precio
-                                                  Expanded(
-                                                    flex: 1,
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .end,
-                                                      children: [
-                                                        IconButton(
-                                                          iconSize: 25,
+                                                    // Top-right circular add/check button
+                                                    Positioned(
+                                                      right: 6,
+                                                      top: 6,
+                                                      child: Container(
+                                                        width: 36,
+                                                        height: 36,
+                                                        decoration: BoxDecoration(
+                                                          shape: BoxShape.circle,
+                                                          border: Border.all(color: Colors.grey.shade300),
+                                                          color: Colors.white,
+                                                        ),
+                                                        child: IconButton(
+                                                          padding: EdgeInsets.zero,
+                                                          iconSize: 20,
                                                           icon: Icon(
-                                                            isSelected
-                                                                ? Icons
-                                                                      .check_circle
-                                                                : Icons
-                                                                      .add_circle_outline,
-                                                            color: isSelected
-                                                                ? Colors.green
-                                                                : Colors.grey,
+                                                            isSelected ? Icons.check : Icons.add,
+                                                            color: isSelected ? Colors.green : Colors.grey,
                                                           ),
                                                           onPressed: () {
                                                             setState(() {
                                                               if (isSelected) {
-                                                                _adicionalesSeleccionados
-                                                                    .remove(
-                                                                      nombre,
-                                                                    );
-                                                                _cantidadesAdicionales
-                                                                    .remove(
-                                                                      nombre,
-                                                                    );
-                                                                _preciosAdicionales
-                                                                    .remove(
-                                                                      nombre,
-                                                                    );
-                                                                _estadosAdicionales
-                                                                    .remove(
-                                                                      nombre,
-                                                                    ); // <-- NUEVO
+                                                                _adicionalesSeleccionados.remove(nombre);
+                                                                _cantidadesAdicionales.remove(nombre);
+                                                                _preciosAdicionales.remove(nombre);
+                                                                _estadosAdicionales.remove(nombre);
                                                               } else {
-                                                                _adicionalesSeleccionados
-                                                                    .add(
-                                                                      nombre,
-                                                                    );
-                                                                _cantidadesAdicionales[nombre] =
-                                                                    1;
+                                                                _adicionalesSeleccionados.add(nombre);
+                                                                _cantidadesAdicionales[nombre] = 1;
                                                                 _preciosAdicionales[nombre] =
-                                                                    double.tryParse(
-                                                                      precio
-                                                                          .replaceAll(
-                                                                            '\$',
-                                                                            '',
-                                                                          )
-                                                                          .replaceAll(
-                                                                            ',',
-                                                                            '',
-                                                                          ),
-                                                                    ) ??
-                                                                    0.0;
-                                                                _estadosAdicionales[nombre] =
-                                                                    estado; // <-- NUEVO: guarda el estado
+                                                                    double.tryParse(precio.replaceAll('4', '').replaceAll(',', '')) ?? 0.0;
+                                                                _estadosAdicionales[nombre] = estado;
                                                               }
                                                             });
                                                           },
                                                         ),
-                                                        const SizedBox(
-                                                          height: 24,
-                                                        ),
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 8,
-                                                                vertical: 4,
-                                                              ),
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(
-                                                              0xFFF7F4FB,
-                                                            ),
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  6,
-                                                                ),
-                                                          ),
-                                                          child: Text(
-                                                            formatCurrency(
-                                                              double.tryParse(
-                                                                    precio
-                                                                        .replaceAll(
-                                                                          '\$',
-                                                                          '',
-                                                                        )
-                                                                        .replaceAll(
-                                                                          ',',
-                                                                          '',
-                                                                        ),
-                                                                  ) ??
-                                                                  0.0,
-                                                            ),
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize: 13,
-                                                                  color: Colors
-                                                                      .blueGrey,
-                                                                ),
-                                                          ),
-                                                        ),
-                                                      ],
+                                                      ),
                                                     ),
-                                                  ),
-                                                ],
+                                                    // Main content: name and price
+                                                    Positioned(
+                                                      left: 12,
+                                                      right: 12,
+                                                      top: 62,
+                                                      child: Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              nombre,
+                                                              style: const TextStyle(
+                                                                fontSize: 14,
+                                                                color: Colors.black87,
+                                                                fontWeight: FontWeight.w600,
+                                                              ),
+                                                              maxLines: 3,
+                                                              overflow: TextOverflow.ellipsis,
+                                                              textAlign: TextAlign.left,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 12),
+                                                          Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                            decoration: BoxDecoration(
+                                                              color: const Color(0xFFF7F4FB),
+                                                              borderRadius: BorderRadius.circular(8),
+                                                            ),
+                                                            child: Text(
+                                                              formatCurrency(
+                                                                double.tryParse(precio.replaceAll('4', '').replaceAll(',', '')) ?? 0.0,
+                                                              ),
+                                                              style: const TextStyle(
+                                                                fontWeight: FontWeight.bold,
+                                                                fontSize: 13,
+                                                                color: Colors.blueGrey,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -1184,147 +1046,95 @@ class _Seccion2State extends State<Seccion2> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
-
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                      horizontal: 18,
+                                      vertical: 12,
+                                      horizontal: 14,
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Fila superior: Chip y botón de quitar
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            _chipEstado(
-                                              _estadosAdicionales[adicional] ??
-                                                  'Sin Estado',
+                                    child: SizedBox(
+                                      height: 116,
+                                      child: Stack(
+                                        children: [
+                                          // Chip top-left
+                                          Positioned(
+                                            left: 6,
+                                            top: 6,
+                                            child: _chipEstado(
+                                              _estadosAdicionales[adicional] ?? 'Sin Estado',
                                             ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.delete_outline,
-                                                color: Color.fromARGB(
-                                                  211,
-                                                  186,
-                                                  4,
-                                                  4,
-                                                ),
-                                                size: 25,
+                                          ),
+                                          // Top-right delete button (red)
+                                          Positioned(
+                                            right: 6,
+                                            top: 6,
+                                            child: Container(
+                                              width: 36,
+                                              height: 36,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white,
+                                                border: Border.all(color: Colors.grey.shade300),
                                               ),
-                                              tooltip: 'Quitar',
-                                              onPressed: () {
-                                                setState(() {
-                                                  _adicionalesSeleccionados
-                                                      .remove(adicional);
-                                                  _cantidadesAdicionales.remove(
-                                                    adicional,
-                                                  );
-                                                  _preciosAdicionales.remove(
-                                                    adicional,
-                                                  );
-                                                  _estadosAdicionales.remove(
-                                                    adicional,
-                                                  );
-                                                });
-                                              },
+                                              child: IconButton(
+                                                padding: EdgeInsets.zero,
+                                                iconSize: 20,
+                                                icon: const Icon(
+                                                  Icons.delete_outline,
+                                                  color: Color.fromARGB(211, 186, 4, 4),
+                                                ),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    _adicionalesSeleccionados.remove(adicional);
+                                                    _cantidadesAdicionales.remove(adicional);
+                                                    _preciosAdicionales.remove(adicional);
+                                                    _estadosAdicionales.remove(adicional);
+                                                  });
+                                                },
+                                              ),
                                             ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        // Descripción
-                                        Text(
-                                          adicional,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.black87,
-                                            fontWeight: FontWeight.w600,
                                           ),
-                                          maxLines: 3,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        // Precio unitario pequeño
-                                        Text(
-                                          '${formatCurrency(precioUnitario)} c/u',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            color: Colors.blueGrey,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        // Selector de cantidad y total
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
+                                          // Main content: name and total price
+                                          Positioned(
+                                            left: 12,
+                                            right: 12,
+                                            top: 62,
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.center,
                                               children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.remove_circle_outline,
-                                                    color: Color(0xFF1565C0),
-                                                  ),
-                                                  iconSize: 25,
-                                                  onPressed: () {
-                                                    if (cantidad > 1) {
-                                                      setState(() {
-                                                        _cantidadesAdicionales[adicional] =
-                                                            cantidad - 1;
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                                Text(
-                                                  '$cantidad',
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
+                                                Expanded(
+                                                  child: Text(
+                                                    adicional,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.black87,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                    maxLines: 3,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    textAlign: TextAlign.left,
                                                   ),
                                                 ),
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.add_circle_outline,
-                                                    color: Color(0xFF1565C0),
+                                                const SizedBox(width: 12),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFF7F4FB),
+                                                    borderRadius: BorderRadius.circular(8),
                                                   ),
-                                                  iconSize: 25,
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      _cantidadesAdicionales[adicional] =
-                                                          cantidad + 1;
-                                                    });
-                                                  },
+                                                  child: Text(
+                                                    formatCurrency(total),
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                      color: Colors.blueGrey,
+                                                    ),
+                                                  ),
                                                 ),
                                               ],
                                             ),
-                                            // TOTAL con estilo de etiqueta
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 6,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF7F4FB),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                formatCurrency(total),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                  color: Colors.blueGrey,
-                                                  letterSpacing: 1,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),

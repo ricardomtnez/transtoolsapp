@@ -635,7 +635,7 @@ class _Seccion2State extends State<Seccion2> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Adicionales",
+              "Equipamiento",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -802,7 +802,7 @@ class _Seccion2State extends State<Seccion2> {
                                     ),
                                     SizedBox(height: 16),
                                     Text(
-                                      "Cargando Adicionales...",
+                                      "Cargando Opcionales...",
                                       style: TextStyle(
                                         color: Color(0xFF1565C0),
                                         fontWeight: FontWeight.bold,
@@ -818,7 +818,7 @@ class _Seccion2State extends State<Seccion2> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  "Adicionales disponibles:",
+                                  "Equipamiento disponibles:",
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 8),
@@ -826,11 +826,29 @@ class _Seccion2State extends State<Seccion2> {
                                 TextField(
                                   controller: _searchAdicionalesCtrl,
                                   decoration: InputDecoration(
-                                    hintText: 'Buscar adicionales',
-                                    prefixIcon: const Icon(Icons.search),
+                                    hintText: 'Buscar equipamiento',
+                                    prefixIcon: const Icon(
+                                      Icons.search,
+                                      color: Color(0xFF1565C0),
+                                    ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF1565C0),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF1565C0),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                                   ),
                                   onChanged: (q) {
                                     final query = q.toLowerCase();
@@ -951,16 +969,67 @@ class _Seccion2State extends State<Seccion2> {
                                                         crossAxisAlignment: CrossAxisAlignment.center,
                                                         children: [
                                                           Expanded(
-                                                            child: Text(
-                                                              nombre,
-                                                              style: const TextStyle(
-                                                                fontSize: 14,
-                                                                color: Colors.black87,
-                                                                fontWeight: FontWeight.w600,
+                                                            child: GestureDetector(
+                                                              onTap: () {
+                                                                showDialog(
+                                                                  context: context,
+                                                                  builder: (_) => AlertDialog(
+                                                                    backgroundColor: Colors.white,
+                                                                    shape: RoundedRectangleBorder(
+                                                                      borderRadius: BorderRadius.circular(20),
+                                                                      side: const BorderSide(color: Color(0xFF1565C0), width: 1),
+                                                                    ),
+                                                                    titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                                                                    contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                                                                    actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                                                                    title: Text(
+                                                                      nombre,
+                                                                      style: const TextStyle(
+                                                                        color: Color(0xFF1565C0),
+                                                                        fontSize: 20,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        height: 1.12,
+                                                                      ),
+                                                                    ),
+                                                                    content: SingleChildScrollView(
+                                                                      child: Column(
+                                                                        mainAxisSize: MainAxisSize.min,
+                                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                                        children: [
+                                                                            const SizedBox(height: 8),
+                                                                            Text(
+                                                                              'Precio: ${formatCurrency(double.tryParse(precio.replaceAll('\u00024', '').replaceAll(',', '')) ?? 0.0)}',
+                                                                              style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600),
+                                                                            ),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                    actions: [
+                                                                      TextButton(
+                                                                        onPressed: () => Navigator.pop(context),
+                                                                        style: TextButton.styleFrom(
+                                                                          foregroundColor: const Color(0xFF1565C0),
+                                                                        ),
+                                                                        child: const Text('Cerrar'),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                );
+                                                              },
+                                                              child: Tooltip(
+                                                                message: nombre,
+                                                                child: Text(
+                                                                  nombre,
+                                                                  style: const TextStyle(
+                                                                    fontSize: 14,
+                                                                    color: Colors.black87,
+                                                                    fontWeight: FontWeight.w600,
+                                                                  ),
+                                                                  maxLines: 3,
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                  textAlign: TextAlign.left,
+                                                                ),
                                                               ),
-                                                              maxLines: 3,
-                                                              overflow: TextOverflow.ellipsis,
-                                                              textAlign: TextAlign.left,
                                                             ),
                                                           ),
                                                           const SizedBox(width: 12),
@@ -1005,7 +1074,7 @@ class _Seccion2State extends State<Seccion2> {
                         color: Color(0xFF1565C0),
                       ),
                       const Text(
-                        "Adicionales Seleccionados:",
+                        "Equipamiento Seleccionados:",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -1102,16 +1171,61 @@ class _Seccion2State extends State<Seccion2> {
                                               crossAxisAlignment: CrossAxisAlignment.center,
                                               children: [
                                                 Expanded(
-                                                  child: Text(
-                                                    adicional,
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.black87,
-                                                      fontWeight: FontWeight.w600,
+                                                  child: GestureDetector(
+                                                    onTap: () {
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (_) => AlertDialog(
+                                                          backgroundColor: Colors.white,
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(20),
+                                                            side: const BorderSide(color: Color(0xFF1565C0), width: 1),
+                                                          ),
+                                                          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                                                          contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                                                          actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                                                          title: Text(
+                                                            adicional,
+                                                            style: const TextStyle(
+                                                              color: Color(0xFF1565C0),
+                                                              fontSize: 20,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                          content: Column(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              const SizedBox(height: 8),
+                                                              Text('Precio: ${formatCurrency(precioUnitario)}', style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600)),
+                                                            ],
+                                                          ),
+                                                            actions: [
+                                                            TextButton(
+                                                              onPressed: () => Navigator.pop(context),
+                                                              style: TextButton.styleFrom(
+                                                                foregroundColor: const Color(0xFF1565C0),
+                                                              ),
+                                                              child: const Text('Cerrar'),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: Tooltip(
+                                                      message: adicional,
+                                                      child: Text(
+                                                        adicional,
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black87,
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                        maxLines: 3,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        textAlign: TextAlign.left,
+                                                      ),
                                                     ),
-                                                    maxLines: 3,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    textAlign: TextAlign.left,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 12),
@@ -1155,7 +1269,7 @@ class _Seccion2State extends State<Seccion2> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             const Text(
-                              'Total adicionales:',
+                              'Total de Equipamientos:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -1378,6 +1492,8 @@ class _Seccion2State extends State<Seccion2> {
       ),
     );
   }
+
+  // ...existing code...
 }
 
 // Progress bar widget for steps

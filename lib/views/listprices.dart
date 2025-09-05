@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:transtools/api/quote_controller.dart';
 
 class ListPricesPage extends StatefulWidget {
@@ -28,6 +31,8 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
   // ignore: unused_field
   String _searchText = '';
+  Timer? _searchDebounce;
+  late NumberFormat _currencyFormatter;
   String? _selectedLinea;
   List<String> _lineasUnicas = [];
   final Map<String, List<String>> _lineasPorGrupo = {};
@@ -36,7 +41,23 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
+    _currencyFormatter = NumberFormat.simpleCurrency(locale: 'es_MX');
     cargarGruposYLineas();
+
+    // Debounce listener for search field
+    _searchController.addListener(() {
+      if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
+      _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+        setState(() {
+          _searchText = _searchController.text;
+        });
+      });
+    });
+  }
+
+  // Helper para determinar si un modelo está aprobado (exactamente 'APROBADO')
+  bool _esAprobado(Map m) {
+    return (m['estado'] ?? '').toString().toUpperCase() == 'APROBADO';
   }
 
   Future<void> cargarGruposYLineas() async {
@@ -62,7 +83,9 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
     for (int i = 0; i < grupos.length; i++) {
       final modelos = resultados[i];
-      _lineasPorGrupo[grupos[i]['value']] = modelos.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
+      // Solo consideramos líneas de modelos aprobados para la lista de filtros
+  final aprobados = modelos.where((m) => _esAprobado(m)).toList();
+  _lineasPorGrupo[grupos[i]['value']] = aprobados.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
     }
 
     setState(() {
@@ -84,8 +107,10 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
   // Cuando el usuario seleccione el grupo, consulta solo las líneas únicas del grupo seleccionado
   Future<void> cargarLineasPorGrupo(String grupoId) async {
     final modelos = await QuoteController.obtenerModelosPorGrupoSinFiltros(grupoId);
+    // Solo incluir líneas de modelos que estén exactamente en estado 'APROBADO'
+    final aprobados = modelos.where((m) => _esAprobado(m)).toList();
     setState(() {
-      _lineasUnicas = modelos.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
+      _lineasUnicas = aprobados.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
     });
   }
 
@@ -100,10 +125,12 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
     });
     try {
       final modelos = await QuoteController.obtenerModelosPorGrupoSinFiltros(grupoId);
-      _progresoTotal = modelos.length;
+      // Filtramos SOLO modelos aprobados: así no mostramos ni calculamos precios para no aprobados
+      final modelosAprobados = modelos.where((m) => _esAprobado(m)).toList();
+      _progresoTotal = modelosAprobados.length;
 
-      // Prefill precios desde la respuesta de modelos si incluyen 'precio' o 'subtotal'
-      for (var modelo in modelos) {
+      // Prefill precios desde la respuesta de modelos aprobados si incluyen 'precio' o 'subtotal'
+      for (var modelo in modelosAprobados) {
         final id = modelo['value'] ?? '';
         double? p;
         if (modelo.containsKey('precio') && (modelo['precio']?.toString().isNotEmpty ?? false)) {
@@ -113,29 +140,28 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
         }
         if (p != null) {
           _preciosProductos[id] = p;
+          // consider prefills as progress
+          _progresoActual++;
         }
       }
 
-      // Crea una lista de futures para consultar los precios en paralelo
-      final futures = modelos.map((modelo) async {
+      // Consulta los precios secuencialmente para poder actualizar el progreso
+      for (var modelo in modelosAprobados) {
         final itemId = modelo['value'] ?? '';
-        final precio = await obtenerPrecioConAdicionales(itemId);
-        return MapEntry(itemId, precio);
-      }).toList();
-
-      // Espera a que todas las consultas terminen
-      final resultados = await Future.wait(futures);
-
-      // Llena el mapa de precios
-      for (var entry in resultados) {
-        _preciosProductos[entry.key] = entry.value;
+        if (!_preciosProductos.containsKey(itemId)) {
+          final precio = await obtenerPrecioConAdicionales(itemId);
+          _preciosProductos[itemId] = precio;
+        }
+        setState(() {
+          _progresoActual++;
+        });
       }
 
       setState(() {
-        _modelos = modelos;
+        _modelos = modelosAprobados;
         _loadingModelos = false;
         _cargandoPrecios = false;
-        _progresoActual = _progresoTotal;
+        if (_progresoActual > _progresoTotal) _progresoActual = _progresoTotal;
         _lineasUnicas = _modelos.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
         _selectedLinea = null;
       });
@@ -155,13 +181,15 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
     });
     try {
       final modelos = await QuoteController.obtenerModelosPorGrupoSinFiltros(grupoId);
+      // Mantener solo aprobados
+  final modelosAprobados = modelos.where((m) => _esAprobado(m)).toList();
       setState(() {
-        _modelos = modelos;
+        _modelos = modelosAprobados;
         _loadingModelos = false;
       });
 
       // Prefill precios desde la respuesta de modelos si incluyen 'precio' o 'subtotal'
-      for (var modelo in modelos) {
+  for (var modelo in modelosAprobados) {
         final id = modelo['value'] ?? '';
         double? p;
         if (modelo.containsKey('precio') && (modelo['precio']?.toString().isNotEmpty ?? false)) {
@@ -175,7 +203,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
       }
 
       // Ahora consulta los precios en segundo plano
-      for (var modelo in modelos) {
+      for (var modelo in modelosAprobados) {
         final itemId = modelo['value'] ?? '';
         if (!_preciosProductos.containsKey(itemId)) {
           obtenerPrecioConAdicionales(itemId).then((precio) {
@@ -195,10 +223,11 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
   // Método para formatear el precio
   String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},'
-    )}';
+    try {
+      return _currencyFormatter.format(amount);
+    } catch (e) {
+      return '\$${amount.toStringAsFixed(2)}';
+    }
   }
 
   Future<double> obtenerPrecioConAdicionales(String itemId) async {
@@ -225,9 +254,11 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
   @override
   void dispose() {
-    if (!_loading) _tabController.dispose();
-    _searchController.dispose();
-    _scrollController.dispose(); 
+  if (!_loading) _tabController.dispose();
+  _searchDebounce?.cancel();
+  _searchController.removeListener(() {});
+  _searchController.dispose();
+  _scrollController.dispose(); 
     super.dispose();
   }
 
@@ -239,11 +270,9 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
       );
     }
 
-    // Filtrar modelos por estado (aceptar APROBADO o TERMINADO) y por búsqueda
+    // Filtrar modelos para mostrar solo aprobados y por búsqueda
     final modelosFiltrados = _modelos.where((item) {
-      final estado = (item['estado'] ?? '').toString().toUpperCase();
-      final aceptado = estado == 'APROBADO' || estado.contains('TERMIN');
-      if (!aceptado) return false;
+      if (!_esAprobado(item)) return false;
 
       if (_searchText.isEmpty) return true;
       final nombre = (item['producto'] ?? '').toString().toLowerCase();
@@ -356,7 +385,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                               });
                               if (_selectedLinea != null) {
                                 final modelos = await QuoteController.obtenerModelosPorGrupoSinFiltros(_grupos[_tabController.index]['value']);
-                                final filtrados = modelos.where((m) => m['linea'] == _selectedLinea).toList();
+                                final filtrados = modelos.where((m) => m['linea'] == _selectedLinea && _esAprobado(m)).toList();
                                 final futures = filtrados.map((modelo) async {
                                   final itemId = modelo['value'] ?? '';
                                   final precio = await obtenerPrecioConAdicionales(itemId);
@@ -552,7 +581,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                                       ),
                                     ],
                                   ),
-                                  if ((item['estado'] ?? '').toUpperCase() == 'APROBADO')
+                                  if (_esAprobado(item))
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4.0),
                                       child: Align(

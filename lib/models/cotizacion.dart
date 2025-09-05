@@ -39,6 +39,7 @@ class Cotizacion {
   DateTime? fechaFinEntrega;
   String? semanasEntrega;
   double? importe;
+  double? costoEntrega;
   double? totalAdicionales;
   double? precioProductoConAdicionales;
   String? anticipoSeleccionado;
@@ -78,7 +79,8 @@ class Cotizacion {
     this.totalAdicionales,
     this.precioProductoConAdicionales, 
     this.anticipoSeleccionado,
-    this.datosCargados = false, 
+  this.datosCargados = false, 
+  this.costoEntrega,
     this.excludedFeatures,
   });
 
@@ -120,7 +122,8 @@ class Cotizacion {
           ? DateTime.parse(map['fechaFinEntrega'])
           : null,
       semanasEntrega: map['semanasEntrega'],
-      importe: map['importe'] != null ? (map['importe'] as num).toDouble() : null, // <-- Agrega esto
+  importe: map['importe'] != null ? (map['importe'] as num).toDouble() : null, // <-- Agrega esto
+  costoEntrega: map['costoEntrega'] != null ? (map['costoEntrega'] as num).toDouble() : null,
       totalAdicionales: map['totalAdicionales'] != null ? (map['totalAdicionales'] as num).toDouble() : null, // <-- Agrega esto
     );
   }
@@ -156,7 +159,8 @@ class Cotizacion {
       'fechaInicioEntrega': fechaInicioEntrega?.toIso8601String(),
       'fechaFinEntrega': fechaFinEntrega?.toIso8601String(),
       'semanasEntrega': semanasEntrega,
-      'importe': importe, 
+  'importe': importe,
+  'costoEntrega': costoEntrega,
       'totalAdicionales': totalAdicionales, 
     };
   }
@@ -197,6 +201,7 @@ class Cotizacion {
     DateTime? fechaFinEntrega,
     String? semanasEntrega,
     double? importe, 
+  double? costoEntrega,
     double? totalAdicionales,
     double? precioProductoConAdicionales, 
     Map<String, Set<String>>? excludedFeatures,
@@ -231,6 +236,7 @@ class Cotizacion {
       fechaFinEntrega: fechaFinEntrega ?? this.fechaFinEntrega,
       semanasEntrega: semanasEntrega ?? this.semanasEntrega,
       importe: importe ?? this.importe, 
+  costoEntrega: costoEntrega ?? this.costoEntrega,
       totalAdicionales: totalAdicionales ?? this.totalAdicionales, 
       precioProductoConAdicionales: precioProductoConAdicionales ?? this.precioProductoConAdicionales, 
       anticipoSeleccionado: anticipoSeleccionado ?? this.anticipoSeleccionado,

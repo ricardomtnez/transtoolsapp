@@ -92,6 +92,7 @@ class _Seccion1 extends State<Seccion1> {
     'VERDE',
     'NARANJA',
     'ROJO VIPER',
+    'PINTURA POR CONFIRMAR'
   ];
 
   static const Map<String, Color> _colorSwatches = {
@@ -104,6 +105,7 @@ class _Seccion1 extends State<Seccion1> {
     'VERDE': Color(0xFF388E3C),
     'NARANJA': Color(0xFFFF9800),
     'ROJO VIPER': Color(0xFFD32F2F),
+    'PINTURA POR CONFIRMAR': Color(0xFFBDBDBD),
   };
 
   bool get _modeloDisponible {

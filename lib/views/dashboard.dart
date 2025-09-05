@@ -291,21 +291,21 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
                       padding: const EdgeInsets.all(8),
                       child: Image.asset(
                         'assets/transtools_logo_white.png',
-                        width: 150,
+                        width: 180,
                         fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
+                            color: Colors.black26,
+                            blurRadius: 14,
+                            offset: Offset(0, 6),
                           ),
                         ],
                       ),
@@ -330,14 +330,14 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
                             builder: (context, value, child) => Text(
                               "$value",
                               style: TextStyle(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[800],
+                                fontSize: 44,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1565C0),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 15),
-                          // BOTÓN NUEVA COTIZACIÓN
+                          const SizedBox(height: 16),
+                          // BOTÓN NUEVA COTIZACIÓN (styled pill)
                           ElevatedButton.icon(
                             onPressed: () {
                               Navigator.pushNamed(context, "/seccion1");
@@ -348,15 +348,15 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[800],
+                              backgroundColor: const Color(0xFF1565C0),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(28),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                              elevation: 2,
+                              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                              elevation: 6,
                             ),
                           ),
-                          const SizedBox(height: 15),
+                          const SizedBox(height: 16),
                           // TABLA MEJORADA
                           Container(
                             decoration: BoxDecoration(

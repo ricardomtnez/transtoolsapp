@@ -38,7 +38,9 @@ class Seccion4 extends StatelessWidget {
     final precioProductoTotal = precioProductoConAdicionales * numeroUnidades;
     final precioAdicionalesTotal =
         totalAdicionalesSeleccionados * numeroUnidades;
-    final subTotal = precioProductoTotal + precioAdicionalesTotal;
+  final double costoEntrega = cotizacion.costoEntrega ?? 0;
+  final double costoEntregaTotal = costoEntrega * numeroUnidades;
+  final subTotal = precioProductoTotal + precioAdicionalesTotal + costoEntregaTotal;
     final iva = subTotal * 0.16;
     final totalFinal = subTotal + iva;
 
@@ -193,11 +195,11 @@ class Seccion4 extends StatelessWidget {
                           ),
                         ]),
 
-                        _buildTitulo('Adicionales Seleccionados'),
+                        _buildTitulo('Equipamiento Seleccionados'),
                         if (cotizacion.adicionalesSeleccionados.isEmpty)
                           _buildCard([
                             const Text(
-                              'Sin adicionales agregados',
+                              'Sin equipamiento agregado',
                               style: TextStyle(
                                 color: Color.fromARGB(255, 0, 0, 0),
                                 fontWeight: FontWeight.bold,
@@ -379,7 +381,7 @@ class Seccion4 extends StatelessWidget {
                             children: [
                               Text(
                                 // ignore: unnecessary_brace_in_string_interps
-                                'Adicionales (${cantidadAdicionalesSeleccionados}):',
+                                'Equipamientos (${cantidadAdicionalesSeleccionados}):',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -402,6 +404,31 @@ class Seccion4 extends StatelessWidget {
                                     fontSize: 16,
                                     color: Color(0xFF1565C0),
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Flete de envio:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                NumberFormat.currency(
+                                  locale: 'es_MX',
+                                  symbol: '\$',
+                                ).format(costoEntregaTotal),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Color(0xFF1565C0),
                                 ),
                               ),
                             ],
@@ -551,15 +578,21 @@ class Seccion4 extends StatelessWidget {
     // Calcular totales para el PDF
     final double precioProductoConAdicionales =
         cotizacion.precioProductoConAdicionales ?? 0;
-    final double totalAdicionalesSeleccionados =
-        cotizacion.totalAdicionales ?? 0;
     final int numeroUnidades = cotizacion.numeroUnidades.toInt();
 
+  final double costoEntregaPdf = cotizacion.costoEntrega ?? 0;
+  final double costoEntregaTotalPdf = costoEntregaPdf * numeroUnidades;
+    // Suma de adicionales calculada directamente desde la lista (por unidad)
+    final double sumAdicionalesUnit = cotizacion.adicionalesSeleccionados
+        .fold(0.0, (double s, a) => s + (a.precioUnitario * a.cantidad));
+    final double sumAdicionalesTotal = sumAdicionalesUnit * numeroUnidades;
+
     final double subTotal =
-        (precioProductoConAdicionales * numeroUnidades) +
-        (totalAdicionalesSeleccionados * numeroUnidades);
-    final double iva = subTotal * 0.16;
-    final double totalFinal = subTotal + iva;
+      (precioProductoConAdicionales * numeroUnidades) +
+      sumAdicionalesTotal +
+      costoEntregaTotalPdf;
+  final double iva = subTotal * 0.16;
+  final double totalFinal = subTotal + iva;
 
     final int diasVigencia = cotizacion.fechaVigencia
         .difference(cotizacion.fechaCotizacion)
@@ -1167,13 +1200,56 @@ class Seccion4 extends StatelessWidget {
                         ),
                       ],
                     ),
+                  // Resumen: total de adicionales (por unidad y total general)
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(top: pw.BorderSide(width: 0.8, color: PdfColors.grey300)),
+                    ),
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'TOTAL EQUIPAMIENTOS',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            '$numeroUnidades',
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(sumAdicionalesUnit),
+                          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(sumAdicionalesTotal),
+                          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ],
           // Tabla de totales
-          // Forzar salto de página para que los totales no queden cortados
-          pw.NewPage(),
+          // No forzar salto de página: dejar que el contenido (equipamiento + resumen)
+          // fluya y quede en la misma hoja si cabe. Añadimos un espaciamiento pequeño.
+          pw.SizedBox(height: 12),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Table(
@@ -1349,6 +1425,52 @@ class Seccion4 extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Fila para Costo de entrega como ítem (cantidad = unidades)
+                pw.TableRow(
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'FLETE DE ENVÍO',
+                        style: pw.TextStyle(
+                          fontSize: 11,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        // ignore: unnecessary_brace_in_string_interps
+                        '${numeroUnidades}',
+                        style: pw.TextStyle(fontSize: 11),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(cotizacion.costoEntrega ?? 0),
+                        style: pw.TextStyle(fontSize: 11),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format((cotizacion.costoEntrega ?? 0) * numeroUnidades),
+                        style: pw.TextStyle(fontSize: 11),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1435,6 +1557,7 @@ class Seccion4 extends StatelessWidget {
                     ),
                   ],
                 ),
+                  // COSTO ENTREGA ya se incluye en el detalle como fila con cantidad y importe
                 pw.TableRow(
                   children: [
                     pw.Container(),
@@ -1482,85 +1605,91 @@ class Seccion4 extends StatelessWidget {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Expanded(
-                      child: pw.Container(
-                        decoration: pw.BoxDecoration(
-                          border: pw.Border.all(
-                            color: PdfColors.blue900,
-                            width: 1,
-                          ),
-                        ),
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Container(
+                      child: pw.ConstrainedBox(
+                        constraints: const pw.BoxConstraints(minHeight: 120),
+                        child: pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(
                               color: PdfColors.blue900,
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                'CONDICIONES DE PAGO',
-                                style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.white,
-                                  fontSize: 11,
+                              width: 1,
+                            ),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(
+                                color: PdfColors.blue900,
+                                padding: const pw.EdgeInsets.all(6),
+                                child: pw.Text(
+                                  'CONDICIONES DE PAGO',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.white,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
-                            ),
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                'Forma de pago: ${cotizacion.anticipoSeleccionado}% de anticipo, y ${100 - (int.tryParse(cotizacion.anticipoSeleccionado ?? '0') ?? 0)}% contra entrega.',
-                                style: pw.TextStyle(fontSize: 11),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(6),
+                                child: pw.Text(
+                                  'Forma de pago: ${cotizacion.anticipoSeleccionado}% de anticipo, y ${100 - (int.tryParse(cotizacion.anticipoSeleccionado ?? '0') ?? 0)}% contra entrega.',
+                                  style: pw.TextStyle(fontSize: 11),
+                                ),
                               ),
-                            ),
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                cotizacion.cuentaSeleccionada ?? '-',
-                                style: pw.TextStyle(fontSize: 11),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(6),
+                                child: pw.Text(
+                                  cotizacion.cuentaSeleccionada ?? '-',
+                                  style: pw.TextStyle(fontSize: 11),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     pw.SizedBox(width: 8),
                     pw.Expanded(
-                      child: pw.Container(
-                        decoration: pw.BoxDecoration(
-                          border: pw.Border.all(
-                            color: PdfColors.blue900,
-                            width: 1,
-                          ),
-                        ),
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Container(
+                      child: pw.ConstrainedBox(
+                        constraints: const pw.BoxConstraints(minHeight: 120),
+                        child: pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(
                               color: PdfColors.blue900,
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                'TIEMPO DE ENTREGA',
-                                style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.white,
-                                  fontSize: 11,
+                              width: 1,
+                            ),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(
+                                color: PdfColors.blue900,
+                                padding: const pw.EdgeInsets.all(6),
+                                child: pw.Text(
+                                  'TIEMPO DE ENTREGA',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.white,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
-                            ),
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                'Un aproximado de ${cotizacion.semanasEntrega} semanas',
-                                style: pw.TextStyle(fontSize: 11),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(6),
+                                child: pw.Text(
+                                  'Un aproximado de ${cotizacion.semanasEntrega} semanas',
+                                  style: pw.TextStyle(fontSize: 11),
+                                ),
                               ),
-                            ),
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                'Entrega en: ${cotizacion.entregaEn}',
-                                style: pw.TextStyle(fontSize: 11),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(6),
+                                child: pw.Text(
+                                  'Entrega en: ${cotizacion.entregaEn}',
+                                  style: pw.TextStyle(fontSize: 11),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

@@ -24,6 +24,11 @@ class Seccion3 extends StatefulWidget {
 class _Seccion3State extends State<Seccion3> {
   final _formKey = GlobalKey<FormState>();
 
+  // Provide a primary scroll controller so widgets like date pickers that
+  // internally use a Scrollbar with thumbVisibility=true can find a
+  // PrimaryScrollController in the widget tree and avoid the exception.
+  final ScrollController _primaryScrollController = ScrollController();
+
   Usuario? _usuario;
   // Controllers
   final TextEditingController direccionEntregaController =
@@ -67,6 +72,28 @@ class _Seccion3State extends State<Seccion3> {
     'BBVA Bancomer USD - 0117396880 - Clabe: 012830001173968809',
   ];
 
+  // Opciones de entrega (solo etiquetas). Los precios se manejan en
+  // `entregaDefaultPrices` para que el dropdown muestre solo nombres.
+  final List<String> entregaOptions = [
+    'Planta Titanium (El Carmen Tequexquitla)',
+    'Planta LightWeight (Puebla)',
+    'Instalaciones de Kenworth',
+    'Instalaciones del Cliente',
+  ];
+
+  // Precios por defecto para opciones con monto fijo. Null significa "por acordar".
+  final Map<String, double?> entregaDefaultPrices = {
+    'Planta Titanium (El Carmen Tequexquitla)': 0,
+    'Planta LightWeight (Puebla)': 3000,
+    'Instalaciones de Kenworth': 4000,
+    'Instalaciones del Cliente': null,
+  };
+
+  // Controller para monto cuando la entrega es "Instalaciones del Cliente"
+  final TextEditingController entregaMontoController = TextEditingController();
+  bool entregaMontoError = false;
+  String? entregaMontoErrorText;
+
   bool metodoPagoError = false;
   String? metodoPagoErrorText;
 
@@ -95,7 +122,9 @@ class _Seccion3State extends State<Seccion3> {
     formaPago = widget.cotizacion.formaPago ?? 'Contado';
     metodoPago = widget.cotizacion.metodoPago;
     moneda = widget.cotizacion.moneda;
-    entregaEn = widget.cotizacion.entregaEn;
+  // Map any existing entregaEn value (possibly without price suffix)
+  // to the labeled option present in entregaOptions to avoid Dropdown errors.
+  entregaEn = _matchEntregaOption(widget.cotizacion.entregaEn);
     cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
     otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
     anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? '';
@@ -106,6 +135,64 @@ class _Seccion3State extends State<Seccion3> {
     fechaInicio = widget.cotizacion.fechaInicioEntrega;
     fechaFin = widget.cotizacion.fechaFinEntrega;
     unidadesController.text = widget.cotizacion.numeroUnidades.toString();
+    // Rellenar monto de entrega si viene en la cotización
+    if (widget.cotizacion.costoEntrega != null) {
+      entregaMontoController.text = widget.cotizacion.costoEntrega!.toStringAsFixed(0);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant Seccion3 oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the cotizacion instance changed (for example when returning from
+    // another section that updated it), refresh our controllers/state so the
+    // UI reflects the latest cotizacion. We try to avoid clearing user input
+    // unnecessarily by only updating fields when the new cotizacion has
+    // non-null values.
+    if (widget.cotizacion != oldWidget.cotizacion) {
+      setState(() {
+        formaPago = widget.cotizacion.formaPago ?? formaPago;
+        metodoPago = widget.cotizacion.metodoPago ?? metodoPago;
+        moneda = widget.cotizacion.moneda ?? moneda;
+  entregaEn = _matchEntregaOption(widget.cotizacion.entregaEn) ?? entregaEn;
+        cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada ?? cuentaSeleccionada;
+        if (widget.cotizacion.otroMetodoPago != null && widget.cotizacion.otroMetodoPago!.isNotEmpty) {
+          otroMetodoController.text = widget.cotizacion.otroMetodoPago!;
+        }
+        anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? (anticipoSeleccionado.isNotEmpty ? anticipoSeleccionado : '');
+        if (anticipoSeleccionado.isNotEmpty) {
+          anticipoController.text = '$anticipoSeleccionado%';
+        }
+        semanasEntrega = widget.cotizacion.semanasEntrega ?? semanasEntrega;
+        fechaInicio = widget.cotizacion.fechaInicioEntrega ?? fechaInicio;
+        fechaFin = widget.cotizacion.fechaFinEntrega ?? fechaFin;
+  unidadesController.text = widget.cotizacion.numeroUnidades.toString();
+        if (widget.cotizacion.costoEntrega != null) {
+          entregaMontoController.text = widget.cotizacion.costoEntrega!.toStringAsFixed(0);
+        }
+      });
+    }
+  }
+
+  // Intenta mapear valores legados (p. ej. con sufijo de precio) al nombre de
+  // opción actual en `entregaOptions`. Devuelve el nombre de la opción si
+  // encuentra coincidencia, o null.
+  String? _matchEntregaOption(String? raw) {
+    if (raw == null) return null;
+    final r = raw.trim();
+    for (final opt in entregaOptions) {
+      final base = opt.trim();
+      if (base == r || r == base || r.contains(base) || base.contains(r)) {
+        return base;
+      }
+    }
+    // Si no coincide exactamente, intentar detectar por prefijos comunes
+    for (final opt in entregaOptions) {
+      if (r.contains(opt.split('(').first.trim()) || opt.contains(r)) {
+        return opt;
+      }
+    }
+    return null;
   }
 
   Future<void> _cargarUsuario() async {
@@ -173,6 +260,7 @@ class _Seccion3State extends State<Seccion3> {
               // El resto de tu contenido:
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _primaryScrollController,
                   padding: const EdgeInsets.all(16),
                   child: Form(
                     key: _formKey,
@@ -637,20 +725,27 @@ class _Seccion3State extends State<Seccion3> {
                                 ],
                               ),
                             ),
+                            // Use the mapped display value (with price suffix) so the
+                            // Dropdown's `value` always matches one of the `items`.
                             _styledDropdown(
                               label: 'Entrega en',
                               value: entregaEn,
-                              items: const [
-                                'Planta Titanium (El Carmen Tequexquitla)',
-                                'Planta LightWeight (Puebla)',
-                                'Instalaciones de Kenwort',
-                                'Instalaciones del Cliente',
-                              ],
+                              items: entregaOptions,
                               onChanged: (value) {
                                 setState(() {
                                   entregaEn = value;
                                   entregaEnError = false;
                                   entregaEnErrorText = null;
+
+                                  // Autocompletar monto desde el mapa de precios por defecto
+                                  final defaultPrice =
+                                      value != null ? entregaDefaultPrices[value] : null;
+                                  if (defaultPrice != null) {
+                                    entregaMontoController.text = defaultPrice.toStringAsFixed(0);
+                                  } else {
+                                    // Por acordar -> dejar vacío para que el usuario ingrese el monto
+                                    entregaMontoController.text = '';
+                                  }
                                 });
                               },
                               error: entregaEnError,
@@ -661,11 +756,65 @@ class _Seccion3State extends State<Seccion3> {
                                   entregaEn = null;
                                   entregaEnError = false;
                                   entregaEnErrorText = null;
+                                  entregaMontoController.clear();
                                 });
                               },
                               validator: (value) => value == null
                                   ? 'Seleccione una opción'
                                   : null,
+                            ),
+
+                            // Mostrar siempre el campo de monto; si la opción seleccionada
+                            // no es 'Instalaciones del Cliente' el campo se auto-llena y
+                            // queda en solo lectura, permitiendo edición solo cuando el
+                            // usuario elige la opción de cliente.
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: entregaMontoError ? Colors.red : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: TextFormField(
+                                controller: entregaMontoController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Monto de entrega',
+                                  labelStyle: TextStyle(
+                                    color: entregaMontoError ? Colors.red : const Color(0xFF1565C0),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  prefixText: '\$ ',
+                                  prefixStyle: const TextStyle(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  border: InputBorder.none,
+                                ),
+                                onChanged: (_) {
+                                  setState(() {
+                                    entregaMontoError = false;
+                                    entregaMontoErrorText = null;
+                                  });
+                                },
+                                validator: (value) {
+                                  // Si la opción es cliente, el monto es obligatorio y editable
+                                  if ((_matchEntregaOption(entregaEn) ?? entregaEn) == entregaOptions[3]) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Ingrese el monto de entrega';
+                                    }
+                                    final v = double.tryParse(value);
+                                    if (v == null || v < 0) {
+                                      return 'Ingrese un monto válido';
+                                    }
+                                  }
+                                  return null;
+                                },
+                              ),
                             ),
                           ],
                         ),
@@ -696,6 +845,9 @@ class _Seccion3State extends State<Seccion3> {
                                       numeroUnidades: int.tryParse(
                                         unidadesController.text,
                                       ),
+                    costoEntrega: entregaMontoController.text.isNotEmpty
+                      ? double.tryParse(entregaMontoController.text)
+                      : null,
                                     ),
                                   });
                                 },
@@ -794,6 +946,9 @@ class _Seccion3State extends State<Seccion3> {
                                           numeroUnidades: int.tryParse(
                                             unidadesController.text,
                                           ),
+                      costoEntrega: entregaMontoController.text.isNotEmpty
+                        ? double.tryParse(entregaMontoController.text)
+                        : null,
                                           formaPago: formaPago,
                                           metodoPago: metodoPago,
                                           moneda: moneda,
@@ -853,6 +1008,20 @@ class _Seccion3State extends State<Seccion3> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    direccionEntregaController.dispose();
+    receptorController.dispose();
+    telefonoController.dispose();
+    correoController.dispose();
+    unidadesController.dispose();
+    otroMetodoController.dispose();
+    anticipoController.dispose();
+  entregaMontoController.dispose();
+    _primaryScrollController.dispose();
+    super.dispose();
   }
 
   Widget _buildSection({

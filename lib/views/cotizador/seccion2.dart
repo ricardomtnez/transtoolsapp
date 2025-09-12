@@ -235,9 +235,14 @@ class _Seccion2State extends State<Seccion2> {
     });
     try {
       final itemsApi = await QuoteController.obtenerAdicionalesPorCategoria(grupoId);
+      // Exclude items whose estado is 'Separador'
+      final filtered = itemsApi.where((item) {
+        final estado = (item['estado'] ?? '').toString().toLowerCase();
+        return estado != 'separador';
+      }).toList();
       setState(() {
         _itemsDelGrupo.clear();
-        _itemsDelGrupo.addAll(itemsApi);
+        _itemsDelGrupo.addAll(List<Map<String, String>>.from(filtered.map((e) => Map<String, String>.from(e))));
         // initialize filtered list to show all when first loaded
         _filteredItemsDelGrupo = List<Map<String, String>>.from(_itemsDelGrupo);
       });
@@ -365,6 +370,7 @@ class _Seccion2State extends State<Seccion2> {
                                         widget.cotizacion.metodoPago = resultado['cotizacion'].metodoPago;
                                         widget.cotizacion.moneda = resultado['cotizacion'].moneda;
                                         widget.cotizacion.entregaEn = resultado['cotizacion'].entregaEn;
+                                        widget.cotizacion.costoEntrega = resultado['cotizacion'].costoEntrega;
                                         widget.cotizacion.garantia = resultado['cotizacion'].garantia;
                                         widget.cotizacion.cuentaSeleccionada = resultado['cotizacion'].cuentaSeleccionada;
                                         widget.cotizacion.otroMetodoPago = resultado['cotizacion'].otroMetodoPago;
@@ -594,7 +600,9 @@ class _Seccion2State extends State<Seccion2> {
   }
 
   List<TableRow> _buildKitsAdicionalesRows(List<dynamic> kits) {
-    return kits.map<TableRow>((kit) {
+    return kits
+        .where((kit) => (kit['estado'] ?? '').toString().toLowerCase() != 'separador')
+        .map<TableRow>((kit) {
       final name = kit['name'] ?? '';
       final adicionales = kit['adicionales'] ?? '';
 

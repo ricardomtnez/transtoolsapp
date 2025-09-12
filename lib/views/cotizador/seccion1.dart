@@ -2088,14 +2088,8 @@ class _YearPickerField extends StatelessWidget {
   });
 
   List<String> _getYears() {
-    final currentYear = DateTime.now().year;
-    final startYear = currentYear - 5;
-    final endYear = currentYear + 1;
-
-    return List.generate(
-      endYear - startYear + 1,
-      (i) => (startYear + i).toString(),
-    );
+  // Mostrar únicamente los años solicitados (fijo)
+  return ['2025', '2026'];
   }
 
   @override

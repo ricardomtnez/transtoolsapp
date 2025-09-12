@@ -66,10 +66,10 @@ class _Seccion3State extends State<Seccion3> {
   String anticipoSeleccionado = '';
 
   final List<String> cuentasMXN = [
-    'BBVA Bancomer - 0172940930 - Clabe: 012830001729409301',
+    'BBVA Bancomer: 0172940930 Clabe: 012830001729409301',
   ];
   final List<String> cuentasUSD = [
-    'BBVA Bancomer USD - 0117396880 - Clabe: 012830001173968809',
+    'BBVA Bancomer USD: 0117396880  Clabe: 012830001173968809',
   ];
 
   // Opciones de entrega (solo etiquetas). Los precios se manejan en
@@ -311,6 +311,9 @@ class _Seccion3State extends State<Seccion3> {
                                           unidadesError = false;
                                           unidadesErrorText = null;
                                         });
+                                        try {
+                                          widget.cotizacion.numeroUnidades = int.tryParse(unidadesController.text) ?? 0;
+                                        } catch (_) {}
                                       }
                                     },
                                   ),
@@ -340,6 +343,9 @@ class _Seccion3State extends State<Seccion3> {
                                           unidadesError = false;
                                           unidadesErrorText = null;
                                         });
+                                        try {
+                                          widget.cotizacion.numeroUnidades = int.tryParse(unidadesController.text) ?? 0;
+                                        } catch (_) {}
                                       },
                                     ),
                                   ),
@@ -357,6 +363,9 @@ class _Seccion3State extends State<Seccion3> {
                                         unidadesError = false;
                                         unidadesErrorText = null;
                                       });
+                                      try {
+                                        widget.cotizacion.numeroUnidades = int.tryParse(unidadesController.text) ?? 0;
+                                      } catch (_) {}
                                     },
                                   ),
                                 ],
@@ -394,6 +403,12 @@ class _Seccion3State extends State<Seccion3> {
                                   cuentaSeleccionada = null;
                                   otroMetodoController.clear();
                                 });
+                                try {
+                                  widget.cotizacion.metodoPago = value;
+                                  widget.cotizacion.moneda = null;
+                                  widget.cotizacion.cuentaSeleccionada = null;
+                                  widget.cotizacion.otroMetodoPago = null;
+                                } catch (_) {}
                               },
                               error: metodoPagoError,
                               errorText: metodoPagoErrorText,
@@ -422,6 +437,10 @@ class _Seccion3State extends State<Seccion3> {
                                     monedaErrorText = null;
                                     cuentaSeleccionada = null;
                                   });
+                                  try {
+                                    widget.cotizacion.moneda = value;
+                                    widget.cotizacion.cuentaSeleccionada = null;
+                                  } catch (_) {}
                                 },
                                 error: monedaError,
                                 errorText: monedaErrorText,
@@ -448,6 +467,9 @@ class _Seccion3State extends State<Seccion3> {
                                     cuentaError = false;
                                     cuentaErrorText = null;
                                   });
+                                  try {
+                                    widget.cotizacion.cuentaSeleccionada = value;
+                                  } catch (_) {}
                                 },
                                 error: cuentaError,
                                 errorText: cuentaErrorText,
@@ -500,22 +522,30 @@ class _Seccion3State extends State<Seccion3> {
                                     ),
                                     border: InputBorder.none,
                                     suffixIcon:
-                                        otroMetodoController.text.isNotEmpty
-                                        ? IconButton(
-                                            icon: const Icon(
-                                              Icons.clear,
-                                              size: 22,
-                                              color: Colors.grey,
-                                            ),
-                                            onPressed: () {
-                                              otroMetodoController.clear();
-                                              setState(() {});
-                                            },
-                                            splashRadius: 18,
-                                          )
-                                        : null,
+                                          otroMetodoController.text.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(
+                                                Icons.clear,
+                                                size: 22,
+                                                color: Colors.grey,
+                                              ),
+                                              onPressed: () {
+                                                otroMetodoController.clear();
+                                                setState(() {});
+                                                try {
+                                                  widget.cotizacion.otroMetodoPago = null;
+                                                } catch (_) {}
+                                              },
+                                              splashRadius: 18,
+                                            )
+                                          : null,
                                   ),
-                                  onChanged: (_) => setState(() {}),
+                                  onChanged: (v) {
+                                    setState(() {});
+                                    try {
+                                      widget.cotizacion.otroMetodoPago = v.isNotEmpty ? v : null;
+                                    } catch (_) {}
+                                  },
                                   validator: (value) {
                                     if (metodoPago == 'Otro' &&
                                         (value == null || value.isEmpty)) {
@@ -566,6 +596,9 @@ class _Seccion3State extends State<Seccion3> {
                                                 setState(() {
                                                   anticipoSeleccionado = '';
                                                 });
+                                                try {
+                                                  widget.cotizacion.anticipoSeleccionado = null;
+                                                } catch (_) {}
                                               },
                                               splashRadius: 18,
                                             )
@@ -608,6 +641,9 @@ class _Seccion3State extends State<Seccion3> {
                                         anticipoError = false;
                                         anticipoErrorText = null;
                                       });
+                                      try {
+                                        widget.cotizacion.anticipoSeleccionado = clean.isNotEmpty ? clean : null;
+                                      } catch (_) {}
                                     },
                                   ),
                                   if (anticipoError && anticipoErrorText != null)
@@ -704,6 +740,11 @@ class _Seccion3State extends State<Seccion3> {
                                           rangoEntregaError = false;
                                           rangoEntregaErrorText = null;
                                         });
+                                        try {
+                                          widget.cotizacion.fechaInicioEntrega = fechaInicio;
+                                          widget.cotizacion.fechaFinEntrega = fechaFin;
+                                          widget.cotizacion.semanasEntrega = semanasEntrega;
+                                        } catch (_) {}
                                       }
                                     },
                                   ),
@@ -742,11 +783,21 @@ class _Seccion3State extends State<Seccion3> {
                                       value != null ? entregaDefaultPrices[value] : null;
                                   if (defaultPrice != null) {
                                     entregaMontoController.text = defaultPrice.toStringAsFixed(0);
+                                    // Persist into cotizacion so navigation keeps the value
+                                    try {
+                                      widget.cotizacion.costoEntrega = defaultPrice;
+                                    } catch (_) {}
                                   } else {
                                     // Por acordar -> dejar vacío para que el usuario ingrese el monto
                                     entregaMontoController.text = '';
+                                    try {
+                                      widget.cotizacion.costoEntrega = null;
+                                    } catch (_) {}
                                   }
                                 });
+                                try {
+                                  widget.cotizacion.entregaEn = value;
+                                } catch (_) {}
                               },
                               error: entregaEnError,
                               errorText: entregaEnErrorText,
@@ -757,6 +808,10 @@ class _Seccion3State extends State<Seccion3> {
                                   entregaEnError = false;
                                   entregaEnErrorText = null;
                                   entregaMontoController.clear();
+                                  try {
+                                    widget.cotizacion.costoEntrega = null;
+                                    widget.cotizacion.entregaEn = null;
+                                  } catch (_) {}
                                 });
                               },
                               validator: (value) => value == null
@@ -795,10 +850,15 @@ class _Seccion3State extends State<Seccion3> {
                                   ),
                                   border: InputBorder.none,
                                 ),
-                                onChanged: (_) {
+                                onChanged: (value) {
                                   setState(() {
                                     entregaMontoError = false;
                                     entregaMontoErrorText = null;
+                                    // Persist current entrega monto into the cotizacion model
+                                    final parsed = value.isNotEmpty ? double.tryParse(value) : null;
+                                    try {
+                                      widget.cotizacion.costoEntrega = parsed;
+                                    } catch (_) {}
                                   });
                                 },
                                 validator: (value) {

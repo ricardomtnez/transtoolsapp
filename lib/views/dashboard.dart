@@ -230,7 +230,7 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
               const Padding(
                 padding: EdgeInsets.only(bottom: 35),
                 child: Text(
-                  'Versión 1.0.1',
+                  'Versión 1.0.3',
                   style: TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ),
@@ -285,6 +285,10 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
                     ),
                     const SizedBox(height: 10),
                     Container(

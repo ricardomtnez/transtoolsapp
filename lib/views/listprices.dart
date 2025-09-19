@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:transtools/api/quote_controller.dart';
+import 'package:transtools/api/login_controller.dart';
 
 class ListPricesPage extends StatefulWidget {
   const ListPricesPage({super.key});
@@ -37,6 +38,9 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
   List<String> _lineasUnicas = [];
   final Map<String, List<String>> _lineasPorGrupo = {};
   bool _cargandoLineas = true; // Agrega este flag
+  bool _sinGruposDisponibles = false;
+
+  // ...existing code...
 
   @override
   void initState() {
@@ -62,8 +66,23 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
   Future<void> cargarGruposYLineas() async {
     final grupos = await QuoteController.obtenerGrupos(4863963204);
+
+  // Delega el filtrado al LoginController (que ya maneja roles)
+    final loginController = LoginController();
+    final gruposFiltrados = await loginController.filterGruposByRole(grupos);
+
+  // debug temporal eliminado
+
+    if (gruposFiltrados.isEmpty) {
+      setState(() {
+        _sinGruposDisponibles = true;
+        _loading = false;
+      });
+      return;
+    }
+
     setState(() {
-      _grupos = grupos;
+      _grupos = gruposFiltrados;
       _tabController = TabController(length: _grupos.length, vsync: this);
       _loading = false;
       _selectedLinea = null;
@@ -75,21 +94,21 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
     });
 
     // Consulta todos los modelos de los grupos en paralelo
-    final futures = grupos.map((grupo) =>
+    final futures = gruposFiltrados.map((grupo) =>
       QuoteController.obtenerModelosPorGrupoSinFiltros(grupo['value'])
     ).toList();
 
     final resultados = await Future.wait(futures);
 
-    for (int i = 0; i < grupos.length; i++) {
+    for (int i = 0; i < gruposFiltrados.length; i++) {
       final modelos = resultados[i];
       // Solo consideramos líneas de modelos aprobados para la lista de filtros
   final aprobados = modelos.where((m) => _esAprobado(m)).toList();
-  _lineasPorGrupo[grupos[i]['value']] = aprobados.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
+  _lineasPorGrupo[gruposFiltrados[i]['value']] = aprobados.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
     }
 
     setState(() {
-      _lineasUnicas = _lineasPorGrupo[_grupos[0]['value']] ?? [];
+  _lineasUnicas = _lineasPorGrupo[_grupos[0]['value']] ?? [];
       _cargandoLineas = false;
     });
 
@@ -267,6 +286,17 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
     if (_loading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_sinGruposDisponibles) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Lista de Precios'),
+        ),
+        body: const Center(
+          child: Text('No hay grupos disponibles para tu rol.'),
+        ),
       );
     }
 

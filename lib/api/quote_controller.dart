@@ -766,47 +766,39 @@ query {
   "text_mkshpxr7": mesActual,
 };
 
-    const boardId = 9523399732;
+final String columnValuesJson = jsonEncode(columnas).replaceAll('"', r'\"');
 
-    // Usar variable GraphQL para column_values evita problemas con comillas internas
-    final String mutation = '''
-      mutation CreateItem(\$columnValues: String!) {
+    const boardId = 9523399732;
+    final String mutation =
+        '''
+      mutation {
         create_item(
           board_id: $boardId,
           group_id: "topics",
           item_name: "$folio",
-          column_values: \$columnValues
+           column_values: "$columnValuesJson"
+
         ) {
           id
         }
       }
     ''';
 
-    final body = json.encode({
-      'query': mutation,
-      'variables': {
-        'columnValues': jsonEncode(columnas),
-      }
-    });
-
     final response = await http.post(
       Uri.parse('https://api.monday.com/v2'),
       headers: {'Content-Type': 'application/json', 'Authorization': token},
-      body: body,
+      body: json.encode({'query': mutation}),
     );
 
     final data = jsonDecode(response.body);
 
-    if (data['errors'] != null) {
-      throw Exception('Error al crear ítem en Monday: ${data['errors']}');
+    if (data['data']?['create_item']?['id'] == null) {
+      throw Exception(
+        'Error al crear ítem en Monday: ${data['errors'] ?? response.body}',
+      );
     }
 
-    final idStr = data['data']?['create_item']?['id'];
-    if (idStr == null) {
-      throw Exception('Error al crear ítem en Monday: respuesta inesperada ${response.body}');
-    }
-
-    return int.parse(idStr);
+    return int.parse(data['data']['create_item']['id']);
   }
 
   //Método que sube el archivo a monday

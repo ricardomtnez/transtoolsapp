@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transtools/api/quote_controller.dart';
+import 'package:transtools/api/login_controller.dart';
 import 'package:transtools/models/cotizacion.dart';
 import 'package:transtools/models/usuario.dart';
 import 'package:loading_indicator/loading_indicator.dart';
@@ -454,8 +455,11 @@ Future<void> _cargarGruposMonday() async {
     if (gruposCacheString != null) {
       // Parsear cache y mapear claves a 'value' y 'text'
       final List<dynamic> gruposJson = jsonDecode(gruposCacheString);
+      // Aplicar filtrado por rol usando LoginController
+      final loginController = LoginController();
+      final gruposFiltradosRaw = await loginController.filterGruposByRole(gruposJson);
       setState(() {
-        _grupos = gruposJson.map<Map<String, String>>((g) {
+        _grupos = gruposFiltradosRaw.map<Map<String, String>>((g) {
           return {
             'value': g['value']?.toString() ?? '',
             'text': g['text']?.toString() ?? '',
@@ -468,8 +472,12 @@ Future<void> _cargarGruposMonday() async {
         final gruposApi = await QuoteController.obtenerGrupos(boardId);
         await prefs.setString('grupos', jsonEncode(gruposApi));
 
+        // Filtrar grupos según rol
+        final loginController = LoginController();
+        final gruposFiltradosRaw = await loginController.filterGruposByRole(gruposApi);
+
       setState(() {
-        _grupos = gruposApi.map<Map<String, String>>((g) {
+        _grupos = gruposFiltradosRaw.map<Map<String, String>>((g) {
           return {
             'value': g['value']?.toString() ?? '',
             'text': g['text']?.toString() ?? '',

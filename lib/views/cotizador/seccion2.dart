@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:transtools/api/quote_controller.dart';
+import 'package:transtools/api/login_controller.dart';
 import 'package:transtools/models/adicional_seleccionado.dart';
 import 'package:transtools/models/cotizacion.dart';
 import 'package:intl/intl.dart';
@@ -214,10 +215,13 @@ class _Seccion2State extends State<Seccion2> {
     try {
       const boardId = 8890947131;
       final gruposApi = await QuoteController.obtenerCategoriasAdicionales(boardId);
+      // Filtrar según rol usando el LoginController (ocultar "PERSONALIZADAS" para Miembro)
+      final loginController = LoginController();
+      final gruposFiltradosRaw = await loginController.filterGruposByRole(gruposApi);
       setState(() {
         _gruposAdicionales.clear();
         _gruposAdicionales.addAll(
-          gruposApi.map<Map<String, String>>((g) {
+          gruposFiltradosRaw.map<Map<String, String>>((g) {
             return {
               'value': g['value']?.toString() ?? '',
               'text': g['text']?.toString() ?? '',

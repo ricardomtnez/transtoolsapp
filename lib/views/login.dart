@@ -59,6 +59,7 @@ class LoginState extends State<Login> {
           password: storedPassword,
           email: email,
           initials: userData['iniciales'] ?? '',
+            rol: userData['rol'] ?? '',
         );
 
         // Serializamos a json

@@ -60,18 +60,43 @@ query {
   String password = '';
   String initials = '';
   String rol = '';
+  String empresa = '';
 
         for (var col in columnValues) {
-          final title = col['column']?['title'];
-          if (title == 'Departamento/Área') {
-            departamento = col['text'] ?? '';
-          } else if (title == 'Contraseña') {
-            password = col['text'] ?? '';
-          } else if (title == 'Iniciales') {
-            initials = col['text'] ?? '';
-          } else if (col['column']?['id'] == 'text_mkvw1k8n' || title == 'Rol') {
+          final title = (col['column']?['title'] ?? '').toString();
+          final titleLower = title.toLowerCase();
+          final colId = (col['column']?['id'] ?? '').toString();
+
+          // Obtener texto preferente: text, si no existe intentar decodificar value
+          String colText = col['text']?.toString() ?? '';
+          if (colText.toString().trim().isEmpty && col['value'] != null) {
+            try {
+              final decoded = jsonDecode(col['value'].toString());
+              if (decoded is Map && decoded['text'] != null) {
+                colText = decoded['text'].toString();
+              } else if (decoded is String) {
+                colText = decoded;
+              } else {
+                colText = decoded.toString();
+              }
+            } catch (_) {
+              // si no es JSON, usar el valor crudo
+              colText = col['value']?.toString() ?? '';
+            }
+          }
+
+          if (title == 'Departamento/Área' || titleLower.contains('departamento')) {
+            departamento = colText;
+          } else if (title == 'Contraseña' || titleLower.contains('contrase')) {
+            password = colText;
+          } else if (title == 'Iniciales' || titleLower.contains('inicial')) {
+            initials = colText;
+          } else if (titleLower.contains('empresa') || colId == 'text_mkw1vdvx') {
+            // Columna Empresa (id: text_mkw1vdvx) o título que contiene 'empresa'
+            empresa = colText;
+          } else if (colId == 'text_mkvw1k8n' || titleLower.contains('rol')) {
             // Columna de rol (id: text_mkvw1k8n)
-            rol = col['text'] ?? '';
+            rol = colText;
           }
         }
 
@@ -79,6 +104,7 @@ query {
         return {
           'fullname': name,
           'departamento': departamento,
+          'empresa': empresa,
           'password': password,
           'iniciales': initials,
           'rol': rol,
@@ -91,6 +117,38 @@ query {
       throw Exception(
         'Error en la conexión con monday.com: ${response.statusCode}',
       );
+    }
+  }
+
+  /// Devuelve la ruta del asset del logo según el nombre de la empresa.
+  /// - Si el nombre contiene 'kenworth' (case-insensitive) devuelve
+  ///   'assets/Kenworth-logo.png'.
+  /// - En cualquier otro caso devuelve 'assets/transtools_logo_white.png'.
+  static String assetLogoForEmpresa(String? empresa) {
+    final e = (empresa ?? '').toString().trim().toLowerCase();
+    if (e.contains('kenworth')) {
+      return 'assets/Kenworth-logo.png';
+    }
+    // Por defecto Transtools
+    return 'assets/transtools_logo_white.png';
+  }
+
+  /// Lee el usuario almacenado en SharedPreferences y retorna la ruta al
+  /// asset del logo correspondiente a su empresa. Si no hay usuario, retorna
+  /// el logo por defecto de Transtools.
+  Future<String> assetLogoFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString('usuario');
+    if (json == null || json.isEmpty) return assetLogoForEmpresa(null);
+    try {
+      // Nota: el modelo Usuario actual no tiene campo 'empresa'. Intentamos
+      // leer 'empresa' del JSON crudo si fue guardado allí.
+      final Map<String, dynamic> mapa = jsonDecode(json);
+      // ignore: unnecessary_null_in_if_null_operators
+      final empresa = mapa['empresa'] ?? mapa['company'] ?? null;
+      return assetLogoForEmpresa(empresa?.toString());
+    } catch (_) {
+      return assetLogoForEmpresa(null);
     }
   }
 

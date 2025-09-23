@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:transtools/api/quote_controller.dart';
@@ -7,6 +6,10 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
+import 'package:transtools/api/login_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:flutter/services.dart';
 
 class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
@@ -186,13 +189,41 @@ class Seccion4 extends StatelessWidget {
 
                         _buildTitulo('Estructura'),
                         _buildCard([
-                          buildEstructuraTable(
-                            cotizacion.estructura.map(
-                              (k, v) => MapEntry(k, v.toString()),
-                            ),
-                            cotizacion.adicionalesDeLinea
-                                .cast<Map<String, dynamic>>(),
-                          ),
+                          // Defensive filtering: ensure estructura and adicionalesDeLinea
+                          // respect the excludedFeatures and 'excluido' flags even if
+                          // upstream data wasn't normalized.
+                          Builder(builder: (context) {
+                            // normalize excluded keys
+                            final rawExcluded = cotizacion.excludedFeatures?['Estructura'];
+                            final Set<String> excludedKeysNormalized = <String>{};
+                            if (rawExcluded != null) {
+                              try {
+                                for (final e in (rawExcluded as Iterable)) {
+                                  excludedKeysNormalized.add(e.toString().toLowerCase());
+                                }
+                              } catch (_) {
+                                excludedKeysNormalized.add(rawExcluded.toString().toLowerCase());
+                              }
+                            }
+
+                            final estructuraMap = Map<String, String>.fromEntries(
+                              cotizacion.estructura.entries.where((e) => !excludedKeysNormalized.contains(e.key.toString().toLowerCase())).map(
+                                    (e) => MapEntry(e.key, e.value.toString()),
+                                  ),
+                            );
+
+                            final adicionalesList = cotizacion.adicionalesDeLinea
+                                .cast<Map<String, dynamic>>()
+                                .where((a) {
+                              try {
+                                return a['excluido'] != true;
+                              } catch (_) {
+                                return true;
+                              }
+                            }).toList();
+
+                            return buildEstructuraTable(estructuraMap, adicionalesList);
+                          }),
                         ]),
 
                         _buildTitulo('Equipamiento Seleccionados'),
@@ -563,17 +594,73 @@ class Seccion4 extends StatelessWidget {
   Future<Uint8List> _generarPDF(BuildContext context) async {
     final pdf = pw.Document();
 
-    // Carga los logos ANTES de cualquier await que dependa de context
-    final logoBytes = await DefaultAssetBundle.of(
-      context,
-    ).load('assets/transtools_logo_white.png');
+  // Carga los logos ANTES de cualquier await que dependa de context
+  // Decisión de logo: usar la empresa asociada al USUARIO (la que viene de Monday),
+  // no la empresa del cliente en la cotización.
+  // Mostrar el usuario recibido para depuración
+  String empresa = usuario.empresa.toString().trim();
+    if (empresa.trim().isEmpty) {
+      try {
+        final loginController = LoginController();
+        final fresh = await loginController.loginUser(usuario.email);
+        // DEBUG: mostrar lo que llegó desde la consulta
+        if (fresh != null && (fresh['empresa'] ?? '').toString().trim().isNotEmpty) {
+          empresa = fresh['empresa'].toString();
+          // Actualizar SharedPreferences para futuras cargas
+          final prefs = await SharedPreferences.getInstance();
+          final jsonString = prefs.getString('usuario');
+          if (jsonString != null && jsonString.isNotEmpty) {
+            try {
+              final mapa = jsonDecode(jsonString) as Map<String, dynamic>;
+              mapa['empresa'] = empresa;
+              await prefs.setString('usuario', jsonEncode(mapa));
+            } catch (_) {
+              // ignore errors updating prefs
+            }
+          }
+        }
+      } catch (_) {
+        // ignore network/parse errors and fallback to empresa empty
+      }
+    }
+
+    final logoPath = LoginController.assetLogoForEmpresa(empresa);
+    debugPrint('Seccion4: empresa="$empresa", logoPath="$logoPath"');
     // ignore: use_build_context_synchronously
-    final logo10Bytes = await DefaultAssetBundle.of(
-      // ignore: use_build_context_synchronously
-      context,
-    ).load('assets/10sinfondo.png');
-    final logo10 = pw.MemoryImage(logo10Bytes.buffer.asUint8List());
-    final logo = pw.MemoryImage(logoBytes.buffer.asUint8List());
+  // Use rootBundle to load assets deterministically (avoids context-related bundles)
+  final logoBytes = await rootBundle.load(logoPath);
+  // ignore: use_build_context_synchronously
+  final logo10Bytes = await rootBundle.load('assets/10sinfondo.png');
+  // Debug: print lengths and base64 prefixes to confirm which asset was loaded
+  // Make mutable lists so we can fallback if the wrong file was loaded
+  var logoList = logoBytes.buffer.asUint8List();
+  final logo10List = logo10Bytes.buffer.asUint8List();
+  final logoPrefix = base64Encode(logoList.sublist(0, 20));
+  final logo10Prefix = base64Encode(logo10List.sublist(0, 20));
+    debugPrint('Seccion4: logoBytes.length=${logoBytes.lengthInBytes}, logoPrefix=$logoPrefix');
+    debugPrint('Seccion4: logo10Bytes.length=${logo10Bytes.lengthInBytes}, logo10Prefix=$logo10Prefix');
+
+    // Defensive fallback: if the company is Kenworth but the loaded asset is
+    // large (indicating it might be transtools), try loading the Kenworth asset
+    // explicitly. We use a size threshold (40KB) because Kenworth-logo.png is
+    // small (~15KB) while transtools images are much larger (~144KB+).
+    try {
+      if (empresa.toLowerCase().contains('kenworth') && logoList.lengthInBytes > 40000) {
+        debugPrint('Seccion4: expected Kenworth but loaded large asset; attempting explicit Kenworth load');
+        final kenBytes = await rootBundle.load('assets/Kenworth-logo.png');
+        final kenList = kenBytes.buffer.asUint8List();
+        if (kenList.lengthInBytes <= 40000) {
+          logoList = kenList;
+          debugPrint('Seccion4: fallback succeeded, loaded Kenworth logo length=${kenList.lengthInBytes}');
+        } else {
+          debugPrint('Seccion4: fallback Kenworth asset also large length=${kenList.lengthInBytes}');
+        }
+      }
+    } catch (e) {
+      debugPrint('Seccion4: error during logo fallback: $e');
+    }
+  final logo10 = pw.MemoryImage(logo10List);
+  final logo = pw.MemoryImage(logoList);
 
     // Calcular totales para el PDF
     final double precioProductoConAdicionales =
@@ -1826,14 +1913,23 @@ class Seccion4 extends StatelessWidget {
     Map<String, String> estructura,
     List<Map<String, dynamic>> adicionalesDeLinea,
   ) {
-    // Obtén los excluidos desde cotizacion
-    final excludedKeys =
-        cotizacion.excludedFeatures?['Estructura'] ?? <String>{};
+    // Obtén los excluidos desde cotizacion y normalízalos a minúsculas
+    final rawExcluded = cotizacion.excludedFeatures?['Estructura'];
+    final Set<String> excludedKeysNormalized = <String>{};
+    if (rawExcluded != null) {
+      try {
+        for (final e in (rawExcluded as Iterable)) {
+          excludedKeysNormalized.add(e.toString().toLowerCase());
+        }
+      } catch (_) {
+        excludedKeysNormalized.add(rawExcluded.toString().toLowerCase());
+      }
+    }
 
     final rows = estructura.entries
         .where(
-          (entry) => !excludedKeys.contains(entry.key),
-        ) // <-- FILTRA EXCLUIDOS
+          (entry) => !excludedKeysNormalized.contains(entry.key.toString().toLowerCase()),
+        ) // <-- FILTRA EXCLUIDOS (comparación normalizada)
         .map(
           (entry) => TableRow(
             children: [
@@ -1862,7 +1958,13 @@ class Seccion4 extends StatelessWidget {
 
     // Agrega el título solo si hay adicionales de línea no excluidos
     final adicionalesIncluidos = cotizacion.adicionalesDeLinea
-        .where((a) => a['excluido'] != true)
+        .where((a) {
+          try {
+            return (a is Map && a['excluido'] != true);
+          } catch (_) {
+            return true;
+          }
+        })
         .toList();
 
     if (cotizacion.adicionalesDeLinea.isNotEmpty &&

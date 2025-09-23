@@ -168,7 +168,16 @@ query {
           String precio = '';
           String estado = '';
           
+          String descripcion = '';
           for (final col in columnValues) {
+            // extraer descripción si viene en la columna 'reflejo0'
+            if (col['id'] == 'reflejo0' || col['column']?['title'] == 'Descripción') {
+              // puede venir en 'text' o en 'display_value'
+              // preferimos 'text' si está disponible
+              // en caso contrario usamos 'display_value'
+              // aseguramos string
+              descripcion = (col['text'] ?? col['display_value'] ?? '').toString();
+            }
             if (col['column']?['title'] == 'Línea') {
               linea = col['text'] ?? '';
             }
@@ -180,8 +189,8 @@ query {
               precio = col['display_value'] ?? col['text'] ?? '';
             }
             if (col['id'] == 'estado33') {
-            estado = col['text'] ?? '';
-          }
+              estado = col['text'] ?? '';
+            }
           }
           
           return {
@@ -189,8 +198,9 @@ query {
             'producto': item['name']?.toString() ?? '',
             'linea': linea,
             'ejes': ejes,
-            'precio': precio, 
-            'estado': estado, 
+            'precio': precio,
+            'estado': estado,
+            'descripcion': descripcion,
           };
         }).toList();
       }

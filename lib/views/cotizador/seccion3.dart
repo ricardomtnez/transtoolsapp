@@ -1000,9 +1000,7 @@ class _Seccion3State extends State<Seccion3> {
                                   if (_formKey.currentState!.validate()) {
                                     // Siguiente paso
                                     // Actualiza el objeto cotización con los datos ingresados en esta sección:
-                                    final cotizacionActualizada = widget
-                                        .cotizacion
-                                        .copyWith(
+                                    final cotizacionActualizada = widget.cotizacion.copyWith(
                                           numeroUnidades: int.tryParse(
                                             unidadesController.text,
                                           ),
@@ -1026,6 +1024,9 @@ class _Seccion3State extends State<Seccion3> {
                                           semanasEntrega: semanasEntrega,
                                           anticipoSeleccionado:
                                               anticipoSeleccionado,
+                                          // preserve previously computed excludedFeatures and adicionalesDeLinea
+                                          excludedFeatures: widget.cotizacion.excludedFeatures,
+                                          adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,
                                         );
 
                                     // Navegar a la Sección 4 pasando el objeto cotización actualizado

@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/api/login_controller.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class ListPricesPage extends StatefulWidget {
   const ListPricesPage({super.key});
@@ -34,7 +38,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
   String _searchText = '';
   Timer? _searchDebounce;
   late NumberFormat _currencyFormatter;
-  String? _selectedLinea;
+  String _selectedLinea = '';
   List<String> _lineasUnicas = [];
   final Map<String, List<String>> _lineasPorGrupo = {};
   bool _cargandoLineas = true; // Agrega este flag
@@ -81,11 +85,11 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
       return;
     }
 
-    setState(() {
+      setState(() {
       _grupos = gruposFiltrados;
       _tabController = TabController(length: _grupos.length, vsync: this);
       _loading = false;
-      _selectedLinea = null;
+      _selectedLinea = '';
       _modelos = [];
       _preciosProductos.clear();
       _lineasUnicas = [];
@@ -115,7 +119,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       setState(() {
-        _selectedLinea = null;
+        _selectedLinea = '';
         _modelos = [];
         _preciosProductos.clear();
         _lineasUnicas = _lineasPorGrupo[_grupos[_tabController.index]['value']] ?? [];
@@ -150,7 +154,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
       // Prefill precios desde la respuesta de modelos aprobados si incluyen 'precio' o 'subtotal'
       for (var modelo in modelosAprobados) {
-        final id = modelo['value'] ?? '';
+        final id = (modelo['value'] ?? '').toString();
         double? p;
         if (modelo.containsKey('precio') && (modelo['precio']?.toString().isNotEmpty ?? false)) {
           p = double.tryParse(modelo['precio'].toString().replaceAll('\$', '').replaceAll(',', ''));
@@ -164,16 +168,36 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
         }
       }
 
-      // Consulta los precios secuencialmente para poder actualizar el progreso
+      // Consulta los precios en paralelo pero actualiza el progreso conforme llegan
+      // Limitar concurrencia: ejecutamos en batches para no saturar la API
+      const int batchSize = 6;
+      final pendientesIds = <String>[];
       for (var modelo in modelosAprobados) {
-        final itemId = modelo['value'] ?? '';
-        if (!_preciosProductos.containsKey(itemId)) {
-          final precio = await obtenerPrecioConAdicionales(itemId);
-          _preciosProductos[itemId] = precio;
-        }
-        setState(() {
-          _progresoActual++;
-        });
+        final itemId = (modelo['value'] ?? '').toString();
+        if (_preciosProductos.containsKey(itemId)) continue;
+        pendientesIds.add(itemId);
+      }
+
+      for (var i = 0; i < pendientesIds.length; i += batchSize) {
+        final batch = pendientesIds.skip(i).take(batchSize).toList();
+        final batchFutures = batch.map((itemId) {
+          return obtenerPrecioConAdicionales(itemId).then((precio) {
+            setState(() {
+              _preciosProductos[itemId] = precio;
+              _progresoActual++;
+              if (_progresoActual > _progresoTotal) _progresoActual = _progresoTotal;
+            });
+          }).catchError((e) {
+            setState(() {
+              _progresoActual++;
+              if (_progresoActual > _progresoTotal) _progresoActual = _progresoTotal;
+            });
+          });
+        }).toList();
+
+        await Future.wait(batchFutures);
+        // pequeña pausa opcional para evitar picos (puedes ajustar o quitar)
+        await Future.delayed(const Duration(milliseconds: 50));
       }
 
       setState(() {
@@ -182,7 +206,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
         _cargandoPrecios = false;
         if (_progresoActual > _progresoTotal) _progresoActual = _progresoTotal;
         _lineasUnicas = _modelos.map((m) => m['linea'] ?? '').toSet().toList()..removeWhere((l) => l.isEmpty);
-        _selectedLinea = null;
+  _selectedLinea = '';
       });
     } catch (e) {
       setState(() {
@@ -208,8 +232,8 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
       });
 
       // Prefill precios desde la respuesta de modelos si incluyen 'precio' o 'subtotal'
-  for (var modelo in modelosAprobados) {
-        final id = modelo['value'] ?? '';
+      for (var modelo in modelosAprobados) {
+        final id = (modelo['value'] ?? '').toString();
         double? p;
         if (modelo.containsKey('precio') && (modelo['precio']?.toString().isNotEmpty ?? false)) {
           p = double.tryParse(modelo['precio'].toString().replaceAll('\$', '').replaceAll(',', ''));
@@ -223,7 +247,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
 
       // Ahora consulta los precios en segundo plano
       for (var modelo in modelosAprobados) {
-        final itemId = modelo['value'] ?? '';
+  final itemId = (modelo['value'] ?? '').toString();
         if (!_preciosProductos.containsKey(itemId)) {
           obtenerPrecioConAdicionales(itemId).then((precio) {
             setState(() {
@@ -281,6 +305,153 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
     super.dispose();
   }
 
+  Future<void> _exportarListaPreciosPdf(List modelos) async {
+    final pdf = pw.Document();
+
+    final nombreGrupo = (_grupos.isNotEmpty && _tabController.index >= 0 && _tabController.index < _grupos.length)
+        ? (_grupos[_tabController.index]['text'] ?? '')
+        : '';
+    final fecha = DateTime.now();
+
+    // Try to load logo
+    pw.ImageProvider? logoImage;
+    try {
+      final bytesLogo = await rootBundle.load('assets/transtools_logo_white.png');
+      logoImage = pw.MemoryImage(bytesLogo.buffer.asUint8List());
+    } catch (e) {
+      logoImage = null;
+    }
+
+    // tableData removed: table will be built manually to allow per-linea coloring
+
+pdf.addPage(
+  pw.MultiPage(
+    pageFormat: PdfPageFormat.letter.landscape,
+    margin: pw.EdgeInsets.zero,
+    build: (pw.Context context) {
+      // Header
+      final header = pw.Container(
+        color: PdfColors.blue900,
+        padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            if (logoImage != null)
+              pw.Container(width: 160, height: 44, child: pw.Image(logoImage, fit: pw.BoxFit.contain))
+            else
+              pw.SizedBox(width: 160, height: 44),
+            pw.Text(
+              'LISTA DE PRECIOS',
+              style: pw.TextStyle(color: PdfColors.white, fontSize: 20, fontWeight: pw.FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+
+      // Metadata
+      final metadata = pw.Padding(
+        padding: const pw.EdgeInsets.fromLTRB(18, 18, 18, 6),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(
+              'Fecha: ${fecha.toLocal().toString().split(' ').first}',
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+            ),
+            if (nombreGrupo.isNotEmpty)
+              pw.Text(
+                nombreGrupo,
+                style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+              ),
+          ],
+        ),
+      );
+
+      // Preparar los datos de la tabla (agregamos columna Precio + IVA)
+      final tableData = List<List<String>>.generate(
+        modelos.length,
+        (i) {
+          final item = modelos[i];
+          final codigo = item['producto']?.toString() ?? '';
+          final linea = item['linea']?.toString() ?? '';
+          final descripcion = item['descripcion']?.toString() ?? '';
+          final id = item['value']?.toString() ?? '';
+
+          // Precio base
+          final precioBase = _preciosProductos[id];
+          final precio = precioBase != null ? _formatCurrency(precioBase) : 'N/D';
+
+          // Precio con IVA
+          final precioConIva = precioBase != null ? _formatCurrency(precioBase * 1.16) : 'N/D';
+
+          return [
+            codigo,
+            linea,
+            descripcion,
+            precio,
+            precioConIva,
+          ];
+        },
+      );
+
+      // Tabla final (5 columnas ahora)
+      final table = pw.TableHelper.fromTextArray(
+        headers: ['Código', 'Línea', 'Descripción', 'Precio Sin IVA', 'Precio Neto'],
+        data: tableData,
+        headerDecoration: pw.BoxDecoration(color: PdfColors.blue900),
+        headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10),
+        cellStyle: pw.TextStyle(fontSize: 9),
+        border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.8),
+        cellAlignments: {
+          0: pw.Alignment.center,  // Código
+          1: pw.Alignment.center,  // Línea
+          2: pw.Alignment.centerLeft,  // Descripción
+          3: pw.Alignment.center, // Precio
+          4: pw.Alignment.center, // Precio + IVA
+        },
+        columnWidths: {
+          0: const pw.FixedColumnWidth(118),  // Código
+          1: const pw.FixedColumnWidth(90), // Línea
+          2: const pw.FlexColumnWidth(1),    // Descripción
+          3: const pw.FixedColumnWidth(80),  // Precio
+          4: const pw.FixedColumnWidth(100), // Precio + IVA
+        },
+        oddRowDecoration: pw.BoxDecoration(color: PdfColors.grey100),
+      );
+
+      // Nota final
+      final nota = pw.Padding(
+        padding: const pw.EdgeInsets.fromLTRB(18, 6, 18, 18),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(height: 12),
+            pw.Divider(),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              'Precios sujetos a cambio sin previo aviso. Consulte disponibilidad con su representante de ventas.',
+              style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+            ),
+          ],
+        ),
+      );
+
+      return [
+        header,
+        metadata,
+        pw.SizedBox(height: 6),
+        pw.Padding(padding: const pw.EdgeInsets.fromLTRB(18, 0, 18, 0), child: table),
+        nota,
+      ];
+    },
+  ),
+);
+
+    final bytes = await pdf.save();
+    await Printing.sharePdf(bytes: bytes, filename: 'lista_precios.pdf');
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -335,6 +506,15 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
             indicatorColor: Colors.blue[800],
             tabs: _grupos.map((g) => Tab(text: g['text'])).toList(),
           ),
+          actions: [
+            IconButton(
+              tooltip: 'Exportar lista a PDF',
+              onPressed: () async {
+                await _exportarListaPreciosPdf(modelosFiltrados);
+              },
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.black),
+            ),
+          ],
         ),
       ),
       body: GestureDetector(
@@ -378,83 +558,129 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: _cargandoLineas
                     ? Center(
                         child: CircularProgressIndicator(
                           color: Colors.white,
                         ),
                       )
-                    : GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 2.8,
-                        ),
-                        itemCount: _lineasUnicas.length,
-                        itemBuilder: (context, idx) {
-                          final linea = _lineasUnicas[idx];
-                          final selected = _selectedLinea == linea;
-                          return ChoiceChip(
-                            label: Text(
-                              linea,
-                              style: TextStyle(
-                                color: selected ? Colors.white : Colors.blue[900], 
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                            selected: selected,
-                            onSelected: (value) async {
-                              setState(() {
-                                _selectedLinea = selected ? null : linea;
-                                _loadingModelos = true;
-                              });
-                              if (_selectedLinea != null) {
-                                final modelos = await QuoteController.obtenerModelosPorGrupoSinFiltros(_grupos[_tabController.index]['value']);
-                                final filtrados = modelos.where((m) => m['linea'] == _selectedLinea && _esAprobado(m)).toList();
-                                final futures = filtrados.map((modelo) async {
-                                  final itemId = modelo['value'] ?? '';
-                                  final precio = await obtenerPrecioConAdicionales(itemId);
-                                  return MapEntry(itemId, precio);
-                                }).toList();
-                                final resultados = await Future.wait(futures);
-                                final precios = <String, double>{};
-                                for (var entry in resultados) {
-                                  precios[entry.key] = entry.value;
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              // open bottom sheet to select line
+                              final selected = await showModalBottomSheet<String>(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                isScrollControlled: true,
+                                builder: (ctx) {
+                                  return DraggableScrollableSheet(
+                                    expand: false,
+                                    initialChildSize: 0.5,
+                                    minChildSize: 0.25,
+                                    maxChildSize: 0.9,
+                                    builder: (_, controller) {
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.all(12.0),
+                                              child: Container(
+                                                width: 40,
+                                                height: 4,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[300],
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                              child: Text('Seleccione una linea', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                            ),
+                                            Expanded(
+                                              child: ListView.separated(
+                                                controller: controller,
+                                                itemCount: _lineasUnicas.length + 1,
+                                                separatorBuilder: (_, _) => Divider(height: 1, color: Colors.grey[200]),
+                                                itemBuilder: (context, i) {
+                                                  if (i == 0) {
+                                                    return ListTile(
+                                                      title: const Text('Todas las líneas', style: TextStyle(fontWeight: FontWeight.w600)),
+                                                      onTap: () => Navigator.pop(ctx, ''),
+                                                    );
+                                                  }
+                                                  final l = _lineasUnicas[i - 1];
+                                                  return ListTile(
+                                                    title: Text(l, style: TextStyle(fontWeight: FontWeight.w600)),
+                                                    onTap: () => Navigator.pop(ctx, l),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+
+                              if (selected != null) {
+                                setState(() {
+                                  _selectedLinea = selected;
+                                  _loadingModelos = true;
+                                });
+
+                                if (_selectedLinea.isNotEmpty) {
+                                  final modelos = await QuoteController.obtenerModelosPorGrupoSinFiltros(_grupos[_tabController.index]['value']);
+                                  final filtrados = modelos.where((m) => m['linea'] == _selectedLinea && _esAprobado(m)).toList();
+                                  final futures = filtrados.map((modelo) async {
+                                    final itemId = (modelo['value'] ?? '').toString();
+                                    final precio = await obtenerPrecioConAdicionales(itemId);
+                                    return MapEntry(itemId, precio);
+                                  }).toList();
+                                  final resultados = await Future.wait(futures);
+                                  final precios = <String, double>{};
+                                  for (var entry in resultados) {
+                                    precios[entry.key] = entry.value;
+                                  }
+                                  setState(() {
+                                    _modelos = filtrados;
+                                    _preciosProductos.clear();
+                                    _preciosProductos.addAll(precios);
+                                    _loadingModelos = false;
+                                  });
+                                } else {
+                                  await cargarModelosPorGrupoConPrecios(_grupos[_tabController.index]['value']);
                                 }
-                                setState(() {
-                                  _modelos = filtrados;
-                                  _preciosProductos.clear();
-                                  _preciosProductos.addAll(precios);
-                                  _loadingModelos = false;
-                                });
-                              } else {
-                                setState(() {
-                                  _modelos = [];
-                                  _preciosProductos.clear();
-                                  _loadingModelos = false;
-                                });
                               }
                             },
-                            selectedColor: Colors.orange[700], // Color de fondo cuando está seleccionado
-                            backgroundColor: Colors.white,      // Fondo blanco cuando no está seleccionado
-                            side: BorderSide(
-                              color: selected ? Colors.orange[700]! : Colors.blue[900]!, // Borde naranja o azul oscuro
-                              width: selected ? 2 : 1,
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                hintText: 'Seleccione una linea',
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.transparent)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(child: Text(_selectedLinea.isEmpty ? 'Seleccione una linea' : _selectedLinea, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                                  const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
+                                ],
+                              ),
                             ),
-                            elevation: selected ? 4 : 0,
-                            shadowColor: Colors.orange[100],
-                            labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            disabledColor: Colors.grey[300],
-                          );
-                        },
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                       ),
               ),
               Expanded(
@@ -477,9 +703,7 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                           ),
                           const SizedBox(height: 22),
                           Text(
-                            _progresoTotal > 0
-                              ? 'Consultando precios... ($_progresoActual de $_progresoTotal)'
-                              : 'Consultando Precios...',
+                            'Consultando precios...',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -501,141 +725,177 @@ class _ListPricesPageState extends State<ListPricesPage> with SingleTickerProvid
                           itemCount: modelosFiltrados.length,
                           itemBuilder: (context, index) {
                             final item = modelosFiltrados[index];
-                            final String itemId = item['value'] ?? '';
+                            final String itemId = (item['value'] ?? '').toString();
                             final precio = _preciosProductos[itemId];
+                            final descripcion = (item['descripcion'] ?? '').toString();
 
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: [
-                                  BoxShadow(
-                                    // ignore: deprecated_member_use
-                                    color: Colors.black.withOpacity(0.12),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
+                            return InkWell(
+                              onTap: () {
+                                showModalBottomSheet<void>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                                   ),
-                                ],
-                              ),
-                              margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
-                              padding: const EdgeInsets.all(22),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'N° ${index + 1}',
-                                    style: const TextStyle(
-                                      color: Color(0xFF1565C0),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    item['producto'] ?? '',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Línea: ${item['linea'] ?? ''}',
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Ejes: ${item['ejes'] ?? ''}',
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          precio != null
-                                            ? 'Precio: ${_formatCurrency(precio)}'
-                                            : 'Consultando precio...',
-                                          style: TextStyle(
-                                            color: Color(0xFF1565C0),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
+                                  builder: (ctx) => Padding(
+                                    padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                                    child: DraggableScrollableSheet(
+                                      expand: false,
+                                      initialChildSize: 0.5,
+                                      minChildSize: 0.25,
+                                      maxChildSize: 0.9,
+                                      builder: (_, controller) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                                           ),
-                                        ),
-                                      ),
-                                      ElevatedButton.icon(
-                                        onPressed: () {
-                                          final grupoId = _grupos[_tabController.index]['value'];
-                                          final grupoNombre = _grupos[_tabController.index]['text'];
-                                          // ignore: unused_local_variable
-                                          final productoId = item['value'];
-                                          final productoNombre = item['producto'];
-                                          final linea = item['linea'];
-                                          final ejes = item['ejes'];
-                                          // Navegar a la sección de cotización con los datos del grupo y producto
-                                          Navigator.pushNamed(
-                                            context,
-                                            '/seccion1',
-                                            arguments: {
-                                              'grupo': {
-                                                'value': grupoId,
-                                                'text': grupoNombre,
-                                              },
-                                              'producto': {
-                                                'value': grupoNombre,
-                                                'text': productoNombre,
-                                                'linea': linea,
-                                                'ejes': ejes,
-                                              }
-                                            },
-                                          );
-                                        },
-                                        icon: const Icon(Icons.shopping_cart_checkout, size: 18),
-                                        label: const Text('Cotizar'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue[900],
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                width: 40,
+                                                height: 4,
+                                                margin: const EdgeInsets.only(bottom: 12),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[300],
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                              ),
+                                              Text(item['producto'] ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text('Línea: ${item['linea'] ?? ''}', style: const TextStyle(fontSize: 16)),
+                                                  Text('Ejes: ${item['ejes'] ?? ''}', style: const TextStyle(fontSize: 16)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Expanded(
+                                                child: SingleChildScrollView(
+                                                  child: Text(descripcion.isNotEmpty ? descripcion : 'No hay descripción disponible para este modelo.', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Text(precio != null ? 'Precio: ${_formatCurrency(precio)}' : 'Precio: Consultando...', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1565C0))),
+                                              const SizedBox(height: 12),
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () => Navigator.pop(ctx),
+                                                  icon: const Icon(Icons.close),
+                                                  label: const Text('Cerrar'),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.blue[900],
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          elevation: 2,
-                                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
+                                        );
+                                      },
+                                    ),
                                   ),
-                                  if (_esAprobado(item))
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4.0),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            // ignore: deprecated_member_use
-                                            color: Colors.green.withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                );
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      // ignore: deprecated_member_use
+                                      color: Colors.black.withOpacity(0.12),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
+                                padding: const EdgeInsets.all(22),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('N° ${index + 1}', style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.bold, fontSize: 16)),
+                                    const SizedBox(height: 10),
+                                    Text(item['producto'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 20)),
+                                    const SizedBox(height: 6),
+                                    Text('Línea: ${item['linea'] ?? ''}', style: const TextStyle(color: Colors.black87, fontSize: 20)),
+                                    Text('Ejes: ${item['ejes'] ?? ''}', style: const TextStyle(color: Colors.black87, fontSize: 20)),
+                                    const SizedBox(height: 14),
+                                    Row(
+                                      children: [
+                                        Expanded(
                                           child: Text(
-                                            'APROBADO',
-                                            style: const TextStyle(
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                              letterSpacing: 1,
+                                            precio != null ? 'Precio: ${_formatCurrency(precio)}' : 'Consultando precio...',
+                                            style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.bold, fontSize: 18),
+                                          ),
+                                        ),
+                                        ElevatedButton.icon(
+                                          onPressed: () {
+                                            final grupoId = _grupos[_tabController.index]['value'];
+                                            final grupoNombre = _grupos[_tabController.index]['text'];
+                                            // ignore: unused_local_variable
+                                            final productoId = item['value'];
+                                            final productoNombre = item['producto'];
+                                            final linea = item['linea'];
+                                            final ejes = item['ejes'];
+                                            // Navegar a la sección de cotización con los datos del grupo y producto
+                                            Navigator.pushNamed(
+                                              context,
+                                              '/seccion1',
+                                              arguments: {
+                                                'grupo': {
+                                                  'value': grupoId,
+                                                  'text': grupoNombre,
+                                                },
+                                                'producto': {
+                                                  'value': grupoNombre,
+                                                  'text': productoNombre,
+                                                  'linea': linea,
+                                                  'ejes': ejes,
+                                                }
+                                              },
+                                            );
+                                          },
+                                          icon: const Icon(Icons.shopping_cart_checkout, size: 18),
+                                          label: const Text('Cotizar'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue[900],
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
                                             ),
+                                            elevation: 2,
+                                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (_esAprobado(item))
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4.0),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              // ignore: deprecated_member_use
+                                              color: Colors.green.withOpacity(0.08),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            child: Text('APROBADO', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1)),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           },

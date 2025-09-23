@@ -45,6 +45,17 @@ class _Seccion2State extends State<Seccion2> {
   final Map<String, double> _preciosAdicionales = {};
   final Map<String, String> _estadosAdicionales = {};
 
+  // Per-row excluded items (ids)
+  final Set<String> _excluidos = <String>{};
+
+  // ignore: unused_element
+  void _toggleRowExclusion(String id) {
+    setState(() {
+      // ignore: curly_braces_in_flow_control_structures
+      if (_excluidos.contains(id)) _excluidos.remove(id); else _excluidos.add(id);
+    });
+  }
+
   bool _adicionalesTileExpanded = true;
 
   bool _precioCargado = false;
@@ -326,8 +337,43 @@ class _Seccion2State extends State<Seccion2> {
                                 width: 140,
                                 child: ElevatedButton(
                                   onPressed: () async {
-                                    widget.cotizacion.estructura = especificaciones['Estructura'] ?? {};
-                                    widget.cotizacion.adicionalesDeLinea = especificaciones['Adicionales de Línea'] ?? [];
+                                    // Build estructura by removing any keys explicitly excluded by the user.
+                                    final rawEstructura = Map<String, dynamic>.from(especificaciones['Estructura'] ?? {});
+                                    // Compute excluded keys that belong to the Estructura section
+                                    final Set<String> excludedEstructura = _excluidos
+                                        .where((id) => id.startsWith('Estructura::'))
+                                        .map((id) => id.split('::').length > 1 ? id.split('::').last : id)
+                                        .toSet();
+
+                                    // Build a filtered estructura map by removing excluded keys
+                                    final Map<String, dynamic> estructuraFiltrada = Map<String, dynamic>.from(rawEstructura)
+                                      ..removeWhere((k, v) => excludedEstructura.contains(k));
+
+                                    widget.cotizacion.estructura = estructuraFiltrada;
+
+                                    // Build adicionalesDeLinea but mark each kit with 'excluido' flag based on _excluidos
+                                    final rawAdicionales = List<dynamic>.from(especificaciones['Adicionales de Línea'] ?? []);
+                                    final List<dynamic> adicionalesConFlag = rawAdicionales.map((kit) {
+                                      try {
+                                        final nameRaw = (kit['name'] ?? '').toString();
+                                        final name = nameRaw.trim();
+                                        final kitId = 'kit::$name';
+                                        final excluded = _excluidos.contains(kitId);
+                                        final Map<String, dynamic> copy = Map<String, dynamic>.from(kit as Map);
+                                        copy['excluido'] = excluded;
+                                        return copy;
+                                      } catch (_) {
+                                        return kit;
+                                      }
+                                    }).toList();
+
+                                    widget.cotizacion.adicionalesDeLinea = adicionalesConFlag;
+
+                                    // Save excludedFeatures map in the cotizacion so Seccion4 PDF can filter by it
+                                    widget.cotizacion.excludedFeatures = {
+                                      'Estructura': excludedEstructura,
+                                    };
+
                                     widget.cotizacion.adicionalesSeleccionados = _adicionalesSeleccionados.map((nombre) {
                                       return AdicionalSeleccionado(
                                         nombre: nombre,
@@ -558,32 +604,58 @@ class _Seccion2State extends State<Seccion2> {
         rows.addAll(_buildKitsAdicionalesRows(sectionContent));
       } else if (sectionContent is Map<String, dynamic>) {
         sectionContent.forEach((key, value) {
-          // show feature row without exclusion toggle
+          final rowId = '$sectionName::$key';
+          final excluded = _excluidos.contains(rowId);
           rows.add(
             TableRow(
+              decoration: excluded
+                  ? const BoxDecoration(color: Color(0xFFFFEBEE))
+                  : null,
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     key,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
+                      decoration: excluded ? TextDecoration.lineThrough : TextDecoration.none,
+                      color: excluded ? Colors.red : Colors.black87,
                     ),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: value is List
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: value
-                              .map<Widget>((item) => Text('• $item', textAlign: TextAlign.justify))
-                              .toList(),
-                        )
-                      : Text(
-                          value.toString(),
-                          textAlign: TextAlign.justify,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: value is List
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: value
+                                    .map<Widget>((item) => Text('• $item', textAlign: TextAlign.justify, style: TextStyle(decoration: excluded ? TextDecoration.lineThrough : TextDecoration.none, color: excluded ? Colors.red : Colors.black87)))
+                                    .toList(),
+                              )
+                            : Text(
+                                value.toString(),
+                                textAlign: TextAlign.justify,
+                                style: TextStyle(decoration: excluded ? TextDecoration.lineThrough : TextDecoration.none, color: excluded ? Colors.red : Colors.black87),
+                              ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          excluded ? Icons.remove : Icons.add,
+                          color: excluded ? Colors.red : Colors.green,
                         ),
+                        onPressed: () {
+                          setState(() {
+                            // ignore: curly_braces_in_flow_control_structures
+                            if (excluded) _excluidos.remove(rowId); else _excluidos.add(rowId);
+                          });
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -609,24 +681,42 @@ class _Seccion2State extends State<Seccion2> {
         .map<TableRow>((kit) {
       final name = kit['name'] ?? '';
       final adicionales = kit['adicionales'] ?? '';
+      final kitId = 'kit::$name';
+      final excluded = _excluidos.contains(kitId);
 
       return TableRow(
+        decoration: excluded ? const BoxDecoration(color: Color(0xFFFFEBEE)) : null,
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               name,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: FontWeight.w600, decoration: excluded ? TextDecoration.lineThrough : TextDecoration.none, color: excluded ? Colors.red : Colors.black87),
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              adicionales,
-              textAlign: TextAlign.justify,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    adicionales,
+                    textAlign: TextAlign.justify,
+                    style: TextStyle(decoration: excluded ? TextDecoration.lineThrough : TextDecoration.none, color: excluded ? Colors.red : Colors.black87),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(excluded ? Icons.remove : Icons.add, color: excluded ? Colors.red : Colors.green),
+                  onPressed: () {
+                    setState(() {
+                      // ignore: curly_braces_in_flow_control_structures
+                      if (excluded) _excluidos.remove(kitId); else _excluidos.add(kitId);
+                    });
+                  },
+                ),
+              ],
             ),
           ),
-          // removed empty third column to match two-column table layout
         ],
       );
     }).toList();

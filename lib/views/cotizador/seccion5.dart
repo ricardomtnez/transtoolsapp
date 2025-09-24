@@ -7,13 +7,14 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 
-class Seccion4 extends StatelessWidget {
+class Seccion5 extends StatelessWidget {
   final Cotizacion cotizacion;
   final Usuario usuario;
 
   // Recibe la cotización en el constructor
-  Seccion4({Key? key, required this.cotizacion, required this.usuario})
+  Seccion5({Key? key, required this.cotizacion, required this.usuario})
     : super(key: key);
 
   // Método estático para facilitar crear la ruta con argumentos
@@ -21,7 +22,7 @@ class Seccion4 extends StatelessWidget {
     final args = settings.arguments as Map<String, dynamic>;
     return MaterialPageRoute(
       builder: (_) =>
-          Seccion4(cotizacion: args['cotizacion'], usuario: args['usuario']),
+          Seccion5(cotizacion: args['cotizacion'], usuario: args['usuario']),
     );
   }
 
@@ -49,7 +50,7 @@ class Seccion4 extends StatelessWidget {
     .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
     return Scaffold(
-      backgroundColor: Colors.blue[800],
+  backgroundColor: const Color(0xFFb5191f),
       appBar: AppBar(
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -74,7 +75,7 @@ class Seccion4 extends StatelessWidget {
               // Texto fijo sobre fondo azul
               Container(
                 width: double.infinity,
-                color: const Color(0xFF1565C0), // Azul
+                color: const Color(0xFFb5191f), // Kenworth rojo
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: const Center(
                   child: Text(
@@ -369,7 +370,7 @@ class Seccion4 extends StatelessWidget {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFF1565C0),
+                                    color: Color(0xFFb5191f),
                                   ),
                                 ),
                               ),
@@ -402,7 +403,7 @@ class Seccion4 extends StatelessWidget {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFF1565C0),
+                                    color: Color(0xFFb5191f),
                                   ),
                                 ),
                               ),
@@ -428,7 +429,7 @@ class Seccion4 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF1565C0),
+                                  color: Color(0xFFb5191f),
                                 ),
                               ),
                             ],
@@ -453,7 +454,7 @@ class Seccion4 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF1565C0),
+                                  color: Color(0xFFb5191f),
                                 ),
                               ),
                             ],
@@ -478,7 +479,7 @@ class Seccion4 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF1565C0),
+                                  color: Color(0xFFb5191f),
                                 ),
                               ),
                             ],
@@ -505,7 +506,7 @@ class Seccion4 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF1565C0),
+                                  color: Color(0xFFb5191f),
                                 ),
                               ),
                             ],
@@ -544,6 +545,36 @@ class Seccion4 extends StatelessWidget {
                                 const SizedBox(
                                   width: 16,
                                 ), // Menor espacio entre botones
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      final bytes = await _generarPDF(context);
+                                      await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => bytes);
+                                    } catch (e) {
+                                      // ignore: use_build_context_synchronously
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error generando PDF: $e')),
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: const Text('Imprimir'),
+                                ),
                               ],
                             ),
                           ),
@@ -561,21 +592,26 @@ class Seccion4 extends StatelessWidget {
   }
 
   Future<Uint8List> _generarPDF(BuildContext context) async {
-    final pdf = pw.Document();
+    try {
+      final pdf = pw.Document();
 
-    // Carga los logos ANTES de cualquier await que dependa de context
-    final logoBytes = await DefaultAssetBundle.of(
-      context,
-    ).load('assets/transtools_logo_white.png');
-    // ignore: use_build_context_synchronously
-    final logo10Bytes = await DefaultAssetBundle.of(
+      // Carga los logos ANTES de cualquier await que dependa de context
+      final logoBytes = await DefaultAssetBundle.of(context).load('assets/transtools_logo.png');
+    // logo Kenworth (puede contener tambien DAF en el mismo asset)
+    Uint8List kenBytesList;
+    try {
       // ignore: use_build_context_synchronously
-      context,
-    ).load('assets/10sinfondo.png');
-    final logo10 = pw.MemoryImage(logo10Bytes.buffer.asUint8List());
+      final kenBytes = await DefaultAssetBundle.of(context).load('assets/Kenworth-logo.png');
+      kenBytesList = kenBytes.buffer.asUint8List();
+    } catch (_) {
+      // fallback al logo principal si no existe Kenworth
+      kenBytesList = logoBytes.buffer.asUint8List();
+    }
+  // no usamos logo10 porque el footer fue eliminado
     final logo = pw.MemoryImage(logoBytes.buffer.asUint8List());
+    final logoKen = pw.MemoryImage(kenBytesList);
 
-    // Calcular totales para el PDF
+  // Calcular totales para el PDF
     final double precioProductoConAdicionales =
         cotizacion.precioProductoConAdicionales ?? 0;
     final int numeroUnidades = cotizacion.numeroUnidades.toInt();
@@ -594,266 +630,204 @@ class Seccion4 extends StatelessWidget {
   final double iva = subTotal * 0.16;
   final double totalFinal = subTotal + iva;
 
-    final int diasVigencia = cotizacion.fechaVigencia
-        .difference(cotizacion.fechaCotizacion)
-        .inDays;
+    // Valores seguros para evitar Null check operator used on a null value
+  final String folioSafe = cotizacion.folioCotizacion;
+  String fechaCotSafe = '-';
+  int diasVigencia = 0;
+    try {
+      fechaCotSafe = DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion);
+    } catch (_) {
+      fechaCotSafe = '-';
+    }
+    try {
+      fechaCotSafe = DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion);
+    } catch (_) {
+      fechaCotSafe = '-';
+    }
+    try {
+      diasVigencia = cotizacion.fechaVigencia.difference(cotizacion.fechaCotizacion).inDays;
+    } catch (_) {
+      diasVigencia = 0;
+    }
 
   // cantidadAdicionalesSeleccionados no se necesita en el PDF (se muestra numeroUnidades en el resumen)
 
-    pdf.addPage(
-      pw.MultiPage(
+      pdf.addPage(
+        pw.MultiPage(
         pageFormat: PdfPageFormat.letter,
         margin: pw.EdgeInsets.zero,
         header: (pw.Context context) {
-          if (context.pageNumber == 1) {
-            return pw.Container(
-              color: PdfColors.blue900,
-              height: 100,
-              padding: pw.EdgeInsets.only(
-                right: 28.35,
-                left: 0,
-                top: 0,
-                bottom: 0,
+          // Tarjeta blanca redondeada que contiene logos y bloque de cotización
+          return pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: pw.Container(
+              decoration: pw.BoxDecoration(
+                color: PdfColors.white,
+                borderRadius: pw.BorderRadius.circular(10),
               ),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
+                  // Logo izquierdo
                   pw.Container(
-                    width: 200,
+                    width: 260,
                     alignment: pw.Alignment.centerLeft,
-                    padding: const pw.EdgeInsets.only(top: 0, left: 50),
-                    child: pw.Image(logo, height: 90, fit: pw.BoxFit.contain),
+                    child: pw.Image(logo, height: 58, fit: pw.BoxFit.contain),
                   ),
-                  pw.Expanded(
+
+                  pw.Spacer(),
+
+                  // Bloque derecho: logo Kenworth arriba, título y datos a la derecha
+                  pw.Container(
+                    width: 260,
+                    alignment: pw.Alignment.centerRight,
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      mainAxisSize: pw.MainAxisSize.min,
                       children: [
-                        pw.SizedBox(height: 12),
-                        pw.Text(
-                          ' COTIZACIÓN',
-                          style: pw.TextStyle(
-                            fontSize: 18,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                          ),
-                        ),
-                        pw.SizedBox(height: 5),
-                        pw.Text(
-                          'Página ${context.pageNumber}-${context.pagesCount}',
-                          style: pw.TextStyle(
-                            fontSize: 12,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                          ),
-                        ),
-                        pw.SizedBox(height: 5),
-                        pw.Text(
-                          'No. de Cotización: ${cotizacion.folioCotizacion}',
-                          style: pw.TextStyle(
-                            fontSize: 12,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                          ),
-                        ),
-                        pw.SizedBox(height: 3),
-                        pw.Text(
-                          'Fecha de Cotización: ${DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion)}',
-                          style: pw.TextStyle(
-                            fontSize: 12,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                          ),
-                        ),
+                        pw.Image(logoKen, height: 36, fit: pw.BoxFit.contain),
+                        pw.SizedBox(height: 6),
+                        // Mostrar número de página usando el contexto del header (pagesCount será correcto aquí)
+                        pw.Text('Página ${context.pageNumber} de ${context.pagesCount}', style: pw.TextStyle(fontSize: 10)),
                       ],
                     ),
                   ),
                 ],
               ),
-            );
-          } else {
-            // Encabezado simple para otras páginas
-            return pw.Container(
-              color: PdfColors.blue900,
-              height: 60,
-              padding: const pw.EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
-              child: pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  pw.Image(logo, height: 40),
-                  pw.Spacer(),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.center,
-                    children: [
-                      pw.Text(
-                        'COTIZACIÓN',
-                        style: pw.TextStyle(
-                          fontSize: 18,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.white,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      pw.Text(
-                        'Página ${context.pageNumber}-${context.pagesCount}',
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          }
+            ),
+          );
         },
-        footer: (pw.Context context) => pw.Container(
-          width: double.infinity,
-          height: 80,
-          child: pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              pw.Container(
-                width: 160,
-                height: 80,
-                color: PdfColors.white,
-                alignment: pw.Alignment.center,
-                child: pw.Image(logo10, fit: pw.BoxFit.contain, height: 60),
-              ),
-              pw.Expanded(
-                child: pw.Container(
-                  width: double.infinity,
-                  height: 80,
-                  color: PdfColors.blue900,
-                  alignment: pw.Alignment.center,
-                  child: pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.center,
-                    children: [
-                      pw.Text(
-                        'www.transtools.com.mx',
-                        style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 17,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      pw.SizedBox(height: 8),
-                      pw.Text(
-                        '"TU REGRESO SEGURO, NUESTRO MAYOR ÉXITO"',
-                        style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontStyle: pw.FontStyle.italic,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 10,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        
         build: (pw.Context context) => [
+          
           // Datos del cliente
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.SizedBox(height: 15),
-                pw.RichText(
-                  text: pw.TextSpan(
-                    children: [
-                      pw.TextSpan(
-                        text: 'ATENCIÓN: ',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
+                pw.SizedBox(height: 12),
+                // Dos columnas: izquierda = datos del cliente, derecha = datos de cotización
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Izquierda: datos del cliente
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.RichText(
+                            text: pw.TextSpan(
+                              children: [
+                                pw.TextSpan(
+                                  text: 'ATENCIÓN: ',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                pw.TextSpan(
+                                  text: cotizacion.cliente,
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.normal,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          pw.SizedBox(height: 5),
+                          pw.RichText(
+                            text: pw.TextSpan(
+                              children: [
+                                pw.TextSpan(
+                                  text: 'EMPRESA: ',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                pw.TextSpan(
+                                  text: cotizacion.empresa,
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.normal,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          pw.SizedBox(height: 5),
+                          pw.RichText(
+                            text: pw.TextSpan(
+                              children: [
+                                pw.TextSpan(
+                                  text: 'CORREO: ',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                pw.TextSpan(
+                                  text: cotizacion.correo,
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.normal,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          pw.SizedBox(height: 5),
+                          pw.RichText(
+                            text: pw.TextSpan(
+                              children: [
+                                pw.TextSpan(
+                                  text: 'TELÉFONO: ',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                pw.TextSpan(
+                                  text: cotizacion.telefono,
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.normal,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Derecha: bloque de cotización (Página, No., Fecha)
+                    pw.Expanded(
+                        flex: 1,
+                        child: pw.Container(
+                          alignment: pw.Alignment.topRight,
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.end,
+                            children: [
+                              pw.Text('COTIZACIÓN', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                              pw.SizedBox(height: 6),
+                              // El número de página con total se muestra ahora en el footer
+                              pw.SizedBox(height: 0),
+                              pw.SizedBox(height: 6),
+                              pw.Text('No. de Cotización: $folioSafe', style: pw.TextStyle(fontSize: 10)),
+                              pw.SizedBox(height: 6),
+                              pw.Text('Fecha de Cotización: $fechaCotSafe', style: pw.TextStyle(fontSize: 10)),
+                            ],
+                          ),
                         ),
                       ),
-                      pw.TextSpan(
-                        text: cotizacion.cliente,
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.normal,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-                pw.SizedBox(height: 5),
-                pw.RichText(
-                  text: pw.TextSpan(
-                    children: [
-                      pw.TextSpan(
-                        text: 'EMPRESA: ',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      pw.TextSpan(
-                        text: cotizacion.empresa,
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.normal,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 5),
-                pw.RichText(
-                  text: pw.TextSpan(
-                    children: [
-                      pw.TextSpan(
-                        text: 'CORREO: ',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                      pw.TextSpan(
-                        text: cotizacion.correo,
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.normal,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 5),
-                pw.RichText(
-                  text: pw.TextSpan(
-                    children: [
-                      pw.TextSpan(
-                        text: 'TELÉFONO: ',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                      pw.TextSpan(
-                        text: cotizacion.telefono,
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.normal,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 5),
-                pw.SizedBox(height: 15),
+                pw.SizedBox(height: 12),
                 pw.Center(
                   child: pw.Text(
                     '${cotizacion.producto.toUpperCase()} ${cotizacion.linea}',
@@ -954,7 +928,7 @@ class Seccion4 extends StatelessWidget {
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24),
             child: pw.Container(
-              color: PdfColors.blue900,
+              color: PdfColor.fromInt(0xFFb5191f),
               padding: const pw.EdgeInsets.symmetric(vertical: 6),
               child: pw.Center(
                 child: pw.Text(
@@ -1092,13 +1066,13 @@ class Seccion4 extends StatelessWidget {
                 border: pw.TableBorder(
                   horizontalInside: pw.BorderSide(
                     width: 0.5,
-                    color: PdfColors.blue900,
+                    color: PdfColor.fromInt(0xFFb5191f),
                   ),
                 ),
                 children: [
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFFb5191f),
                     ),
                     children: [
                       pw.Padding(
@@ -1262,12 +1236,12 @@ class Seccion4 extends StatelessWidget {
               border: pw.TableBorder(
                 horizontalInside: pw.BorderSide(
                   width: 0.5,
-                  color: PdfColors.blue900,
+                  color: PdfColor.fromInt(0xFFb5191f),
                 ),
               ),
               children: [
                 pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.blue900),
+                  decoration: pw.BoxDecoration(color: PdfColor.fromInt(0xFFb5191f)),
                   children: [
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
@@ -1492,7 +1466,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(), // Columna 1 en blanco
                     pw.Container(), // Columna 2 en blanco
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFFb5191f),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'SUBTOTAL',
@@ -1505,7 +1479,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFFb5191f),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1527,7 +1501,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(),
                     pw.Container(),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFFb5191f),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'IVA',
@@ -1540,7 +1514,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFFb5191f),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1563,7 +1537,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(),
                     pw.Container(),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFFb5191f),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'TOTAL',
@@ -1576,7 +1550,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFFb5191f),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1610,7 +1584,7 @@ class Seccion4 extends StatelessWidget {
                         child: pw.Container(
                           decoration: pw.BoxDecoration(
                             border: pw.Border.all(
-                              color: PdfColors.blue900,
+                              color: PdfColor.fromInt(0xFFb5191f),
                               width: 1,
                             ),
                           ),
@@ -1618,7 +1592,7 @@ class Seccion4 extends StatelessWidget {
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Container(
-                                color: PdfColors.blue900,
+                                color: PdfColor.fromInt(0xFFb5191f),
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(
                                   'CONDICIONES DE PAGO',
@@ -1655,7 +1629,7 @@ class Seccion4 extends StatelessWidget {
                         child: pw.Container(
                           decoration: pw.BoxDecoration(
                             border: pw.Border.all(
-                              color: PdfColors.blue900,
+                              color: PdfColor.fromInt(0xFFb5191f),
                               width: 1,
                             ),
                           ),
@@ -1663,7 +1637,7 @@ class Seccion4 extends StatelessWidget {
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Container(
-                                color: PdfColors.blue900,
+                                color: PdfColor.fromInt(0xFFb5191f),
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(
                                   'TIEMPO DE ENTREGA',
@@ -1703,7 +1677,7 @@ class Seccion4 extends StatelessWidget {
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Text(
-              '*Nota: Esta cotización tiene una vigencia de $diasVigencia días a partir del ${DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion)}. Después de ese periodo, necesita solicitar una nueva cotización.',
+              '*Nota: Esta cotización tiene una vigencia de $diasVigencia días a partir del $fechaCotSafe. Después de ese periodo, necesita solicitar una nueva cotización.',
               style: pw.TextStyle(fontSize: 9),
             ),
           ),
@@ -1734,7 +1708,7 @@ class Seccion4 extends StatelessWidget {
                         textAlign: pw.TextAlign.right,
                       ),
                       pw.Text(
-                        'Área de Ventas',
+                        'Gerente de Ventas de Equipo Aliado',
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 11,
@@ -1759,9 +1733,34 @@ class Seccion4 extends StatelessWidget {
           ),
         ], //
       ),
-    ); //
+      ); //
 
-    return await pdf.save();
+      return await pdf.save();
+    } catch (e, st) {
+      // Si algo falla, genera un PDF con el error para que el usuario lo vea en preview
+      final errPdf = pw.Document();
+      errPdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.letter,
+          build: (pw.Context c) => pw.Padding(
+            padding: const pw.EdgeInsets.all(24),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Error generando PDF:', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 12),
+                pw.Text(e.toString(), style: pw.TextStyle(fontSize: 12)),
+                pw.SizedBox(height: 12),
+                pw.Text('Stack trace (truncado):', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 6),
+                pw.Text(st.toString().split('\n').take(6).join('\n'), style: pw.TextStyle(fontSize: 9)),
+              ],
+            ),
+          ),
+        ),
+      );
+      return await errPdf.save();
+    }
   }
 
   Widget _buildTitulo(String titulo) {
@@ -1973,14 +1972,14 @@ class Seccion4 extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_upload, size: 48, color: Colors.blue[900]),
+              Icon(Icons.cloud_upload, size: 48, color: Color(0xFFb5191f)),
               const SizedBox(height: 16),
               const Text(
                 'Subiendo cotización...',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 16),
-              CircularProgressIndicator(color: Colors.blue[900]),
+              CircularProgressIndicator(color: Color(0xFFb5191f)),
             ],
           ),
         ),
@@ -2035,7 +2034,7 @@ class Seccion4 extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[900],
+                      backgroundColor: Color(0xFFb5191f),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),

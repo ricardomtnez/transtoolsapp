@@ -67,6 +67,7 @@ class _Seccion3State extends State<Seccion3> {
 
   final List<String> cuentasMXN = [
     'BBVA Bancomer: 0172940930 Clabe: 012830001729409301',
+    'BANCOMER: 0150549584 Clabe: 012650001505495845',
   ];
   final List<String> cuentasUSD = [
     'BBVA Bancomer USD: 0117396880  Clabe: 012830001173968809',
@@ -77,7 +78,7 @@ class _Seccion3State extends State<Seccion3> {
   final List<String> entregaOptions = [
     'Planta Titanium (El Carmen Tequexquitla)',
     'Planta LightWeight (Puebla)',
-    'Instalaciones de Kenworth',
+    'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816',
     'Instalaciones del Cliente',
   ];
 
@@ -85,7 +86,7 @@ class _Seccion3State extends State<Seccion3> {
   final Map<String, double?> entregaDefaultPrices = {
     'Planta Titanium (El Carmen Tequexquitla)': 0,
     'Planta LightWeight (Puebla)': 3000,
-    'Instalaciones de Kenworth': 4000,
+    'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816': 4000,
     'Instalaciones del Cliente': null,
   };
 
@@ -193,6 +194,15 @@ class _Seccion3State extends State<Seccion3> {
       }
     }
     return null;
+  }
+
+  // Devuelve true solo si la empresa del usuario contiene la palabra
+  // 'kenworth' como palabra completa (evita coincidencias parciales).
+  bool _usuarioEsKenworth(Usuario? u) {
+    final empresa = (u?.empresa ?? '').toLowerCase();
+    if (empresa.isEmpty) return false;
+    final reg = RegExp(r'\bkenworth\b', caseSensitive: false);
+    return reg.hasMatch(empresa);
   }
 
   Future<void> _cargarUsuario() async {
@@ -885,7 +895,7 @@ class _Seccion3State extends State<Seccion3> {
                             SizedBox(
                               width: 140,
                               child: ElevatedButton(
-                                onPressed: () {
+                                onPressed: () async {
                                   Navigator.pop(context, {
                                     'cotizacion': widget.cotizacion.copyWith(
                                       formaPago: formaPago,
@@ -931,7 +941,7 @@ class _Seccion3State extends State<Seccion3> {
                             SizedBox(
                               width: 140,
                               child: ElevatedButton(
-                                onPressed: () {
+                                onPressed: () async {
                                   setState(() {
                                     metodoPagoError = metodoPago == null;
                                     metodoPagoErrorText = metodoPagoError
@@ -1029,15 +1039,45 @@ class _Seccion3State extends State<Seccion3> {
                                           adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,
                                         );
 
-                                    // Navegar a la Sección 4 pasando el objeto cotización actualizado
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/seccion4',
-                                      arguments: {
-                                        'cotizacion': cotizacionActualizada,
-                                        'usuario': _usuario,
-                                      },
-                                    );
+                                    // Antes de navegar, asegurar que tenemos el usuario y su empresa
+                                    Usuario? usuarioParaEnviar = _usuario;
+                                    if (usuarioParaEnviar == null) {
+                                      final prefs = await SharedPreferences.getInstance();
+                                      final jsonString = prefs.getString('usuario');
+                                      if (jsonString != null && jsonString.isNotEmpty) {
+                                        try {
+                                          usuarioParaEnviar = Usuario.fromJson(jsonString);
+                                        } catch (_) {
+                                          usuarioParaEnviar = null;
+                                        }
+                                      }
+                                    }
+
+                                    // DEBUG: imprimir el valor de empresa que vamos a usar
+                                    try {
+                                    } catch (_) {}
+                                    // Si la empresa indica Kenworth, enviar a Seccion5 (diseño Kenworth)
+                                    if (_usuarioEsKenworth(usuarioParaEnviar)) {
+                                      Navigator.pushNamed(
+                                        // ignore: use_build_context_synchronously
+                                        context,
+                                        '/seccion5',
+                                        arguments: {
+                                          'cotizacion': cotizacionActualizada,
+                                          'usuario': usuarioParaEnviar,
+                                        },
+                                      );
+                                    } else {
+                                      Navigator.pushNamed(
+                                        // ignore: use_build_context_synchronously
+                                        context,
+                                        '/seccion4',
+                                        arguments: {
+                                          'cotizacion': cotizacionActualizada,
+                                          'usuario': usuarioParaEnviar,
+                                        },
+                                      );
+                                    }
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(

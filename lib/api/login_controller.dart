@@ -100,11 +100,22 @@ query {
           }
         }
 
+        // Normalizar el nombre de la empresa para evitar coincidencias
+        // parciales que confundan la clasificación (p.ej. 'Transtools').
+        String empresaNorm = empresa.toString().trim();
+        final regKen = RegExp(r'\bkenworth\b', caseSensitive: false);
+        final regTrans = RegExp(r'\btranstools\b', caseSensitive: false);
+        if (regKen.hasMatch(empresaNorm)) {
+          empresaNorm = 'Kenworth';
+        } else if (regTrans.hasMatch(empresaNorm)) {
+          empresaNorm = 'Transtools';
+        }
+
         // Puedes retornar la información relevante como un mapa
         return {
           'fullname': name,
           'departamento': departamento,
-          'empresa': empresa,
+          'empresa': empresaNorm,
           'password': password,
           'iniciales': initials,
           'rol': rol,
@@ -126,7 +137,8 @@ query {
   /// - En cualquier otro caso devuelve 'assets/transtools_logo_white.png'.
   static String assetLogoForEmpresa(String? empresa) {
     final e = (empresa ?? '').toString().trim().toLowerCase();
-    if (e.contains('kenworth')) {
+    final reg = RegExp(r'\bkenworth\b', caseSensitive: false);
+    if (reg.hasMatch(e)) {
       return 'assets/Kenworth-logo.png';
     }
     // Por defecto Transtools

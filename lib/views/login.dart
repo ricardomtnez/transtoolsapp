@@ -66,6 +66,11 @@ class LoginState extends State<Login> {
         // Serializamos a json
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('usuario', usuario.toJson());
+        // DEBUG - imprimir el json guardado y los datos crudos recibidos
+        try {
+          // ignore: unused_local_variable
+          final saved = prefs.getString('usuario');
+        } catch (_) {}
 
         if (!mounted) return;
 

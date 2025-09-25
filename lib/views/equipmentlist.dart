@@ -113,6 +113,7 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
 
   String _formatCurrency(dynamic input) {
     try {
+      // ignore: unnecessary_string_escapes
       final val = input is String ? double.tryParse(input.replaceAll('\4', '').replaceAll(',', '')) ?? 0.0 : (input ?? 0.0);
       return _currencyFormatter.format(val);
     } catch (_) {
@@ -210,6 +211,7 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
             // Try to parse the raw price into a double (strip $ and thousands separators)
             double? precioBase;
             try {
+              // ignore: unnecessary_string_escapes
               final cleaned = precioRaw.toString().replaceAll('\4', '').replaceAll('\ 2', '').replaceAll(r'\$', '').replaceAll(',', '').trim();
               precioBase = double.tryParse(cleaned);
             } catch (_) {
@@ -354,6 +356,7 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
                                           controller: controller,
                                           padding: const EdgeInsets.symmetric(vertical: 8),
                                           itemCount: _grupos.length,
+                                          // ignore: unnecessary_underscores
                                           separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
                                           itemBuilder: (context, i) {
                                             final g = _grupos[i];

@@ -96,6 +96,10 @@ class _Seccion3State extends State<Seccion3> {
   bool entregaMontoError = false;
   String? entregaMontoErrorText;
 
+  // Protección adicional: si el usuario quiere protección y el monto seleccionado
+  bool agregarProteccion = false;
+  String? proteccionSeleccionada; // valores: '5000','10000','15000'
+
   bool metodoPagoError = false;
   String? metodoPagoErrorText;
 
@@ -143,7 +147,101 @@ class _Seccion3State extends State<Seccion3> {
     if (widget.cotizacion.costoEntrega != null) {
       entregaMontoController.text = widget.cotizacion.costoEntrega!.toStringAsFixed(0);
     }
+    // Rellenar descuento si viene en la cotización
+    if (widget.cotizacion.descuento != null) {
+      try {
+        descuentoController.text = widget.cotizacion.descuento!.toStringAsFixed(0);
+      } catch (_) {
+        descuentoController.text = widget.cotizacion.descuento.toString();
+      }
+    }
+    // Cargar datos de protección si vienen en la cotización (asumimos campos nuevos)
+    try {
+      if (widget.cotizacion.proteccion != null) {
+        agregarProteccion = widget.cotizacion.proteccion == true;
+        proteccionSeleccionada = widget.cotizacion.proteccionMonto != null
+            ? widget.cotizacion.proteccionMonto!.toStringAsFixed(0)
+            : (agregarProteccion ? '5000' : null);
+      }
+    } catch (_) {}
+    // Restaurar temporales (si existen) para descuento/protección
+    _restoreTemporaryFields();
   }
+
+  Future<void> _restoreTemporaryFields() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final prefix = 'cot_${widget.cotizacion.folioCotizacion}_';
+      // ignore: prefer_interpolation_to_compose_strings
+      final descKey = prefix + 'descuento';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protKey = prefix + 'proteccion';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protMontoKey = prefix + 'proteccion_monto';
+
+      if ((widget.cotizacion.descuento == null || widget.cotizacion.descuento == 0) && prefs.containsKey(descKey)) {
+        final d = prefs.getDouble(descKey);
+        if (d != null) {
+          widget.cotizacion.descuento = d;
+          try {
+            descuentoController.text = d.toStringAsFixed(0);
+          } catch (_) {
+            descuentoController.text = d.toString();
+          }
+        }
+      }
+
+      if ((widget.cotizacion.proteccion == null || widget.cotizacion.proteccion == false) && prefs.containsKey(protKey)) {
+        final b = prefs.getBool(protKey);
+        if (b != null) {
+          widget.cotizacion.proteccion = b;
+          agregarProteccion = b;
+        }
+      }
+      if ((widget.cotizacion.proteccionMonto == null || widget.cotizacion.proteccionMonto == 0) && prefs.containsKey(protMontoKey)) {
+        final m = prefs.getDouble(protMontoKey);
+        if (m != null) {
+          widget.cotizacion.proteccionMonto = m;
+          proteccionSeleccionada = m.toStringAsFixed(0);
+        }
+      }
+      setState(() {});
+    } catch (_) {}
+  }
+
+  Future<void> _saveTempDescuento(double? value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cot_${widget.cotizacion.folioCotizacion}_descuento';
+      if (value == null) {
+        await prefs.remove(key);
+      } else {
+        await prefs.setDouble(key, value);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveTempProteccion(bool? enabled, double? monto) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final base = 'cot_${widget.cotizacion.folioCotizacion}_';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protKey = base + 'proteccion';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protMontoKey = base + 'proteccion_monto';
+      if (enabled == null) {
+        await prefs.remove(protKey);
+      } else {
+        await prefs.setBool(protKey, enabled);
+      }
+      if (monto == null) {
+        await prefs.remove(protMontoKey);
+      } else {
+        await prefs.setDouble(protMontoKey, monto);
+      }
+    } catch (_) {}
+  }
+
 
   @override
   void didUpdateWidget(covariant Seccion3 oldWidget) {
@@ -173,6 +271,21 @@ class _Seccion3State extends State<Seccion3> {
   unidadesController.text = widget.cotizacion.numeroUnidades.toString();
         if (widget.cotizacion.costoEntrega != null) {
           entregaMontoController.text = widget.cotizacion.costoEntrega!.toStringAsFixed(0);
+        }
+        // Restaurar descuento si viene en la cotización
+        if (widget.cotizacion.descuento != null) {
+          try {
+            descuentoController.text = widget.cotizacion.descuento!.toStringAsFixed(0);
+          } catch (_) {
+            descuentoController.text = widget.cotizacion.descuento.toString();
+          }
+        }
+        // Restaurar protección si viene en la cotización
+        if (widget.cotizacion.proteccion != null) {
+          agregarProteccion = widget.cotizacion.proteccion == true;
+          proteccionSeleccionada = widget.cotizacion.proteccionMonto != null
+              ? widget.cotizacion.proteccionMonto!.toStringAsFixed(0)
+              : (agregarProteccion ? '5000' : null);
         }
       });
     }
@@ -724,7 +837,23 @@ class _Seccion3State extends State<Seccion3> {
                                     ),
                                     keyboardType: TextInputType.number,
                                     inputFormatters: [
-                                      FilteringTextInputFormatter.allow(RegExp(r'[0-9,]')),
+                                      // Permite solo dígitos (y opcionalmente comas), y evita valores mayores a 15000
+                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                        String cleanNew = newValue.text.replaceAll(',', '');
+                                        if (cleanNew.isEmpty) return newValue.copyWith(text: '');
+                                        // Solo dígitos
+                                        if (!RegExp(r'^\d+$').hasMatch(cleanNew)) {
+                                          return oldValue;
+                                        }
+                                        final parsed = int.tryParse(cleanNew);
+                                        if (parsed == null) return oldValue;
+                                        if (parsed > 15000) {
+                                          // Rechaza la nueva entrada si supera el tope
+                                          return oldValue;
+                                        }
+                                        // Mantener el nuevo valor (sin formateo de comas para evitar complicar el cursor)
+                                        return newValue.copyWith(text: cleanNew, selection: TextSelection.collapsed(offset: cleanNew.length));
+                                      }),
                                     ],
                                     onChanged: (value) {
                                       setState(() {
@@ -735,6 +864,7 @@ class _Seccion3State extends State<Seccion3> {
                                       final parsed = double.tryParse(value.replaceAll(',', ''));
                                       try {
                                         widget.cotizacion.descuento = parsed;
+                                        _saveTempDescuento(parsed);
                                       } catch (_) {}
                                     },
                                   ),
@@ -750,6 +880,146 @@ class _Seccion3State extends State<Seccion3> {
                               ),
                             ),
                           ],
+                        ),
+
+                        // Nuevo panel: Protección
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Center(
+                                child: Text(
+                                  '¿Agregar Protección?',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ListTile(
+                                      title: const Text('Sí', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      leading: Radio<bool>(
+                                        value: true,
+                                        groupValue: agregarProteccion,
+                                        activeColor: const Color(0xFF1565C0),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            agregarProteccion = true;
+                                            // default selection cuando se activa
+                                            proteccionSeleccionada = proteccionSeleccionada ?? '5000';
+                                          });
+                                          try {
+                                            widget.cotizacion.proteccion = true;
+                                            widget.cotizacion.proteccionMonto = proteccionSeleccionada != null ? double.tryParse(proteccionSeleccionada!) : null;
+                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          agregarProteccion = true;
+                                          proteccionSeleccionada = proteccionSeleccionada ?? '5000';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: ListTile(
+                                      title: const Text('No', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      leading: Radio<bool>(
+                                        value: false,
+                                        groupValue: agregarProteccion,
+                                        activeColor: const Color(0xFF1565C0),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            agregarProteccion = false;
+                                            proteccionSeleccionada = null;
+                                          });
+                                          try {
+                                            widget.cotizacion.proteccion = false;
+                                            widget.cotizacion.proteccionMonto = null;
+                                            _saveTempProteccion(false, null);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          agregarProteccion = false;
+                                          proteccionSeleccionada = null;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (agregarProteccion)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color.fromARGB(255, 240, 240, 240),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey[300]!, width: 1.2),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Seleccione monto de protección', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      RadioListTile<String>(
+                                        title: const Text(r'$5,000'),
+                                        value: '5000',
+                                        groupValue: proteccionSeleccionada,
+                                        activeColor: const Color(0xFF1565C0),
+                                        onChanged: (v) {
+                                          setState(() { proteccionSeleccionada = v; });
+                                          try {
+                                            widget.cotizacion.proteccion = true;
+                                            widget.cotizacion.proteccionMonto = v != null ? double.tryParse(v) : null;
+                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                      RadioListTile<String>(
+                                        title: const Text(r'$10,000'),
+                                        value: '10000',
+                                        groupValue: proteccionSeleccionada,
+                                        activeColor: const Color(0xFF1565C0),
+                                        onChanged: (v) {
+                                          setState(() { proteccionSeleccionada = v; });
+                                          try {
+                                            widget.cotizacion.proteccion = true;
+                                            widget.cotizacion.proteccionMonto = v != null ? double.tryParse(v) : null;
+                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                      RadioListTile<String>(
+                                        title: const Text(r'$15,000'),
+                                        value: '15000',
+                                        groupValue: proteccionSeleccionada,
+                                        activeColor: const Color(0xFF1565C0),
+                                        onChanged: (v) {
+                                          setState(() { proteccionSeleccionada = v; });
+                                          try {
+                                            widget.cotizacion.proteccion = true;
+                                            widget.cotizacion.proteccionMonto = v != null ? double.tryParse(v) : null;
+                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
 
                         _buildSection(
@@ -1001,6 +1271,8 @@ class _Seccion3State extends State<Seccion3> {
                       ? double.tryParse(entregaMontoController.text)
                       : null,
                       descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
+                                      proteccion: agregarProteccion,
+                                      proteccionMonto: proteccionSeleccionada != null ? double.tryParse(proteccionSeleccionada!) : null,
                                     ),
                                   });
                                 },
@@ -1085,9 +1357,9 @@ class _Seccion3State extends State<Seccion3> {
                                       if (d == null || d < 0) {
                                         descuentoError = true;
                                         descuentoErrorText = 'Ingrese un descuento válido';
-                                      } else if (d > 20000) {
+                                      } else if (d > 15000) {
                                         descuentoError = true;
-                                        descuentoErrorText = 'El descuento máximo es de \$20,000';
+                                        descuentoErrorText = 'El descuento máximo es de \$15,000';
                                       }
                                     }
                                   });
@@ -1132,6 +1404,8 @@ class _Seccion3State extends State<Seccion3> {
                                           anticipoSeleccionado:
                                               anticipoSeleccionado,
                                           descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
+                                          proteccion: agregarProteccion,
+                                          proteccionMonto: proteccionSeleccionada != null ? double.tryParse(proteccionSeleccionada!) : null,
                                           // preserve previously computed excludedFeatures and adicionalesDeLinea
                                           excludedFeatures: widget.cotizacion.excludedFeatures,
                                           adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,

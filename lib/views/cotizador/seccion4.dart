@@ -41,7 +41,10 @@ class Seccion4 extends StatelessWidget {
         totalAdicionalesSeleccionados * numeroUnidades;
   final double costoEntrega = cotizacion.costoEntrega ?? 0;
   final double costoEntregaTotal = costoEntrega * numeroUnidades;
-  final subTotal = precioProductoTotal + precioAdicionalesTotal + costoEntregaTotal;
+  // Incluir protección por unidad (si existe) multiplicada por número de unidades
+  final double proteccionPorUnidad = cotizacion.proteccionMonto ?? 0.0;
+  final double proteccionTotal = proteccionPorUnidad * numeroUnidades;
+  final subTotal = precioProductoTotal + precioAdicionalesTotal + costoEntregaTotal + proteccionTotal;
   // Descuento por unidad almacenado en cotizacion.descuento -> multiplicar por unidades
   final double descuentoPorUnidad = cotizacion.descuento ?? 0.0;
   final double descuentoTotal = descuentoPorUnidad * numeroUnidades;
@@ -176,6 +179,68 @@ class Seccion4 extends StatelessWidget {
                                   cotizacion.precioProductoConAdicionales ?? 0,
                                 ),
                               ),
+                              // Mostrar protección debajo del precio por unidad si aplica
+                              if (proteccionPorUnidad > 0)
+                                TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      child: Text(
+                                        'Protección:',
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            NumberFormat.currency(
+                                              locale: 'es_MX',
+                                              symbol: '\$',
+                                            ).format(proteccionPorUnidad),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Precio modificado: incluye protección por unidad',
+                                            textAlign: TextAlign.right,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              // Mostrar el precio unitario modificado (precio + protección) si aplica
+                              if (proteccionPorUnidad > 0)
+                                TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      child: Text(
+                                        'Precio modificado c/u:',
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      child: Text(
+                                        NumberFormat.currency(
+                                          locale: 'es_MX',
+                                          symbol: '\$',
+                                        ).format((cotizacion.precioProductoConAdicionales ?? 0) + proteccionPorUnidad),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               _tableRow(
                                 'Unidades: ',
                                 cotizacion.numeroUnidades.toString(),
@@ -438,6 +503,47 @@ class Seccion4 extends StatelessWidget {
                               ),
                             ],
                           ),
+                          // Mostrar protección (si aplica) en la pantalla para usuarios internos
+                          if (proteccionTotal > 0) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Protección:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      NumberFormat.currency(
+                                        locale: 'es_MX',
+                                        symbol: '\$',
+                                      ).format(proteccionTotal),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Color(0xFF1565C0),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '( ${NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(proteccionPorUnidad)} c/u )',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -684,8 +790,12 @@ class Seccion4 extends StatelessWidget {
         .fold(0.0, (double s, a) => s + (a.precioUnitario * a.cantidad));
     final double sumAdicionalesTotal = sumAdicionalesUnit * numeroUnidades;
 
+    // Mover la protección al precio unitario en el PDF para que el unitario refleje el cargo por unidad
+    final double proteccionUnitPdf = cotizacion.proteccionMonto ?? 0.0;
+    final double displayUnitPrice = (precioProductoConAdicionales) + proteccionUnitPdf;
+
     final double subTotal =
-      (precioProductoConAdicionales * numeroUnidades) +
+      (displayUnitPrice * numeroUnidades) +
       sumAdicionalesTotal +
       costoEntregaTotalPdf;
 
@@ -1450,7 +1560,7 @@ class Seccion4 extends StatelessWidget {
                         NumberFormat.currency(
                           locale: 'es_MX',
                           symbol: '\$',
-                        ).format(cotizacion.precioProductoConAdicionales ?? 0),
+                        ).format(displayUnitPrice),
                         style: pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.center,
                       ),
@@ -1462,7 +1572,7 @@ class Seccion4 extends StatelessWidget {
                           locale: 'es_MX',
                           symbol: '\$',
                         ).format(
-                          (cotizacion.precioProductoConAdicionales ?? 0) *
+                          (displayUnitPrice) *
                               (cotizacion.numeroUnidades),
                         ),
                         style: pw.TextStyle(fontSize: 11),

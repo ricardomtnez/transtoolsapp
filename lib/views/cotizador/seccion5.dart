@@ -7,7 +7,7 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
+// printing import removed from this file (not used here)
 
 class Seccion5 extends StatelessWidget {
   final Cotizacion cotizacion;
@@ -719,39 +719,7 @@ class Seccion5 extends StatelessWidget {
                                   ),
                                   child: const Text('Guardar Cotización'),
                                 ),
-                                const SizedBox(
-                                  width: 16,
-                                ), // Menor espacio entre botones
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    try {
-                                      final bytes = await _generarPDF(context);
-                                      await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => bytes);
-                                    } catch (e) {
-                                      // ignore: use_build_context_synchronously
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Error generando PDF: $e')),
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                  child: const Text('Imprimir'),
-                                ),
+                                // 'Imprimir' button removed per request
                               ],
                             ),
                           ),
@@ -833,6 +801,10 @@ class Seccion5 extends StatelessWidget {
     } catch (_) {
       diasVigencia = 0;
     }
+
+    // Si la entrega fue seleccionada en Planta Titanium (El Carmen Tequexquitla)
+    // no debemos imprimir la línea "Entrega en" en el PDF.
+  final bool hideEntregaPlanta = (cotizacion.entregaEn != null && cotizacion.entregaEn!.trim() == 'Planta Titanium (El Carmen Tequexquitla)');
 
   // cantidadAdicionalesSeleccionados no se necesita en el PDF (se muestra numeroUnidades en el resumen)
 
@@ -1526,108 +1498,110 @@ class Seccion5 extends StatelessWidget {
                     ),
                   ],
                 ),
-                pw.TableRow(
-                  children: [
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        'EQUIPAMIENTO PERSONALIZADO',
-                        style: pw.TextStyle(
-                          fontSize: 11,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Container(
-                        alignment: pw.Alignment.center,
+                if (cotizacion.adicionalesSeleccionados.isNotEmpty)
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
-                          '$numeroUnidades', // Mostrar número de unidades aquí
-                          style: pw.TextStyle(fontSize: 11),
-                          textAlign: pw.TextAlign.center,
-                        ),
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(cotizacion.totalAdicionales ?? 0),
-                          style: pw.TextStyle(fontSize: 11),
-                          textAlign: pw.TextAlign.center,
-                        ),
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(
-                            (cotizacion.totalAdicionales ?? 0) *
-                                (cotizacion.numeroUnidades),
+                          'EQUIPAMIENTO PERSONALIZADO',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
                           ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            '$numeroUnidades', // Mostrar número de unidades aquí
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(cotizacion.totalAdicionales ?? 0),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(
+                              (cotizacion.totalAdicionales ?? 0) *
+                                  (cotizacion.numeroUnidades),
+                            ),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                // Fila para Costo de entrega como ítem (cantidad = unidades)
+                if (!hideEntregaPlanta)
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'FLETE DE ENVÍO',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          // ignore: unnecessary_brace_in_string_interps
+                          '${numeroUnidades}',
                           style: pw.TextStyle(fontSize: 11),
                           textAlign: pw.TextAlign.center,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                // Fila para Costo de entrega como ítem (cantidad = unidades)
-                pw.TableRow(
-                  children: [
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        'FLETE DE ENVÍO',
-                        style: pw.TextStyle(
-                          fontSize: 11,
-                          fontWeight: pw.FontWeight.bold,
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(cotizacion.costoEntrega ?? 0),
+                          style: pw.TextStyle(fontSize: 11),
+                          textAlign: pw.TextAlign.center,
                         ),
                       ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        // ignore: unnecessary_brace_in_string_interps
-                        '${numeroUnidades}',
-                        style: pw.TextStyle(fontSize: 11),
-                        textAlign: pw.TextAlign.center,
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format((cotizacion.costoEntrega ?? 0) * numeroUnidades),
+                          style: pw.TextStyle(fontSize: 11),
+                          textAlign: pw.TextAlign.center,
+                        ),
                       ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        NumberFormat.currency(
-                          locale: 'es_MX',
-                          symbol: '\$',
-                        ).format(cotizacion.costoEntrega ?? 0),
-                        style: pw.TextStyle(fontSize: 11),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        NumberFormat.currency(
-                          locale: 'es_MX',
-                          symbol: '\$',
-                        ).format((cotizacion.costoEntrega ?? 0) * numeroUnidades),
-                        style: pw.TextStyle(fontSize: 11),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 // PROTECCIÓN: cargo interno por unidad — no se imprime en la cotización al cliente
               ],
             ),

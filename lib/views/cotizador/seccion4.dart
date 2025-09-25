@@ -7,7 +7,6 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
 
 class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
@@ -718,35 +717,7 @@ class Seccion4 extends StatelessWidget {
                                   ),
                                   child: const Text('Guardar Cotización'),
                                 ),
-                                const SizedBox(
-                                  width: 16,
-                                ), // Menor espacio entre botones
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    // Generar PDF y abrir el diálogo de impresión/previa
-                                    final bytes = await _generarPDF(context);
-                                    await Printing.layoutPdf(
-                                      onLayout: (PdfPageFormat format) async => bytes,
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                  child: const Text('Imprimir'),
-                                ),
+                                // 'Imprimir' removed per request; only keep 'Guardar Cotización'
                               ],
                             ),
                           ),
@@ -809,6 +780,10 @@ class Seccion4 extends StatelessWidget {
     final int diasVigencia = cotizacion.fechaVigencia
         .difference(cotizacion.fechaCotizacion)
         .inDays;
+
+  // Determina si la entrega es en la Planta Titanium para ocultar datos en el PDF
+  final String entregaNormalized = (cotizacion.entregaEn ?? '').toLowerCase();
+  final bool isPlantaTitanium = entregaNormalized.contains('planta titanium');
 
   // cantidadAdicionalesSeleccionados no se necesita en el PDF (se muestra numeroUnidades en el resumen)
 
@@ -1581,108 +1556,112 @@ class Seccion4 extends StatelessWidget {
                     ),
                   ],
                 ),
-                pw.TableRow(
-                  children: [
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        'EQUIPAMIENTO PERSONALIZADO',
-                        style: pw.TextStyle(
-                          fontSize: 11,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Container(
-                        alignment: pw.Alignment.center,
+                // Mostrar la fila de equipamiento solo si hay adicionales (totalAdicionales > 0)
+                if ((cotizacion.totalAdicionales ?? 0) > 0)
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
-                          '$numeroUnidades', // Mostrar número de unidades aquí
-                          style: pw.TextStyle(fontSize: 11),
-                          textAlign: pw.TextAlign.center,
-                        ),
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(cotizacion.totalAdicionales ?? 0),
-                          style: pw.TextStyle(fontSize: 11),
-                          textAlign: pw.TextAlign.center,
-                        ),
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Text(
-                          NumberFormat.currency(
-                            locale: 'es_MX',
-                            symbol: '\$',
-                          ).format(
-                            (cotizacion.totalAdicionales ?? 0) *
-                                (cotizacion.numeroUnidades),
+                          'EQUIPAMIENTO PERSONALIZADO',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
                           ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            '$numeroUnidades', // Mostrar número de unidades aquí
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(cotizacion.totalAdicionales ?? 0),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(
+                              (cotizacion.totalAdicionales ?? 0) *
+                                  (cotizacion.numeroUnidades),
+                            ),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                // Fila para Costo de entrega como ítem (cantidad = unidades)
+                // Ocultar esta fila si la entrega es en Planta Titanium
+                if (!(isPlantaTitanium))
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'FLETE DE ENVÍO',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          // ignore: unnecessary_brace_in_string_interps
+                          '${numeroUnidades}',
                           style: pw.TextStyle(fontSize: 11),
                           textAlign: pw.TextAlign.center,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                // Fila para Costo de entrega como ítem (cantidad = unidades)
-                pw.TableRow(
-                  children: [
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        'FLETE DE ENVÍO',
-                        style: pw.TextStyle(
-                          fontSize: 11,
-                          fontWeight: pw.FontWeight.bold,
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(cotizacion.costoEntrega ?? 0),
+                          style: pw.TextStyle(fontSize: 11),
+                          textAlign: pw.TextAlign.center,
                         ),
                       ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        // ignore: unnecessary_brace_in_string_interps
-                        '${numeroUnidades}',
-                        style: pw.TextStyle(fontSize: 11),
-                        textAlign: pw.TextAlign.center,
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format((cotizacion.costoEntrega ?? 0) * numeroUnidades),
+                          style: pw.TextStyle(fontSize: 11),
+                          textAlign: pw.TextAlign.center,
+                        ),
                       ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        NumberFormat.currency(
-                          locale: 'es_MX',
-                          symbol: '\$',
-                        ).format(cotizacion.costoEntrega ?? 0),
-                        style: pw.TextStyle(fontSize: 11),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        NumberFormat.currency(
-                          locale: 'es_MX',
-                          symbol: '\$',
-                        ).format((cotizacion.costoEntrega ?? 0) * numeroUnidades),
-                        style: pw.TextStyle(fontSize: 11),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -1963,6 +1942,7 @@ class Seccion4 extends StatelessWidget {
                                   style: pw.TextStyle(fontSize: 11),
                                 ),
                               ),
+                              // Mostrar 'Entrega en' siempre
                               pw.Padding(
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(

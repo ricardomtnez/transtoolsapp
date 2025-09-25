@@ -19,6 +19,9 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   DateTime? selectedMonth;
   late TextEditingController searchController;
   bool loading = true;
+  // Sort options: 'fecha' or 'numero' (cotizacion). Default: número desc
+  String sortBy = 'numero';
+  bool sortAsc = false;
 
   @override
   void initState() {
@@ -77,6 +80,54 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
       );
     }).toList();
 
+    // Create a sorted copy according to sortBy and sortAsc
+    final sortedCotizaciones = List<Map<String, String>>.from(filteredCotizaciones);
+    int compareDates(Map<String, String> a, Map<String, String> b) {
+      DateTime da, db;
+      try {
+        da = a['date'] != null && a['date']!.isNotEmpty ? DateTime.parse(a['date']!) : DateTime.fromMillisecondsSinceEpoch(0);
+      } catch (_) {
+        da = DateTime.fromMillisecondsSinceEpoch(0);
+      }
+      try {
+        db = b['date'] != null && b['date']!.isNotEmpty ? DateTime.parse(b['date']!) : DateTime.fromMillisecondsSinceEpoch(0);
+      } catch (_) {
+        db = DateTime.fromMillisecondsSinceEpoch(0);
+      }
+      return da.compareTo(db);
+    }
+
+    int compareNumbers(Map<String, String> a, Map<String, String> b) {
+      final ra = RegExp(r"(\d+)");
+      int na = 0;
+      int nb = 0;
+      try {
+        final ma = ra.allMatches(a['cotizacion'] ?? '');
+        if (ma.isNotEmpty) na = int.parse(ma.last.group(0) ?? '0');
+      } catch (_) {
+        na = 0;
+      }
+      try {
+        final mb = ra.allMatches(b['cotizacion'] ?? '');
+        if (mb.isNotEmpty) nb = int.parse(mb.last.group(0) ?? '0');
+      } catch (_) {
+        nb = 0;
+      }
+      if (na != nb) return na.compareTo(nb);
+      // fallback to string compare
+      return (a['cotizacion'] ?? '').compareTo(b['cotizacion'] ?? '');
+    }
+
+    sortedCotizaciones.sort((a, b) {
+      int res = 0;
+      if (sortBy == 'fecha') {
+        res = compareDates(a, b);
+      } else {
+        res = compareNumbers(a, b);
+      }
+      return sortAsc ? res : -res;
+    });
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -106,17 +157,51 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
             child: Column(
               children: [
                 SizedBox(height: 20),
-                // Month Picker Button
+                // Top row: filter button (left) and month picker (right)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      Text(
-                        'Mes: ${selectedMonth!.month.toString().padLeft(2, '0')}/${selectedMonth!.year}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      // Filter / Sort button replacing the 'Mes:' label
+                      PopupMenuButton<String>(
+                        tooltip: 'Filtrar y ordenar',
+                        offset: Offset(0, 40),
+                        color: Colors.white,
+                        onSelected: (value) {
+                          setState(() {
+                            if (value == 'numero' || value == 'fecha') {
+                              sortBy = value;
+                            } else if (value == 'asc') {
+                              sortAsc = true;
+                            } else if (value == 'desc') {
+                              sortAsc = false;
+                            }
+                          });
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(value: 'numero', child: Text('Número de cotización', style: TextStyle(color: Colors.blue[800]))),
+                          PopupMenuDivider(),
+                          PopupMenuItem(value: 'asc', child: Text('Ascendente', style: TextStyle(color: Colors.blue[800]))),
+                          PopupMenuItem(value: 'desc', child: Text('Descendente', style: TextStyle(color: Colors.blue[800]))),
+                        ],
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.filter_list, color: Colors.blue[800], size: 18),
+                              SizedBox(width: 8),
+                              Text(
+                                sortBy == 'fecha' ? 'Fecha' : 'Número',
+                                style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(width: 6),
+                              Icon(sortAsc ? Icons.arrow_upward : Icons.arrow_downward, color: Colors.blue[800], size: 16),
+                            ],
+                          ),
                         ),
                       ),
                       const Spacer(),
@@ -257,180 +342,169 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                               : Scrollbar(
                                   thumbVisibility: true, // Siempre visible
                                   child: ListView.builder(
-                                    itemCount: filteredCotizaciones.length,
+                                    itemCount: sortedCotizaciones.length,
                                     itemBuilder: (context, index) {
-                                      final cot = filteredCotizaciones[index];
+                                      final cot = sortedCotizaciones[index];
                                       final isEven = index % 2 == 0;
-                                      // Animación de aparición
-                                      return TweenAnimationBuilder<double>(
-                                        tween: Tween(begin: 0, end: 1),
-                                        duration: Duration(milliseconds: 400 + index * 80),
-                                        builder: (context, opacity, child) => Opacity(
-                                          opacity: opacity,
-                                          child: Transform.translate(
-                                            offset: Offset(0, 30 * (1 - opacity)),
-                                            child: child,
-                                          ),
+                                      // Without animation: return the Card directly
+                                      return Card(
+                                        color: isEven ? Colors.blue[800] : Colors.blue[700],
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
                                         ),
-                                        child: Card(
-                                          color: isEven ? Colors.blue[800] : Colors.blue[700],
-                                          shape: RoundedRectangleBorder(
+                                        elevation: 10,
+                                        // ignore: deprecated_member_use
+                                        shadowColor: Colors.black.withOpacity(0.25),
+                                        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                        child: Container(
+                                          decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(16),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                // ignore: deprecated_member_use
+                                                color: Colors.black.withOpacity(0.18),
+                                                blurRadius: 18,
+                                                offset: Offset(0, 8),
+                                              ),
+                                            ],
                                           ),
-                                          elevation: 10,
-                                          // ignore: deprecated_member_use
-                                          shadowColor: Colors.black.withOpacity(0.25),
-                                          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(16),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  // ignore: deprecated_member_use
-                                                  color: Colors.black.withOpacity(0.18),
-                                                  blurRadius: 18,
-                                                  offset: Offset(0, 8),
+                                          child: Padding(
+                                            padding: EdgeInsets.all(16),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        cot['cotizacion'] ?? '',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 16,
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        cot['cliente'] ?? '',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 16,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4),
+                                                      Text(
+                                                        cot['producto'] ?? '',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4),
+                                                      Text(
+                                                        cot['linea'] ?? '',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4),
+                                                      Text(
+                                                        'Ejes: ${cot['ejes'] ?? ''}',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4),
+                                                      Text(
+                                                        'Modelo: ${cot['modelo'] ?? ''}',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4),
+                                                      Text(
+                                                        'Fecha: ${cot['date'] ?? ''}',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                SizedBox(width: 10),
+                                                GestureDetector(
+                                                  onTap: cot['archivo_pdf'] != null && cot['archivo_pdf']!.isNotEmpty
+                                                      ? () {
+                                                          showDialog(
+                                                            context: context,
+                                                            barrierDismissible: true,
+                                                            builder: (context) {
+                                                              return Dialog(
+                                                                child: Column(
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    Align(
+                                                                      alignment: Alignment.topRight,
+                                                                      child: IconButton(
+                                                                        icon: Icon(Icons.close),
+                                                                        onPressed: () => Navigator.of(context).pop(),
+                                                                      ),
+                                                                    ),
+                                                                    SizedBox(
+                                                                      width: MediaQuery.of(context).size.width * 0.85,
+                                                                      height: MediaQuery.of(context).size.height * 0.7,
+                                                                      child: SfPdfViewer.network(cot['archivo_pdf']!),
+                                                                    ),
+                                                                    Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                                      children: [
+                                                                        IconButton(
+                                                                          icon: Icon(Icons.print),
+                                                                          onPressed: () async {
+                                                                            final response = await http.get(Uri.parse(cot['archivo_pdf']!));
+                                                                            if (response.statusCode == 200) {
+                                                                              await Printing.layoutPdf(
+                                                                                onLayout: (format) async => response.bodyBytes,
+                                                                              );
+                                                                            }
+                                                                          },
+                                                                        ),
+                                                                        IconButton(
+                                                                          icon: Icon(Icons.share),
+                                                                          onPressed: () async {
+                                                                            final response = await http.get(Uri.parse(cot['archivo_pdf']!));
+                                                                            if (response.statusCode == 200) {
+                                                                              await Printing.sharePdf(
+                                                                                bytes: response.bodyBytes,
+                                                                                filename: '${cot['cotizacion'] ?? 'cotizacion'}.pdf',
+                                                                              );
+                                                                            }
+                                                                          },
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              );
+                                                            },
+                                                          );
+                                                        }
+                                                      : null,
+                                                  child: Container(
+                                                    width: 40,
+                                                    height: 40,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Icon(Icons.picture_as_pdf, color: Color(0xFFD32F2F), size: 32),
+                                                  ),
                                                 ),
                                               ],
-                                            ),
-                                            child: Padding(
-                                              padding: EdgeInsets.all(16),
-                                              child: Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          cot['cotizacion'] ?? '',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 16,
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          cot['cliente'] ?? '',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 16,
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        Text(
-                                                          cot['producto'] ?? '',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        Text(
-                                                          cot['linea'] ?? '',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        Text(
-                                                          'Ejes: ${cot['ejes'] ?? ''}',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        Text(
-                                                          'Modelo: ${cot['modelo'] ?? ''}',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        Text(
-                                                          'Fecha: ${cot['date'] ?? ''}',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  SizedBox(width: 10),
-                                                  GestureDetector(
-                                                    onTap: cot['archivo_pdf'] != null && cot['archivo_pdf']!.isNotEmpty
-                                                        ? () {
-                                                            showDialog(
-                                                              context: context,
-                                                              barrierDismissible: true,
-                                                              builder: (context) {
-                                                                return Dialog(
-                                                                  child: Column(
-                                                                    mainAxisSize: MainAxisSize.min,
-                                                                    children: [
-                                                                      Align(
-                                                                        alignment: Alignment.topRight,
-                                                                        child: IconButton(
-                                                                          icon: Icon(Icons.close),
-                                                                          onPressed: () => Navigator.of(context).pop(),
-                                                                        ),
-                                                                      ),
-                                                                      SizedBox(
-                                                                        width: MediaQuery.of(context).size.width * 0.85,
-                                                                        height: MediaQuery.of(context).size.height * 0.7,
-                                                                        child: SfPdfViewer.network(cot['archivo_pdf']!),
-                                                                      ),
-                                                                      Row(
-                                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                                        children: [
-                                                                          IconButton(
-                                                                            icon: Icon(Icons.print),
-                                                                            onPressed: () async {
-                                                                              final response = await http.get(Uri.parse(cot['archivo_pdf']!));
-                                                                              if (response.statusCode == 200) {
-                                                                                await Printing.layoutPdf(
-                                                                                  onLayout: (format) async => response.bodyBytes,
-                                                                                );
-                                                                              }
-                                                                            },
-                                                                          ),
-                                                                          IconButton(
-                                                                            icon: Icon(Icons.share),
-                                                                            onPressed: () async {
-                                                                              final response = await http.get(Uri.parse(cot['archivo_pdf']!));
-                                                                              if (response.statusCode == 200) {
-                                                                                await Printing.sharePdf(
-                                                                                  bytes: response.bodyBytes,
-                                                                                  filename: '${cot['cotizacion'] ?? 'cotizacion'}.pdf',
-                                                                                );
-                                                                              }
-                                                                            },
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                );
-                                                              },
-                                                            );
-                                                          }
-                                                        : null,
-                                                    child: Container(
-                                                      width: 40,
-                                                      height: 40,
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius: BorderRadius.circular(8),
-                                                      ),
-                                                      child: Icon(Icons.picture_as_pdf, color: Color(0xFFD32F2F), size: 32),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
                                             ),
                                           ),
                                         ),

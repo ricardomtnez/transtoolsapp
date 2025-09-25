@@ -7,6 +7,7 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 
 class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
@@ -41,8 +42,12 @@ class Seccion4 extends StatelessWidget {
   final double costoEntrega = cotizacion.costoEntrega ?? 0;
   final double costoEntregaTotal = costoEntrega * numeroUnidades;
   final subTotal = precioProductoTotal + precioAdicionalesTotal + costoEntregaTotal;
-    final iva = subTotal * 0.16;
-    final totalFinal = subTotal + iva;
+  // Descuento por unidad almacenado en cotizacion.descuento -> multiplicar por unidades
+  final double descuentoPorUnidad = cotizacion.descuento ?? 0.0;
+  final double descuentoTotal = descuentoPorUnidad * numeroUnidades;
+  final double subTotalConDescuento = (subTotal - descuentoTotal).clamp(0.0, double.infinity);
+  final iva = subTotalConDescuento * 0.16;
+  final totalFinal = subTotalConDescuento + iva;
 
   final int cantidadAdicionalesSeleccionados = cotizacion
     .adicionalesSeleccionados
@@ -458,6 +463,72 @@ class Seccion4 extends StatelessWidget {
                               ),
                             ],
                           ),
+                          if (descuentoTotal > 0) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Descuento:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      NumberFormat.currency(
+                                        locale: 'es_MX',
+                                        symbol: '\$',
+                                      ).format(descuentoTotal),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Color(0xFF1565C0),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '( ${NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(descuentoPorUnidad)} c/u )',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Subtotal desc:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  NumberFormat.currency(
+                                    locale: 'es_MX',
+                                    symbol: '\$',
+                                  ).format(subTotalConDescuento),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Color(0xFF1565C0),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -544,6 +615,32 @@ class Seccion4 extends StatelessWidget {
                                 const SizedBox(
                                   width: 16,
                                 ), // Menor espacio entre botones
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    // Generar PDF y abrir el diálogo de impresión/previa
+                                    final bytes = await _generarPDF(context);
+                                    await Printing.layoutPdf(
+                                      onLayout: (PdfPageFormat format) async => bytes,
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: const Text('Imprimir'),
+                                ),
                               ],
                             ),
                           ),
@@ -591,8 +688,13 @@ class Seccion4 extends StatelessWidget {
       (precioProductoConAdicionales * numeroUnidades) +
       sumAdicionalesTotal +
       costoEntregaTotalPdf;
-  final double iva = subTotal * 0.16;
-  final double totalFinal = subTotal + iva;
+
+    // Descuento por unidad almacenado en cotizacion.descuento -> multiplicar por unidades
+    final double descuentoPorUnidadPdf = cotizacion.descuento ?? 0.0;
+    final double descuentoPdf = descuentoPorUnidadPdf * numeroUnidades;
+    final double subTotalConDescuentoPdf = (subTotal - descuentoPdf).clamp(0.0, double.infinity);
+    final double iva = subTotalConDescuentoPdf * 0.16;
+    final double totalFinal = subTotalConDescuentoPdf + iva;
 
     final int diasVigencia = cotizacion.fechaVigencia
         .difference(cotizacion.fechaCotizacion)
@@ -1475,7 +1577,7 @@ class Seccion4 extends StatelessWidget {
             ),
           ),
 
-          // Totales
+          // Totales (considerando descuento por unidad)
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Table(
@@ -1489,8 +1591,8 @@ class Seccion4 extends StatelessWidget {
               children: [
                 pw.TableRow(
                   children: [
-                    pw.Container(), // Columna 1 en blanco
-                    pw.Container(), // Columna 2 en blanco
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()), // Columna 1 en blanco centrada
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()), // Columna 2 en blanco centrada
                     pw.Container(
                       color: PdfColors.blue900,
                       padding: const pw.EdgeInsets.all(6),
@@ -1522,10 +1624,80 @@ class Seccion4 extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (descuentoPdf > 0) pw.TableRow(
+                  children: [
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(
+                      color: PdfColors.blue900,
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'DESCUENTO',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      color: PdfColors.blue900,
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(descuentoPdf),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+                if (descuentoPdf > 0) pw.TableRow(
+                  children: [
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(
+                      color: PdfColors.blue900,
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'S/DESC',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      color: PdfColors.blue900,
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(subTotalConDescuentoPdf),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
                 pw.TableRow(
                   children: [
-                    pw.Container(),
-                    pw.Container(),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(
                       color: PdfColors.blue900,
                       padding: const pw.EdgeInsets.all(6),
@@ -1557,11 +1729,11 @@ class Seccion4 extends StatelessWidget {
                     ),
                   ],
                 ),
-                  // COSTO ENTREGA ya se incluye en el detalle como fila con cantidad y importe
+                // COSTO ENTREGA ya se incluye en el detalle como fila con cantidad y importe
                 pw.TableRow(
                   children: [
-                    pw.Container(),
-                    pw.Container(),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(
                       color: PdfColors.blue900,
                       padding: const pw.EdgeInsets.all(6),

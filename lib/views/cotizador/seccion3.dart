@@ -39,6 +39,7 @@ class _Seccion3State extends State<Seccion3> {
   final TextEditingController unidadesController = TextEditingController();
   final TextEditingController otroMetodoController = TextEditingController();
   final TextEditingController anticipoController = TextEditingController();
+  final TextEditingController descuentoController = TextEditingController();
 
   String? formaPago;
   String? metodoPago;
@@ -115,6 +116,8 @@ class _Seccion3State extends State<Seccion3> {
 
   bool anticipoError = false;
   String? anticipoErrorText;
+  bool descuentoError = false;
+  String? descuentoErrorText;
 
   @override
   void initState() {
@@ -667,6 +670,85 @@ class _Seccion3State extends State<Seccion3> {
                                 ],
                               ),
                             ),
+                            // Nuevo campo: Descuento (monto en pesos)
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: descuentoError ? Colors.red : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    // ignore: deprecated_member_use
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller: descuentoController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Descuento',
+                                      labelStyle: TextStyle(
+                                        color: descuentoError ? Colors.red : const Color(0xFF1565C0),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      border: InputBorder.none,
+                                      prefixText: '\$ ',
+                                      prefixStyle: const TextStyle(
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      suffixIcon: descuentoController.text.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                                              onPressed: () {
+                                                descuentoController.clear();
+                                                setState(() {
+                                                  descuentoError = false;
+                                                });
+                                              },
+                                              splashRadius: 18,
+                                            )
+                                          : null,
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(RegExp(r'[0-9,]')),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        descuentoError = false;
+                                        descuentoErrorText = null;
+                                      });
+                                      // Persist discount into the cotizacion model as a double (without commas)
+                                      final parsed = double.tryParse(value.replaceAll(',', ''));
+                                      try {
+                                        widget.cotizacion.descuento = parsed;
+                                      } catch (_) {}
+                                    },
+                                  ),
+                                  if (descuentoError && descuentoErrorText != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 4, top: 4),
+                                      child: Text(
+                                        descuentoErrorText!,
+                                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
 
@@ -918,6 +1000,7 @@ class _Seccion3State extends State<Seccion3> {
                     costoEntrega: entregaMontoController.text.isNotEmpty
                       ? double.tryParse(entregaMontoController.text)
                       : null,
+                      descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
                                     ),
                                   });
                                 },
@@ -994,6 +1077,19 @@ class _Seccion3State extends State<Seccion3> {
                                         : (numValue == null || numValue < 0 || numValue > 100
                                             ? 'Ingrese un valor entre 0 y 100'
                                             : null);
+                                    // Validar descuento (si se ingresó)
+                                    descuentoError = false;
+                                    descuentoErrorText = null;
+                                    if (descuentoController.text.isNotEmpty) {
+                                      final d = double.tryParse(descuentoController.text.replaceAll(',', ''));
+                                      if (d == null || d < 0) {
+                                        descuentoError = true;
+                                        descuentoErrorText = 'Ingrese un descuento válido';
+                                      } else if (d > 20000) {
+                                        descuentoError = true;
+                                        descuentoErrorText = 'El descuento máximo es de \$20,000';
+                                      }
+                                    }
                                   });
 
                                   if (unidadesError ||
@@ -1002,7 +1098,8 @@ class _Seccion3State extends State<Seccion3> {
                                       cuentaError ||
                                       entregaEnError ||
                                       rangoEntregaError ||
-                                      anticipoError) {
+                                      anticipoError ||
+                                      descuentoError) {
                                     // Mostrar alerta o scroll al primer error
                                     return;
                                   }
@@ -1034,6 +1131,7 @@ class _Seccion3State extends State<Seccion3> {
                                           semanasEntrega: semanasEntrega,
                                           anticipoSeleccionado:
                                               anticipoSeleccionado,
+                                          descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
                                           // preserve previously computed excludedFeatures and adicionalesDeLinea
                                           excludedFeatures: widget.cotizacion.excludedFeatures,
                                           adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,
@@ -1120,6 +1218,7 @@ class _Seccion3State extends State<Seccion3> {
     unidadesController.dispose();
     otroMetodoController.dispose();
     anticipoController.dispose();
+    descuentoController.dispose();
   entregaMontoController.dispose();
     _primaryScrollController.dispose();
     super.dispose();

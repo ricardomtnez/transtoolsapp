@@ -232,12 +232,17 @@ class _Seccion2State extends State<Seccion2> {
       setState(() {
         _gruposAdicionales.clear();
         _gruposAdicionales.addAll(
-          gruposFiltradosRaw.map<Map<String, String>>((g) {
+          gruposFiltradosRaw
+              .where((g) {
+                final text = (g['text'] ?? '').toString();
+                return !_isSeparatorLabel(text);
+              })
+              .map<Map<String, String>>((g) {
             return {
               'value': g['value']?.toString() ?? '',
               'text': g['text']?.toString() ?? '',
             };
-          }),
+          }).toList(),
         );
       });
     // ignore: empty_catches
@@ -250,10 +255,14 @@ class _Seccion2State extends State<Seccion2> {
     });
     try {
       final itemsApi = await QuoteController.obtenerAdicionalesPorCategoria(grupoId);
-      // Exclude items whose estado is 'Separador'
+      // Exclude items whose estado is 'Separador' or whose name is just a separator line
       final filtered = itemsApi.where((item) {
         final estado = (item['estado'] ?? '').toString().toLowerCase();
-        return estado != 'separador';
+        final name = (item['name'] ?? '').toString();
+        if (estado == 'separador') return false;
+        if (name.trim().isEmpty) return false;
+        if (_isSeparatorLabel(name)) return false;
+        return true;
       }).toList();
       setState(() {
         _itemsDelGrupo.clear();
@@ -273,6 +282,20 @@ class _Seccion2State extends State<Seccion2> {
     _searchAdicionalesCtrl.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // Helper: returns true when a label is just a visual separator (dashes/underscores/spaces)
+  bool _isSeparatorLabel(String raw) {
+    if (raw.trim().isEmpty) return true;
+    // Normalize common non-breaking spaces and line breaks
+    String s = raw.replaceAll('\u00A0', ' ').replaceAll(RegExp(r'[\r\n]+'), ' ').trim();
+    if (s.isEmpty) return true;
+    // Replace common dash-like unicode with simple hyphen for matching
+    s = s.replaceAll(RegExp('[\u2012\u2013\u2014\u2015]'), '-');
+    // Remove any spaces so a line like '- - - - -' still counts
+    final compact = s.replaceAll(RegExp(r'\s+'), '');
+    // If after removing spaces we only have hyphens/underscores, treat as separator
+    return RegExp(r'^[\-_]{2,}$').hasMatch(compact);
   }
 
   @override
@@ -677,7 +700,14 @@ class _Seccion2State extends State<Seccion2> {
 
   List<TableRow> _buildKitsAdicionalesRows(List<dynamic> kits) {
     return kits
-        .where((kit) => (kit['estado'] ?? '').toString().toLowerCase() != 'separador')
+        .where((kit) {
+          final estado = (kit['estado'] ?? '').toString().toLowerCase();
+          final name = (kit['name'] ?? '').toString();
+          if (estado == 'separador') return false;
+          if (name.trim().isEmpty) return false;
+          if (_isSeparatorLabel(name)) return false;
+          return true;
+        })
         .map<TableRow>((kit) {
       final name = kit['name'] ?? '';
       final adicionales = kit['adicionales'] ?? '';

@@ -42,6 +42,7 @@ class Cotizacion {
   double? costoEntrega;
   double? totalAdicionales;
   double? precioProductoConAdicionales;
+  double? descuento;
   String? anticipoSeleccionado;
   String? estadoProducto; 
   Map<String, Set<String>>? excludedFeatures; 
@@ -79,6 +80,7 @@ class Cotizacion {
     this.totalAdicionales,
     this.precioProductoConAdicionales, 
     this.anticipoSeleccionado,
+    this.descuento,
   this.datosCargados = false, 
   this.costoEntrega,
     this.excludedFeatures,
@@ -124,6 +126,7 @@ class Cotizacion {
       semanasEntrega: map['semanasEntrega'],
   importe: map['importe'] != null ? (map['importe'] as num).toDouble() : null, // <-- Agrega esto
   costoEntrega: map['costoEntrega'] != null ? (map['costoEntrega'] as num).toDouble() : null,
+      descuento: map['descuento'] != null ? (map['descuento'] as num).toDouble() : null,
       totalAdicionales: map['totalAdicionales'] != null ? (map['totalAdicionales'] as num).toDouble() : null, // <-- Agrega esto
     );
   }
@@ -161,6 +164,7 @@ class Cotizacion {
       'semanasEntrega': semanasEntrega,
   'importe': importe,
   'costoEntrega': costoEntrega,
+  'descuento': descuento,
       'totalAdicionales': totalAdicionales, 
     };
   }
@@ -202,6 +206,7 @@ class Cotizacion {
     String? semanasEntrega,
     double? importe, 
   double? costoEntrega,
+    double? descuento,
     double? totalAdicionales,
     double? precioProductoConAdicionales, 
     Map<String, Set<String>>? excludedFeatures,
@@ -240,6 +245,7 @@ class Cotizacion {
       totalAdicionales: totalAdicionales ?? this.totalAdicionales, 
       precioProductoConAdicionales: precioProductoConAdicionales ?? this.precioProductoConAdicionales, 
       anticipoSeleccionado: anticipoSeleccionado ?? this.anticipoSeleccionado,
+      descuento: descuento ?? this.descuento,
       datosCargados: true, 
       excludedFeatures: excludedFeatures ?? this.excludedFeatures,
     );

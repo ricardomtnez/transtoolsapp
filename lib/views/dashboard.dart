@@ -224,6 +224,14 @@ class DashboardState extends State<Dashboard> with SingleTickerProviderStateMixi
                         Navigator.pushNamed(context, "/listprices");
                       },
                     ),
+                    ListTile(
+                      leading: const Icon(Icons.build_circle, color: Color(0xFF1565C0)),
+                      title: const Text('Lista de Equipamientos'),
+                      splashColor: Colors.blue[100],
+                      onTap: () {
+                        Navigator.pushNamed(context, "/equipments");
+                      },
+                    ),
                   ],
                 ),
               ),

@@ -9,6 +9,7 @@ import 'package:transtools/views/login.dart';
 import 'package:transtools/views/cotizador/seccion1.dart';
 import 'package:transtools/views/cotizaciones.dart';
 import 'package:transtools/views/listprices.dart';
+import 'package:transtools/views/equipmentlist.dart';
 import 'package:transtools/views/cotizador/seccion5.dart';
 
 void main() async {
@@ -47,6 +48,9 @@ class _MyAppState extends State<MyApp> {
 
             case "/listprices":
             return MaterialPageRoute(builder: (_) => ListPricesPage());
+
+              case "/equipments":
+              return MaterialPageRoute(builder: (_) => const EquipmentListPage());
 
             case "/cotizaciones":
             return MaterialPageRoute(builder: (_) => CotizacionesPage(fullname: 'Nombre de usuario'));

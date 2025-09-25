@@ -42,8 +42,13 @@ class Seccion5 extends StatelessWidget {
   final double costoEntrega = cotizacion.costoEntrega ?? 0;
   final double costoEntregaTotal = costoEntrega * numeroUnidades;
   final subTotal = precioProductoTotal + precioAdicionalesTotal + costoEntregaTotal;
-    final iva = subTotal * 0.16;
-    final totalFinal = subTotal + iva;
+    // Apply discount (if any) before IVA. The stored discount is per unit,
+    // so multiply by the number of units to get the total discount amount.
+    final double descuentoPorUnidad = cotizacion.descuento ?? 0.0;
+    final double descuentoTotal = descuentoPorUnidad * numeroUnidades;
+    final double subTotalConDescuento = (subTotal - descuentoTotal).clamp(0.0, double.infinity);
+      final iva = subTotalConDescuento * 0.16;
+      final totalFinal = subTotalConDescuento + iva;
 
   final int cantidadAdicionalesSeleccionados = cotizacion
     .adicionalesSeleccionados
@@ -446,7 +451,7 @@ class Seccion5 extends StatelessWidget {
                                   color: Colors.black,
                                 ),
                               ),
-                              Text(
+                                Text(
                                 NumberFormat.currency(
                                   locale: 'es_MX',
                                   symbol: '\$',
@@ -459,6 +464,73 @@ class Seccion5 extends StatelessWidget {
                               ),
                             ],
                           ),
+                          if (descuentoTotal > 0) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Descuento:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      NumberFormat.currency(
+                                        locale: 'es_MX',
+                                        symbol: '\$',
+                                      ).format(descuentoTotal),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Color(0xFFb5191f),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '( ${NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(descuentoPorUnidad)} c/u )',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                          if (descuentoTotal > 0) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Subtotal desc:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  NumberFormat.currency(
+                                    locale: 'es_MX',
+                                    symbol: '\$',
+                                  ).format(subTotalConDescuento),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Color(0xFFb5191f),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -627,8 +699,12 @@ class Seccion5 extends StatelessWidget {
       (precioProductoConAdicionales * numeroUnidades) +
       sumAdicionalesTotal +
       costoEntregaTotalPdf;
-  final double iva = subTotal * 0.16;
-  final double totalFinal = subTotal + iva;
+  // Aplicar descuento: la cotizacion.descuento viene por unidad, multiplicar por unidades
+  final double descuentoUnitPdf = cotizacion.descuento ?? 0.0;
+  final double descuentoPdf = descuentoUnitPdf * numeroUnidades;
+  final double subTotalConDescuentoPdf = (subTotal - descuentoPdf).clamp(0.0, double.infinity);
+    final double iva = subTotalConDescuentoPdf * 0.16;
+    final double totalFinal = subTotalConDescuentoPdf + iva;
 
     // Valores seguros para evitar Null check operator used on a null value
   final String folioSafe = cotizacion.folioCotizacion;
@@ -1449,127 +1525,228 @@ class Seccion5 extends StatelessWidget {
             ),
           ),
 
-          // Totales
-          pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: pw.Table(
-              columnWidths: const {
-                0: pw.FixedColumnWidth(160),
-                1: pw.FixedColumnWidth(60),
-                2: pw.FixedColumnWidth(80),
-                3: pw.FixedColumnWidth(80),
-              },
-              border: null, // Sin bordes
-              children: [
-                pw.TableRow(
-                  children: [
-                    pw.Container(), // Columna 1 en blanco
-                    pw.Container(), // Columna 2 en blanco
-                    pw.Container(
-                      color: PdfColor.fromInt(0xFFb5191f),
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        'SUBTOTAL',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.white,
+          // Totales (envuelto en LayoutBuilder para evitar que la tabla se divida)
+          pw.LayoutBuilder(builder: (ctxLayout, constraints) {
+            // Estimación conservadora (aumentada) de la altura que ocupará la tabla de totales
+            // Incrementamos para cubrir cualquier padding extra y el bloque 'TOTAL' grande
+            // Estimate rows dynamically: SUBTOTAL, optional DESCUENTO, optional S/DESC, IVA, TOTAL + margin
+            int estimatedRows = 5; // SUBTOTAL, IVA, TOTAL + margins
+            if (descuentoPdf > 0) {
+              // DESCUENTO and S/DESC rows will be present
+              estimatedRows = 7;
+            }
+            const double rowHeight = 36.0; // altura estimada por fila (más conservadora)
+            const double extraPadding = 40.0; // padding interno y márgenes
+            final estimatedTableHeight = estimatedRows * rowHeight + extraPadding;
+
+            // Definimos el widget de la tabla exactamente como antes (sin cambios estructurales)
+            final totalsTable = pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: pw.Table(
+                columnWidths: const {
+                  0: pw.FixedColumnWidth(160),
+                  1: pw.FixedColumnWidth(60),
+                  2: pw.FixedColumnWidth(80),
+                  3: pw.FixedColumnWidth(80),
+                },
+                border: null, // Sin bordes
+                children: [
+                  // Mostrar Subtotal original
+                  pw.TableRow(
+                    children: [
+                      pw.Container(), // Columna 1 en blanco
+                      pw.Container(), // Columna 2 en blanco
+                      pw.Container(
+                        color: PdfColor.fromInt(0xFFb5191f),
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'SUBTOTAL',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                            color: PdfColors.white,
+                          ),
+                          textAlign: pw.TextAlign.center,
                         ),
-                        textAlign: pw.TextAlign.center,
                       ),
-                    ),
-                    pw.Container(
-                      color: PdfColor.fromInt(0xFFb5191f),
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        NumberFormat.currency(
-                          locale: 'es_MX',
-                          symbol: '\$',
-                        ).format(subTotal),
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.white,
+                      pw.Container(
+                        color: PdfColor.fromInt(0xFFb5191f),
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(subTotal),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                            color: PdfColors.white,
+                          ),
+                          textAlign: pw.TextAlign.center,
                         ),
-                        textAlign: pw.TextAlign.center,
                       ),
-                    ),
-                  ],
-                ),
-                pw.TableRow(
-                  children: [
-                    pw.Container(),
-                    pw.Container(),
-                    pw.Container(
-                      color: PdfColor.fromInt(0xFFb5191f),
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        'IVA',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.white,
+                    ],
+                  ),
+                  // Descuento (si aplica)
+                  if (descuentoPdf > 0)
+                    pw.TableRow(
+                      children: [
+                        pw.Container(),
+                        pw.Container(),
+                        pw.Container(
+                          color: PdfColor.fromInt(0xFFb5191f),
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            'DESCUENTO',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 12,
+                              color: PdfColors.white,
+                            ),
+                            textAlign: pw.TextAlign.center,
+                          ),
                         ),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    ),
-                    pw.Container(
-                      color: PdfColor.fromInt(0xFFb5191f),
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        NumberFormat.currency(
-                          locale: 'es_MX',
-                          symbol: '\$',
-                        ).format(iva),
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.white,
+                        pw.Container(
+                          color: PdfColor.fromInt(0xFFb5191f),
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(descuentoPdf),
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 12,
+                              color: PdfColors.white,
+                            ),
+                            textAlign: pw.TextAlign.center,
+                          ),
                         ),
-                        textAlign: pw.TextAlign.center,
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  // Subtotal luego del descuento (solo si hubo descuento)
+                  if (descuentoPdf > 0)
+                    pw.TableRow(
+                      children: [
+                        pw.Container(),
+                        pw.Container(),
+                        pw.Container(
+                          color: PdfColor.fromInt(0xFFb5191f),
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            'S/DESC.',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 12,
+                              color: PdfColors.white,
+                            ),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Container(
+                          color: PdfColor.fromInt(0xFFb5191f),
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(subTotalConDescuentoPdf),
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 12,
+                              color: PdfColors.white,
+                            ),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  pw.TableRow(
+                    children: [
+                      pw.Container(),
+                      pw.Container(),
+                      pw.Container(
+                        color: PdfColor.fromInt(0xFFb5191f),
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'IVA',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                            color: PdfColors.white,
+                          ),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                      pw.Container(
+                        color: PdfColor.fromInt(0xFFb5191f),
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(iva),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                            color: PdfColors.white,
+                          ),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
                   // COSTO ENTREGA ya se incluye en el detalle como fila con cantidad y importe
-                pw.TableRow(
-                  children: [
-                    pw.Container(),
-                    pw.Container(),
-                    pw.Container(
-                      color: PdfColor.fromInt(0xFFb5191f),
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        'TOTAL',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.white,
+                  pw.TableRow(
+                    children: [
+                      pw.Container(),
+                      pw.Container(),
+                      pw.Container(
+                        color: PdfColor.fromInt(0xFFb5191f),
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'TOTAL',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                            color: PdfColors.white,
+                          ),
+                          textAlign: pw.TextAlign.center,
                         ),
-                        textAlign: pw.TextAlign.center,
                       ),
-                    ),
-                    pw.Container(
-                      color: PdfColor.fromInt(0xFFb5191f),
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text(
-                        NumberFormat.currency(
-                          locale: 'es_MX',
-                          symbol: '\$',
-                        ).format(totalFinal),
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.white,
+                      pw.Container(
+                        color: PdfColor.fromInt(0xFFb5191f),
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(
+                            locale: 'es_MX',
+                            symbol: '\$',
+                          ).format(totalFinal),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                            color: PdfColors.white,
+                          ),
+                          textAlign: pw.TextAlign.center,
                         ),
-                        textAlign: pw.TextAlign.center,
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+
+            // Si no hay suficiente espacio en la página actual, movemos la tabla entera a la siguiente
+            final available = (constraints?.maxHeight) ?? 0.0;
+            if (available < estimatedTableHeight) {
+              // No hay espacio suficiente: rellenamos con un spacer mayor que
+              // el espacio disponible para forzar que el `totalsTable` se coloque
+              // en la siguiente página. Evita depender de pw.PageBreak().
+              return pw.Column(children: [pw.SizedBox(height: available + estimatedTableHeight), totalsTable]);
+            }
+
+            return totalsTable;
+          }),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Column(

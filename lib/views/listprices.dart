@@ -508,6 +508,112 @@ pdf.addPage(
           ),
           actions: [
             IconButton(
+              tooltip: 'Buscar Remolque',
+              onPressed: () async {
+                // Open searchable modal to pick a group
+                final TextEditingController groupSearch = TextEditingController();
+                final selectedGroupId = await showModalBottomSheet<String>(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (ctx) {
+                    return DraggableScrollableSheet(
+                      expand: false,
+                      initialChildSize: 0.6,
+                      minChildSize: 0.25,
+                      maxChildSize: 0.95,
+                      builder: (_, controller) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          child: StatefulBuilder(
+                            builder: (contextSheet, setStateSheet) {
+                              final query = groupSearch.text.trim().toLowerCase();
+                              final filtered = query.isEmpty
+                                  ? _grupos
+                                  : _grupos.where((g) {
+                                      final text = (g['text'] ?? '').toString().toLowerCase();
+                                      final value = (g['value'] ?? '').toString().toLowerCase();
+                                      return text.contains(query) || value.contains(query);
+                                    }).toList();
+
+                              return Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Container(
+                                      width: 40,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    child: TextField(
+                                      controller: groupSearch,
+                                      decoration: InputDecoration(
+                                        hintText: 'Buscar Remolque...',
+                                        prefixIcon: const Icon(Icons.search),
+                                        suffixIcon: groupSearch.text.isNotEmpty
+                                            ? IconButton(icon: const Icon(Icons.clear), onPressed: () { groupSearch.clear(); setStateSheet(() {}); })
+                                            : null,
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                        filled: true,
+                                        fillColor: Colors.grey[100],
+                                      ),
+                                      onChanged: (_) => setStateSheet(() {}),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: ListView.separated(
+                                      controller: controller,
+                                      itemCount: filtered.length,
+                                      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                                      itemBuilder: (contextList, i) {
+                                        final g = filtered[i];
+                                        final gid = g['value']?.toString() ?? '';
+                                        final gtext = g['text']?.toString() ?? '';
+                                        return ListTile(
+                                          title: Text(gtext, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                          onTap: () => Navigator.pop(ctx, gid),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+
+                if (selectedGroupId != null && selectedGroupId.isNotEmpty) {
+                  // find index
+                  final idx = _grupos.indexWhere((g) => (g['value']?.toString() ?? '') == selectedGroupId);
+                  if (idx >= 0 && idx < _grupos.length) {
+                    // switch tab and load models
+                    _tabController.animateTo(idx);
+                    setState(() {
+                      _selectedLinea = '';
+                      _modelos = [];
+                      _preciosProductos.clear();
+                      _loadingModelos = true;
+                    });
+                    await cargarModelosPorGrupoConPrecios(selectedGroupId);
+                  }
+                }
+              },
+              icon: const Icon(Icons.search, color: Colors.black),
+            ),
+            IconButton(
               tooltip: 'Exportar lista a PDF',
               onPressed: () async {
                 await _exportarListaPreciosPdf(modelosFiltrados);

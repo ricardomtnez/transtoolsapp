@@ -66,13 +66,22 @@ class _Seccion3State extends State<Seccion3> {
 
   String anticipoSeleccionado = '';
 
-  final List<String> cuentasMXN = [
-    'BBVA Bancomer: 0172940930 Clabe: 012830001729409301',
+  // Cuentas MXN separadas por empresa
+  final List<String> cuentasMXNKenworth = [
     'BANCOMER: 0150549584 Clabe: 012650001505495845',
   ];
-  final List<String> cuentasUSD = [
+
+  final List<String> cuentasMXNTranstools = [
+    'BBVA Bancomer: 0172940930 Clabe: 012830001729409301',
+  ];
+
+  // NOTA: ya no usamos una lista por defecto para cuentas MXN.
+  // Cuentas USD asignadas a Transtools
+  final List<String> cuentasUSDTranstools = [
     'BBVA Bancomer USD: 0117396880  Clabe: 012830001173968809',
   ];
+  // Lista USD por defecto (vacía si no se identifica usuario)
+  final List<String> cuentasUSDDefault = [];
 
   // Opciones de entrega (solo etiquetas). Los precios se manejan en
   // `entregaDefaultPrices` para que el dropdown muestre solo nombres.
@@ -319,6 +328,31 @@ class _Seccion3State extends State<Seccion3> {
     if (empresa.isEmpty) return false;
     final reg = RegExp(r'\bkenworth\b', caseSensitive: false);
     return reg.hasMatch(empresa);
+  }
+
+  // Devuelve true solo si la empresa del usuario contiene la palabra
+  // 'transtools' como palabra completa.
+  bool _usuarioEsTranstools(Usuario? u) {
+    final empresa = (u?.empresa ?? '').toLowerCase();
+    if (empresa.isEmpty) return false;
+    final reg = RegExp(r'\btranstools\b', caseSensitive: false);
+    return reg.hasMatch(empresa);
+  }
+
+  // Selecciona la lista de cuentas MXN según la empresa del usuario.
+  List<String> _cuentasMXNSegunUsuario([Usuario? u]) {
+    final usuarioLocal = u ?? _usuario;
+    if (_usuarioEsKenworth(usuarioLocal)) return cuentasMXNKenworth;
+    if (_usuarioEsTranstools(usuarioLocal)) return cuentasMXNTranstools;
+    // Si no se identifica al usuario, no mostrar cuentas MXN por defecto
+    return <String>[];
+  }
+
+  // Selecciona la lista de cuentas USD según la empresa del usuario.
+  List<String> _cuentasUSDSegunUsuario([Usuario? u]) {
+    final usuarioLocal = u ?? _usuario;
+    if (_usuarioEsTranstools(usuarioLocal)) return cuentasUSDTranstools;
+    return cuentasUSDDefault;
   }
 
   Future<void> _cargarUsuario() async {
@@ -584,9 +618,9 @@ class _Seccion3State extends State<Seccion3> {
                               _styledDropdown(
                                 label: 'Cuenta para Transferencia',
                                 value: cuentaSeleccionada,
-                                items: moneda == 'MXN'
-                                    ? cuentasMXN
-                                    : cuentasUSD,
+                items: moneda == 'MXN'
+                  ? _cuentasMXNSegunUsuario()
+                  : _cuentasUSDSegunUsuario(),
                                 onChanged: (value) {
                                   setState(() {
                                     cuentaSeleccionada = value;

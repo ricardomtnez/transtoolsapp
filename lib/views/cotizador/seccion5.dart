@@ -1106,36 +1106,9 @@ class Seccion5 extends StatelessWidget {
                 1: pw.FlexColumnWidth(220),
               },
               children: [
-                // Campos de estructura ordenados FILTRANDO EXCLUIDOS
-                for (final campo in estructuraOrden)
-                  if (cotizacion.estructura[campo['key']] != null &&
-                      !(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(campo['key']))
-                    pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(vertical: 6),
-                          child: pw.Text(
-                            campo['label'] ?? '',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(vertical: 6),
-                          child: pw.Text(
-                            cotizacion.estructura[campo['key']] ?? '',
-                            style: pw.TextStyle(fontSize: 11),
-                            textAlign: pw.TextAlign.justify,
-                          ),
-                        ),
-                      ],
-                    ),
-                // Extras de estructura FILTRANDO EXCLUIDOS
+                // Estructura en ORDEN ORIGINAL (inserción del mapa), filtrando excluidos
                 for (final entry in cotizacion.estructura.entries)
-                  if (!estructuraOrden.any((campo) => campo['key'] == entry.key) &&
-                      !(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(entry.key))
+                  if (!(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(entry.key))
                     pw.TableRow(
                       children: [
                         pw.Padding(
@@ -1152,7 +1125,8 @@ class Seccion5 extends StatelessWidget {
                           padding: const pw.EdgeInsets.symmetric(vertical: 6),
                           child: pw.Text(
                             entry.value,
-                            style: pw.TextStyle(fontSize: 10),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.justify,
                           ),
                         ),
                       ],

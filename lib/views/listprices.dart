@@ -573,6 +573,7 @@ pdf.addPage(
                                     child: ListView.separated(
                                       controller: controller,
                                       itemCount: filtered.length,
+                                      // ignore: unnecessary_underscores
                                       separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
                                       itemBuilder: (contextList, i) {
                                         final g = filtered[i];

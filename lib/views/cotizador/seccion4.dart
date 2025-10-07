@@ -7,6 +7,7 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
+// import 'package:printing/printing.dart';
 
 class Seccion4 extends StatelessWidget {
   final Cotizacion cotizacion;
@@ -717,7 +718,7 @@ class Seccion4 extends StatelessWidget {
                                   ),
                                   child: const Text('Guardar Cotización'),
                                 ),
-                                // 'Imprimir' removed per request; only keep 'Guardar Cotización'
+                                // Botón de imprimir removido a petición; se conserva solo "Guardar Cotización".
                               ],
                             ),
                           ),
@@ -1163,36 +1164,9 @@ class Seccion4 extends StatelessWidget {
                 1: pw.FlexColumnWidth(220),
               },
               children: [
-                // Campos de estructura ordenados FILTRANDO EXCLUIDOS
-                for (final campo in estructuraOrden)
-                  if (cotizacion.estructura[campo['key']] != null &&
-                      !(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(campo['key']))
-                    pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(vertical: 6),
-                          child: pw.Text(
-                            campo['label'] ?? '',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(vertical: 6),
-                          child: pw.Text(
-                            cotizacion.estructura[campo['key']] ?? '',
-                            style: pw.TextStyle(fontSize: 11),
-                            textAlign: pw.TextAlign.justify,
-                          ),
-                        ),
-                      ],
-                    ),
-                // Extras de estructura FILTRANDO EXCLUIDOS
+                // Estructura en el ORDEN ORIGINAL de Monday (inserción del mapa), filtrando excluidos
                 for (final entry in cotizacion.estructura.entries)
-                  if (!estructuraOrden.any((campo) => campo['key'] == entry.key) &&
-                      !(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(entry.key))
+                  if (!(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(entry.key))
                     pw.TableRow(
                       children: [
                         pw.Padding(
@@ -1209,7 +1183,8 @@ class Seccion4 extends StatelessWidget {
                           padding: const pw.EdgeInsets.symmetric(vertical: 6),
                           child: pw.Text(
                             entry.value,
-                            style: pw.TextStyle(fontSize: 10),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.justify,
                           ),
                         ),
                       ],

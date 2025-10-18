@@ -314,7 +314,7 @@ class _Seccion2State extends State<Seccion2> {
           ),
           centerTitle: true,
         ),
-        backgroundColor: Colors.blue[800],
+  backgroundColor: Color(0xFF1565C0),
         body: (especificaciones.isEmpty || !_precioCargado)
             ? _buildLoader()
             : Column(
@@ -400,7 +400,7 @@ class _Seccion2State extends State<Seccion2> {
                                     widget.cotizacion.adicionalesSeleccionados = _adicionalesSeleccionados.map((nombre) {
                                       return AdicionalSeleccionado(
                                         nombre: nombre,
-                                        cantidad: _cantidadesAdicionales[nombre] ?? 1,
+                                        cantidad: _cantidadesAdicionales[nombre] ?? 0,
                                         precioUnitario: _preciosAdicionales[nombre] ?? 0.0,
                                         estado: _estadosAdicionales[nombre] ?? 'Desconocido',
                                       );
@@ -411,7 +411,7 @@ class _Seccion2State extends State<Seccion2> {
                                       (sum, adicional) =>
                                           sum +
                                           ((_preciosAdicionales[adicional] ?? 0.0) *
-                                              (_cantidadesAdicionales[adicional] ?? 1)),
+                                              (_cantidadesAdicionales[adicional] ?? 0)),
                                     );
                                     final totalGeneral = _precioProductoConAdicionales + totalAdicionalesSeleccionados;
 
@@ -523,7 +523,7 @@ class _Seccion2State extends State<Seccion2> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.blue[800],
+                        color: Color(0xFF1565C0),
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 2,
@@ -771,7 +771,7 @@ class _Seccion2State extends State<Seccion2> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue[800],
+                color: Color(0xFF1565C0),
               ),
             ),
             // Solo mostrar el total cuando está colapsado
@@ -784,7 +784,7 @@ class _Seccion2State extends State<Seccion2> {
                     (sum, adicional) =>
                         sum +
                         ((_preciosAdicionales[adicional] ?? 0.0) *
-                            (_cantidadesAdicionales[adicional] ?? 1)),
+                            (_cantidadesAdicionales[adicional] ?? 0)),
                   ),
                 ),
                 style: const TextStyle(
@@ -1253,7 +1253,7 @@ class _Seccion2State extends State<Seccion2> {
                                       horizontal: 14,
                                     ),
                                     child: SizedBox(
-                                      height: 116,
+                                      height: 160,
                                       child: Stack(
                                         children: [
                                           // Chip top-left
@@ -1294,87 +1294,166 @@ class _Seccion2State extends State<Seccion2> {
                                               ),
                                             ),
                                           ),
-                                          // Main content: name and total price
+                                          // Main content: name/total + quantity controls
                                           Positioned(
                                             left: 12,
                                             right: 12,
                                             top: 62,
-                                            child: Row(
-                                              crossAxisAlignment: CrossAxisAlignment.center,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Expanded(
-                                                  child: GestureDetector(
-                                                    onTap: () {
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (_) => AlertDialog(
-                                                          backgroundColor: Colors.white,
-                                                          shape: RoundedRectangleBorder(
-                                                            borderRadius: BorderRadius.circular(20),
-                                                            side: const BorderSide(color: Color(0xFF1565C0), width: 1),
-                                                          ),
-                                                          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                                                          contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                                                          actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                                                          title: Text(
+                                                // Row: name and total price
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  children: [
+                                                    Expanded(
+                                                      child: GestureDetector(
+                                                        onTap: () {
+                                                          showDialog(
+                                                            context: context,
+                                                            builder: (_) => AlertDialog(
+                                                              backgroundColor: Colors.white,
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius.circular(20),
+                                                                side: const BorderSide(color: Color(0xFF1565C0), width: 1),
+                                                              ),
+                                                              titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                                                              contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                                                              actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                                                              title: Text(
+                                                                adicional,
+                                                                style: const TextStyle(
+                                                                  color: Color(0xFF1565C0),
+                                                                  fontSize: 20,
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
+                                                              ),
+                                                              content: Column(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  const SizedBox(height: 8),
+                                                                  Text('Precio: ${formatCurrency(precioUnitario)}', style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600)),
+                                                                ],
+                                                              ),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed: () => Navigator.pop(context),
+                                                                  style: TextButton.styleFrom(
+                                                                    foregroundColor: const Color(0xFF1565C0),
+                                                                  ),
+                                                                  child: const Text('Cerrar'),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                        child: Tooltip(
+                                                          message: adicional,
+                                                          child: Text(
                                                             adicional,
                                                             style: const TextStyle(
-                                                              color: Color(0xFF1565C0),
-                                                              fontSize: 20,
-                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 14,
+                                                              color: Colors.black87,
+                                                              fontWeight: FontWeight.w600,
                                                             ),
+                                                            maxLines: 3,
+                                                            overflow: TextOverflow.ellipsis,
+                                                            textAlign: TextAlign.left,
                                                           ),
-                                                          content: Column(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [
-                                                              const SizedBox(height: 8),
-                                                              Text('Precio: ${formatCurrency(precioUnitario)}', style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600)),
-                                                            ],
-                                                          ),
-                                                            actions: [
-                                                            TextButton(
-                                                              onPressed: () => Navigator.pop(context),
-                                                              style: TextButton.styleFrom(
-                                                                foregroundColor: const Color(0xFF1565C0),
-                                                              ),
-                                                              child: const Text('Cerrar'),
-                                                            ),
-                                                          ],
                                                         ),
-                                                      );
-                                                    },
-                                                    child: Tooltip(
-                                                      message: adicional,
-                                                      child: Text(
-                                                        adicional,
-                                                        style: const TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors.black87,
-                                                          fontWeight: FontWeight.w600,
-                                                        ),
-                                                        maxLines: 3,
-                                                        overflow: TextOverflow.ellipsis,
-                                                        textAlign: TextAlign.left,
                                                       ),
                                                     ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFFF7F4FB),
-                                                    borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                  child: Text(
-                                                    formatCurrency(total),
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 13,
-                                                      color: Colors.blueGrey,
+                                                    const SizedBox(width: 12),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFFF7F4FB),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Text(
+                                                        formatCurrency(total),
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 13,
+                                                          color: Colors.blueGrey,
+                                                        ),
+                                                      ),
                                                     ),
-                                                  ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 10),
+                                                // Row: quantity controls and unit price
+                                                Row(
+                                                  children: [
+                                                    // Minus button
+                                                    Container(
+                                                      width: 32,
+                                                      height: 32,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: Colors.white,
+                                                        border: Border.all(color: Colors.grey.shade300),
+                                                      ),
+                                                      child: IconButton(
+                                                        padding: EdgeInsets.zero,
+                                                        iconSize: 18,
+                                                        icon: Icon(
+                                                          Icons.remove,
+                                                          color: (cantidad <= 0) ? Colors.grey : const Color(0xFF1565C0),
+                                                        ),
+                                                        onPressed: (cantidad <= 0)
+                                                            ? null
+                                                            : () {
+                                                                setState(() {
+                                                                  final current = _cantidadesAdicionales[adicional] ?? 1;
+                                                                  final next = current - 1;
+                                                                  _cantidadesAdicionales[adicional] = next < 0 ? 0 : next;
+                                                                });
+                                                              },
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Text(
+                                                      '$cantidad',
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 14,
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    // Plus button
+                                                    Container(
+                                                      width: 32,
+                                                      height: 32,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: Colors.white,
+                                                        border: Border.all(color: Colors.grey.shade300),
+                                                      ),
+                                                      child: IconButton(
+                                                        padding: EdgeInsets.zero,
+                                                        iconSize: 18,
+                                                        icon: const Icon(Icons.add, color: Color(0xFF1565C0)),
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            final current = _cantidadesAdicionales[adicional] ?? 1;
+                                                            _cantidadesAdicionales[adicional] = current + 1;
+                                                          });
+                                                        },
+                                                      ),
+                                                    ),
+                                                    const Spacer(),
+                                                    Text(
+                                                      'c/u: ${formatCurrency(precioUnitario)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.blueGrey,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
@@ -1418,7 +1497,7 @@ class _Seccion2State extends State<Seccion2> {
                                       sum +
                                       ((_preciosAdicionales[adicional] ?? 0.0) *
                                           (_cantidadesAdicionales[adicional] ??
-                                              1)),
+                                              0)),
                                 ),
                               ),
                               style: const TextStyle(
@@ -1479,12 +1558,12 @@ class _Seccion2State extends State<Seccion2> {
   }
 
   Widget _buildTotalGeneralCard() {
-    final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
+  final double totalAdicionalesSeleccionados = _adicionalesSeleccionados.fold<double>(
       0.0,
       (sum, adicional) =>
           sum +
           ((_preciosAdicionales[adicional] ?? 0.0) *
-              (_cantidadesAdicionales[adicional] ?? 1)),
+        (_cantidadesAdicionales[adicional] ?? 0)),
     );
     final totalGeneral = _precioProductoConAdicionales + totalAdicionalesSeleccionados;
     return Card(
@@ -1656,7 +1735,7 @@ class StepHeaderBar extends StatelessWidget {
         ),
         Container(
           width: double.infinity,
-          color: Colors.blue.shade800,
+          color: const Color(0xFF1565C0),
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Center(
             child: Text(

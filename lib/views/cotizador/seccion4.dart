@@ -7,13 +7,13 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-// import 'package:printing/printing.dart';
 
-class Seccion4 extends StatelessWidget {
+class Seccion4 extends StatefulWidget {
   final Cotizacion cotizacion;
   final Usuario usuario;
 
   // Recibe la cotización en el constructor
+  // ignore: prefer_const_constructors_in_immutables
   Seccion4({Key? key, required this.cotizacion, required this.usuario})
     : super(key: key);
 
@@ -27,7 +27,16 @@ class Seccion4 extends StatelessWidget {
   }
 
   @override
+  State<Seccion4> createState() => _Seccion4State();
+}
+
+class _Seccion4State extends State<Seccion4> {
+  bool _incluirNormas = true;
+
+  @override
   Widget build(BuildContext context) {
+    final cotizacion = widget.cotizacion;
+    final usuario = widget.usuario;
     // ignore: no_leading_underscores_for_local_identifiers
     final double precioProductoConAdicionales =
         cotizacion.precioProductoConAdicionales ?? 0;
@@ -56,8 +65,8 @@ class Seccion4 extends StatelessWidget {
     .adicionalesSeleccionados
     .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
-    return Scaffold(
-      backgroundColor: Colors.blue[800],
+  return Scaffold(
+  backgroundColor: const Color(0xFF1565C0),
       appBar: AppBar(
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -439,7 +448,7 @@ class Seccion4 extends StatelessWidget {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFF1565C0),
+                                     color: Color(0xFF1565C0),
                                   ),
                                 ),
                               ),
@@ -687,6 +696,26 @@ class Seccion4 extends StatelessWidget {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          const Divider(thickness: 1, color: Colors.black26),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _incluirNormas,
+                                onChanged: (v) => setState(() => _incluirNormas = v ?? true),
+                                activeColor: Colors.green,
+                                checkColor: Colors.white,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Incluir mensaje de normas en el PDF',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
                         ]),
 
                         const SizedBox(height: 24),
@@ -718,7 +747,7 @@ class Seccion4 extends StatelessWidget {
                                   ),
                                   child: const Text('Guardar Cotización'),
                                 ),
-                                // Botón de imprimir removido a petición; se conserva solo "Guardar Cotización".
+                                // Botón de imprimir removido por solicitud
                               ],
                             ),
                           ),
@@ -737,6 +766,8 @@ class Seccion4 extends StatelessWidget {
 
   Future<Uint8List> _generarPDF(BuildContext context) async {
     final pdf = pw.Document();
+    final cotizacion = widget.cotizacion;
+    final usuario = widget.usuario;
 
     // Carga los logos ANTES de cualquier await que dependa de context
     final logoBytes = await DefaultAssetBundle.of(
@@ -752,7 +783,7 @@ class Seccion4 extends StatelessWidget {
 
     // Calcular totales para el PDF
     final double precioProductoConAdicionales =
-        cotizacion.precioProductoConAdicionales ?? 0;
+  cotizacion.precioProductoConAdicionales ?? 0;
     final int numeroUnidades = cotizacion.numeroUnidades.toInt();
 
   final double costoEntregaPdf = cotizacion.costoEntrega ?? 0;
@@ -778,7 +809,7 @@ class Seccion4 extends StatelessWidget {
     final double iva = subTotalConDescuentoPdf * 0.16;
     final double totalFinal = subTotalConDescuentoPdf + iva;
 
-    final int diasVigencia = cotizacion.fechaVigencia
+  final int diasVigencia = cotizacion.fechaVigencia
         .difference(cotizacion.fechaCotizacion)
         .inDays;
 
@@ -795,7 +826,7 @@ class Seccion4 extends StatelessWidget {
         header: (pw.Context context) {
           if (context.pageNumber == 1) {
             return pw.Container(
-              color: PdfColors.blue900,
+              color: PdfColor.fromInt(0xFF0D47A1),
               height: 100,
               padding: pw.EdgeInsets.only(
                 right: 28.35,
@@ -862,7 +893,7 @@ class Seccion4 extends StatelessWidget {
           } else {
             // Encabezado simple para otras páginas
             return pw.Container(
-              color: PdfColors.blue900,
+              color: PdfColor.fromInt(0xFF0D47A1),
               height: 60,
               padding: const pw.EdgeInsets.symmetric(
                 horizontal: 24,
@@ -917,7 +948,7 @@ class Seccion4 extends StatelessWidget {
                 child: pw.Container(
                   width: double.infinity,
                   height: 80,
-                  color: PdfColors.blue900,
+                  color: PdfColor.fromInt(0xFF0D47A1),
                   alignment: pw.Alignment.center,
                   child: pw.Column(
                     mainAxisAlignment: pw.MainAxisAlignment.center,
@@ -1138,11 +1169,22 @@ class Seccion4 extends StatelessWidget {
             ),
           ),
           pw.SizedBox(height: 16),
+          // Texto introductorio de certificaciones antes de Estructura Específica
+          if (_incluirNormas)
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 24),
+              child: pw.Text(
+                'Cumplimos con las normas NOM-012-SCT-2-2017, NOM-035-SCT-2-2022 y NOM-068-SCT-2-2014, que garantizan transporte seguro, equipos con diseño, construcción de calidad, y unidades en óptimas condiciones físico-mecánicas.',
+                style: pw.TextStyle(fontSize: 10),
+                textAlign: pw.TextAlign.justify,
+              ),
+            ),
+          pw.SizedBox(height: 16),
           // Sección estructura específica
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24),
             child: pw.Container(
-              color: PdfColors.blue900,
+              color: PdfColor.fromInt(0xFF0D47A1),
               padding: const pw.EdgeInsets.symmetric(vertical: 6),
               child: pw.Center(
                 child: pw.Text(
@@ -1254,13 +1296,13 @@ class Seccion4 extends StatelessWidget {
                 border: pw.TableBorder(
                   horizontalInside: pw.BorderSide(
                     width: 0.5,
-                    color: PdfColors.blue900,
+                    color: PdfColor.fromInt(0xFF0D47A1),
                   ),
                 ),
                 children: [
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                     ),
                     children: [
                       pw.Padding(
@@ -1424,12 +1466,12 @@ class Seccion4 extends StatelessWidget {
               border: pw.TableBorder(
                 horizontalInside: pw.BorderSide(
                   width: 0.5,
-                  color: PdfColors.blue900,
+                  color: PdfColor.fromInt(0xFF0D47A1),
                 ),
               ),
               children: [
                 pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.blue900),
+                  decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0D47A1)),
                   children: [
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
@@ -1658,7 +1700,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()), // Columna 1 en blanco centrada
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()), // Columna 2 en blanco centrada
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'SUBTOTAL',
@@ -1671,7 +1713,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1693,7 +1735,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'DESCUENTO',
@@ -1706,7 +1748,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1728,7 +1770,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'S/DESC',
@@ -1741,7 +1783,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1763,7 +1805,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'IVA',
@@ -1776,7 +1818,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1799,7 +1841,7 @@ class Seccion4 extends StatelessWidget {
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         'TOTAL',
@@ -1812,7 +1854,7 @@ class Seccion4 extends StatelessWidget {
                       ),
                     ),
                     pw.Container(
-                      color: PdfColors.blue900,
+                      color: PdfColor.fromInt(0xFF0D47A1),
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
                         NumberFormat.currency(
@@ -1846,7 +1888,7 @@ class Seccion4 extends StatelessWidget {
                         child: pw.Container(
                           decoration: pw.BoxDecoration(
                             border: pw.Border.all(
-                              color: PdfColors.blue900,
+                              color: PdfColor.fromInt(0xFF0D47A1),
                               width: 1,
                             ),
                           ),
@@ -1854,7 +1896,7 @@ class Seccion4 extends StatelessWidget {
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Container(
-                                color: PdfColors.blue900,
+                                color: PdfColor.fromInt(0xFF0D47A1),
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(
                                   'CONDICIONES DE PAGO',
@@ -1891,7 +1933,7 @@ class Seccion4 extends StatelessWidget {
                         child: pw.Container(
                           decoration: pw.BoxDecoration(
                             border: pw.Border.all(
-                              color: PdfColors.blue900,
+                              color: PdfColor.fromInt(0xFF0D47A1),
                               width: 1,
                             ),
                           ),
@@ -1899,7 +1941,7 @@ class Seccion4 extends StatelessWidget {
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Container(
-                                color: PdfColors.blue900,
+                                color: PdfColor.fromInt(0xFF0D47A1),
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(
                                   'TIEMPO DE ENTREGA',
@@ -2065,7 +2107,7 @@ class Seccion4 extends StatelessWidget {
   ) {
     // Obtén los excluidos desde cotizacion
     final excludedKeys =
-        cotizacion.excludedFeatures?['Estructura'] ?? <String>{};
+        widget.cotizacion.excludedFeatures?['Estructura'] ?? <String>{};
 
     final rows = estructura.entries
         .where(
@@ -2098,11 +2140,11 @@ class Seccion4 extends StatelessWidget {
         .toList();
 
     // Agrega el título solo si hay adicionales de línea no excluidos
-    final adicionalesIncluidos = cotizacion.adicionalesDeLinea
+  final adicionalesIncluidos = widget.cotizacion.adicionalesDeLinea
         .where((a) => a['excluido'] != true)
         .toList();
 
-    if (cotizacion.adicionalesDeLinea.isNotEmpty &&
+  if (widget.cotizacion.adicionalesDeLinea.isNotEmpty &&
         adicionalesIncluidos.isEmpty) {
       rows.add(
         TableRow(
@@ -2199,6 +2241,8 @@ class Seccion4 extends StatelessWidget {
   //metodo con pasos:
   //Método que nos permite finalizar la cotización
   Future<void> finalizarCotizacionEnMonday(BuildContext context) async {
+    final cotizacion = widget.cotizacion;
+    final usuario = widget.usuario;
     showDialog(
       context: context,
       barrierDismissible: false,

@@ -427,14 +427,12 @@ query {
           items_page(limit: 100) {
             items {
               name
-              column_values(ids: ["reflejo3", "n_meros81", "numeric_mkp11qxn", "n_meros5", "estado33"]){
-                column {
-                  title
-                }
+              column_values(ids: ["reflejo3", "n_meros81", "numeric_mkp11qxn", "n_meros5", "estado33", "numeric_mkwq9ndh"]){
+                id
+                column { title }
                 text
-                ... on MirrorValue {
-                  display_value
-                }
+                value
+                ... on MirrorValue { display_value }
               }
             }
           }
@@ -466,10 +464,12 @@ query {
         String? ponderacion;
         String? estado;
 
+        String? precioFijo; // nuevo campo directo si existe
         for (var col in columnValues) {
           final title = col['column']['title'];
+          final id = col['id'];
           if (title == 'Costo de Materiales') {
-            costoMateriales = col['display_value'] ?? '0';
+            costoMateriales = col['display_value'] ?? col['text'] ?? '0';
           } else if (title == 'Rentabilidad/Ganancia Esperada') {
             rentabilidad = col['text'] ?? '0';
           } else if (title == 'Mano de Obra Estandár') {
@@ -479,16 +479,34 @@ query {
           } else if (title == 'Estado del costeo') {
             estado = col['text'] ?? '';
           }
+          if (id == 'numeric_mkwq9ndh') {
+            // value suele venir como JSON string {"number":"1234.56"}
+            String raw = col['text'] ?? '';
+            final valueStr = col['value'];
+            if ((raw.isEmpty || raw == '0') && valueStr is String && valueStr.isNotEmpty) {
+              try {
+                final decoded = jsonDecode(valueStr);
+                if (decoded is Map && decoded['number'] != null) {
+                  raw = decoded['number'].toString();
+                }
+              } catch (_) {}
+            }
+            precioFijo = raw;
+          }
         }
 
-        // Cálculo seguro
-        final costo = double.tryParse(costoMateriales ?? '0') ?? 0;
-        final manoObraVal = double.tryParse(manoObra ?? '0') ?? 0;
-        final ponderacionVal = double.tryParse(ponderacion ?? '0') ?? 0;
-        final rentabilidadVal = double.tryParse(rentabilidad ?? '0') ?? 0;
-
-        final base = costo + (manoObraVal * ponderacionVal);
-        final precioFinal = (base / (1 - (rentabilidadVal / 100))) / 1.16;
+        double precioFinal;
+        if (precioFijo != null && precioFijo.trim().isNotEmpty) {
+          precioFinal = double.tryParse(precioFijo.replaceAll('\$', '').replaceAll(',', '').trim()) ?? 0.0;
+        } else {
+          // Cálculo previo como respaldo
+          final costo = double.tryParse(costoMateriales ?? '0') ?? 0;
+          final manoObraVal = double.tryParse(manoObra ?? '0') ?? 0;
+          final ponderacionVal = double.tryParse(ponderacion ?? '0') ?? 0;
+          final rentabilidadVal = double.tryParse(rentabilidad ?? '0') ?? 0;
+          final base = costo + (manoObraVal * ponderacionVal);
+          precioFinal = (base / (1 - (rentabilidadVal / 100))) / 1.16;
+        }
 
         return {
           'name': item['name'] ?? '',
@@ -851,4 +869,143 @@ final String columnValuesJson = jsonEncode(columnas).replaceAll('"', r'\"');
   }
 
   static Future obtenerPrecios() async {}
+
+  /// Consulta clientes desde el board 5220765939 devolviendo id, name y columnas solicitadas.
+  /// Columnas incluidas: tel_fono, texto8, texto6 (se devuelven como claves tal cual sus ids).
+  /// Consulta todos los clientes del board 5220765939 respetando el orden original del board.
+  /// Implementa paginación mediante cursor de `items_page` para asegurar que se obtengan
+  /// más de 100 (si existieran). Monday por defecto puede devolver un subconjunto si no se especifica límite.
+  /// Parámetro optional [alphabetical] para ordenar por nombre si se desea.
+  static Future<List<Map<String, String>>> consultaClientes({bool alphabetical = false, String? vendedor}) async {
+    const boardId = 5220765939;
+    List<Map<String, String>> acumulados = [];
+    String? cursor;
+
+    do {
+      final vend = (vendedor ?? '').trim();
+      final vendEsc = vend.isEmpty ? '' : _escapeForGraphQL(vend);
+      final query = vend.isEmpty
+          ? '''
+        query {
+          boards(ids: [$boardId]) {
+            items_page(limit: 100${cursor != null ? ', cursor: "$cursor"' : ''}) {
+              items { id name column_values(ids: ["tel_fono", "texto8", "texto6", "text_mkwqkpsc"]) { id text } }
+              cursor
+            }
+          }
+        }
+      '''
+          : '''
+        query {
+          boards(ids: [$boardId]) {
+            items_page(limit: 100${cursor != null ? ', cursor: "$cursor"' : ''},
+              query_params: { rules: [ { column_id: "text_mkwqkpsc", compare_value: ["$vendEsc"] } ] }
+            ) {
+              items { id name column_values(ids: ["tel_fono", "texto8", "texto6", "text_mkwqkpsc"]) { id text } }
+              cursor
+            }
+          }
+        }
+      ''';
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json', 'Authorization': token},
+        body: jsonEncode({'query': query}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al consultar clientes: ${response.body}');
+      }
+      final data = jsonDecode(response.body);
+      final boards = data['data']?['boards'];
+      if (boards is! List || boards.isEmpty) break;
+      final page = boards[0]?['items_page'];
+      final items = page?['items'];
+      cursor = page?['cursor'];
+      if (items is List) {
+        for (final item in items) {
+          final cols = item['column_values'] as List? ?? [];
+            String getCol(String id) {
+              final col = cols.firstWhere(
+                (c) => c['id'] == id,
+                orElse: () => {},
+              );
+              return (col is Map && (col['text'] ?? '').toString().isNotEmpty)
+                  ? col['text'].toString()
+                  : '';
+            }
+          acumulados.add({
+            'id': item['id']?.toString() ?? '',
+            'name': item['name']?.toString() ?? '',
+            'tel_fono': getCol('tel_fono'),
+            'texto8': getCol('texto8'),
+            'texto6': getCol('texto6'),
+            'text_mkwqkpsc': getCol('text_mkwqkpsc'),
+          });
+        }
+      }
+    } while (cursor != null);
+
+    if (alphabetical) {
+      acumulados.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
+    }
+    return acumulados;
+  }
+
+  /// Crea un nuevo cliente en el board de clientes (5220765939).
+  /// Parámetros:
+  ///  - nombre: se usará como item_name.
+  ///  - empresa -> columna texto8
+  ///  - telefono -> columna tel_fono
+  ///  - correo -> columna texto6
+  /// Retorna el id del nuevo item.
+  static Future<int> crearCliente({
+    required String nombre,
+    required String empresa,
+    required String telefono,
+    required String correo,
+    String vendedor = '', // nuevo: se guarda en text_mkwqkpsc
+  }) async {
+    const boardId = 5220765939;
+
+    final Map<String, dynamic> columnas = {
+      'texto8': empresa,
+      'tel_fono': telefono,
+      'texto6': correo,
+      'text_mkwqkpsc': vendedor,
+    };
+    final columnValuesJson = jsonEncode(columnas).replaceAll('"', r'\"');
+
+    final mutation = '''
+      mutation {
+        create_item(
+          board_id: $boardId,
+          group_id: "topics",
+          item_name: "${_escapeForGraphQL(nombre)}",
+          column_values: "$columnValuesJson"
+        ) { id }
+      }
+    ''';
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': token},
+      body: jsonEncode({'query': mutation}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final idStr = data['data']?['create_item']?['id'];
+      if (idStr != null) {
+        return int.tryParse(idStr.toString()) ?? 0;
+      }
+      throw Exception('Respuesta sin id al crear cliente: ${response.body}');
+    }
+    throw Exception('Error al crear cliente: ${response.body}');
+  }
+
+  static String _escapeForGraphQL(String input) {
+    return input.replaceAll('"', '\\"');
+  }
 }

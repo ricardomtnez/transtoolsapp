@@ -7,13 +7,13 @@ import 'package:transtools/models/usuario.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-// printing import removed from this file (not used here)
 
-class Seccion5 extends StatelessWidget {
+class Seccion5 extends StatefulWidget {
   final Cotizacion cotizacion;
   final Usuario usuario;
 
   // Recibe la cotización en el constructor
+  // ignore: prefer_const_constructors_in_immutables
   Seccion5({Key? key, required this.cotizacion, required this.usuario})
     : super(key: key);
 
@@ -27,7 +27,16 @@ class Seccion5 extends StatelessWidget {
   }
 
   @override
+  State<Seccion5> createState() => _Seccion5State();
+}
+
+class _Seccion5State extends State<Seccion5> {
+  bool _incluirNormas = true; // controla el mensaje en el PDF
+
+  @override
   Widget build(BuildContext context) {
+    final cotizacion = widget.cotizacion;
+    final usuario = widget.usuario;
     // ignore: no_leading_underscores_for_local_identifiers
     final double precioProductoConAdicionales =
         cotizacion.precioProductoConAdicionales ?? 0;
@@ -59,7 +68,7 @@ class Seccion5 extends StatelessWidget {
     .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
     return Scaffold(
-  backgroundColor: const Color(0xFFb5191f),
+  backgroundColor: const Color(0xFF0D47A1),
       appBar: AppBar(
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -84,7 +93,7 @@ class Seccion5 extends StatelessWidget {
               // Texto fijo sobre fondo azul
               Container(
                 width: double.infinity,
-                color: const Color(0xFFb5191f), // Kenworth rojo
+                color: const Color(0xFF0D47A1), // Kenworth azul oscuro
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: const Center(
                   child: Text(
@@ -439,7 +448,7 @@ class Seccion5 extends StatelessWidget {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFFb5191f),
+                                    color: Color(0xFF0D47A1),
                                   ),
                                 ),
                               ),
@@ -472,7 +481,7 @@ class Seccion5 extends StatelessWidget {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFFb5191f),
+                                    color: Color(0xFF0D47A1),
                                   ),
                                 ),
                               ),
@@ -498,7 +507,7 @@ class Seccion5 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFFb5191f),
+                                  color: Color(0xFF0D47A1),
                                 ),
                               ),
                             ],
@@ -528,7 +537,7 @@ class Seccion5 extends StatelessWidget {
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
-                                        color: Color(0xFFb5191f),
+                                        color: Color(0xFF0D47A1),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -564,7 +573,7 @@ class Seccion5 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFFb5191f),
+                                  color: Color(0xFF0D47A1),
                                 ),
                               ),
                             ],
@@ -593,7 +602,7 @@ class Seccion5 extends StatelessWidget {
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
-                                        color: Color(0xFFb5191f),
+                                        color: Color(0xFF0D47A1),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -630,7 +639,7 @@ class Seccion5 extends StatelessWidget {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFFb5191f),
+                                    color: Color(0xFF0D47A1),
                                   ),
                                 ),
                               ],
@@ -656,7 +665,7 @@ class Seccion5 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFFb5191f),
+                                  color: Color(0xFF0D47A1),
                                 ),
                               ),
                             ],
@@ -683,13 +692,32 @@ class Seccion5 extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFFb5191f),
+                                  color: Color(0xFF0D47A1),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(thickness: 1, color: Colors.black26),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _incluirNormas,
+                                onChanged: (v) => setState(() => _incluirNormas = v ?? true),
+                                activeColor: Colors.green,
+                                checkColor: Colors.white,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Incluir mensaje de normas en el PDF',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],
                           ),
                         ]),
-
                         const SizedBox(height: 24),
                         Center(
                           child: SingleChildScrollView(
@@ -719,7 +747,7 @@ class Seccion5 extends StatelessWidget {
                                   ),
                                   child: const Text('Guardar Cotización'),
                                 ),
-                                // 'Imprimir' button removed per request
+                                
                               ],
                             ),
                           ),
@@ -739,9 +767,11 @@ class Seccion5 extends StatelessWidget {
   Future<Uint8List> _generarPDF(BuildContext context) async {
     try {
       final pdf = pw.Document();
+      final cotizacion = widget.cotizacion;
+      final usuario = widget.usuario;
 
-      // Carga los logos ANTES de cualquier await que dependa de context
-      final logoBytes = await DefaultAssetBundle.of(context).load('assets/transtools_logo.png');
+  // Carga los logos ANTES de cualquier await que dependa de context
+  final logoBytes = await DefaultAssetBundle.of(context).load('assets/transtools_logo_white.png');
     // logo Kenworth (puede contener tambien DAF en el mismo asset)
     Uint8List kenBytesList;
     try {
@@ -813,16 +843,11 @@ class Seccion5 extends StatelessWidget {
         pageFormat: PdfPageFormat.letter,
         margin: pw.EdgeInsets.zero,
         header: (pw.Context context) {
-          // Tarjeta blanca redondeada que contiene logos y bloque de cotización
-          return pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            child: pw.Container(
-              decoration: pw.BoxDecoration(
-                color: PdfColors.white,
-                borderRadius: pw.BorderRadius.circular(10),
-              ),
-              padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              child: pw.Row(
+          // Barra superior azul a todo lo ancho, sin bordes redondeados
+          return pw.Container(
+            color: PdfColor.fromInt(0xFF0D47A1),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
                   // Logo izquierdo
@@ -845,12 +870,14 @@ class Seccion5 extends StatelessWidget {
                         pw.Image(logoKen, height: 36, fit: pw.BoxFit.contain),
                         pw.SizedBox(height: 6),
                         // Mostrar número de página usando el contexto del header (pagesCount será correcto aquí)
-                        pw.Text('Página ${context.pageNumber} de ${context.pagesCount}', style: pw.TextStyle(fontSize: 10)),
+                        pw.Text(
+                          'Página ${context.pageNumber} de ${context.pagesCount}',
+                          style: pw.TextStyle(fontSize: 10, color: PdfColors.white),
+                        ),
                       ],
                     ),
                   ),
                 ],
-              ),
             ),
           );
         },
@@ -1080,11 +1107,22 @@ class Seccion5 extends StatelessWidget {
             ),
           ),
           pw.SizedBox(height: 16),
+          // Texto introductorio de certificaciones antes de Estructura Específica
+          if (_incluirNormas)
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 24),
+              child: pw.Text(
+                'Cumplimos con las normas NOM-012-SCT-2-2017, NOM-035-SCT-2-2022 y NOM-068-SCT-2-2014, que garantizan transporte seguro, equipos con diseño, construcción de calidad, y unidades en óptimas condiciones físico-mecánicas.',
+                style: pw.TextStyle(fontSize: 10),
+                textAlign: pw.TextAlign.justify,
+              ),
+            ),
+          pw.SizedBox(height: 8),
           // Sección estructura específica
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24),
             child: pw.Container(
-              color: PdfColor.fromInt(0xFFb5191f),
+              color: PdfColor.fromInt(0xFF0D47A1),
               padding: const pw.EdgeInsets.symmetric(vertical: 6),
               child: pw.Center(
                 child: pw.Text(
@@ -1196,19 +1234,19 @@ class Seccion5 extends StatelessWidget {
                 border: pw.TableBorder(
                   horizontalInside: pw.BorderSide(
                     width: 0.5,
-                    color: PdfColor.fromInt(0xFFb5191f),
+                    color: PdfColor.fromInt(0xFF0D47A1),
                   ),
                 ),
                 children: [
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(
-                      color: PdfColor.fromInt(0xFFb5191f),
+                      color: PdfColor.fromInt(0xFF0D47A1),
                     ),
                     children: [
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
-                          'EQUIPAMIENTO PERSONALIZADO',
+                          'ACCESORIOS/EQUIPO OPCIONAL',
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             color: PdfColors.white,
@@ -1313,7 +1351,7 @@ class Seccion5 extends StatelessWidget {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
-                          'TOTAL EQUIPAMIENTOS',
+                          'TOTAL EQUIPOS OPCIONALES',
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
                         ),
                       ),
@@ -1366,12 +1404,12 @@ class Seccion5 extends StatelessWidget {
               border: pw.TableBorder(
                 horizontalInside: pw.BorderSide(
                   width: 0.5,
-                  color: PdfColor.fromInt(0xFFb5191f),
+                  color: PdfColor.fromInt(0xFF0D47A1),
                 ),
               ),
               children: [
                 pw.TableRow(
-                  decoration: pw.BoxDecoration(color: PdfColor.fromInt(0xFFb5191f)),
+                  decoration: pw.BoxDecoration(color: PdfColor.fromInt(0xFF0D47A1)),
                   children: [
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
@@ -1478,7 +1516,7 @@ class Seccion5 extends StatelessWidget {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
-                          'EQUIPAMIENTO PERSONALIZADO',
+                          'ACCESORIOS/EQUIPO OPCIONAL',
                           style: pw.TextStyle(
                             fontSize: 11,
                             fontWeight: pw.FontWeight.bold,
@@ -1613,7 +1651,7 @@ class Seccion5 extends StatelessWidget {
                       pw.Container(), // Columna 1 en blanco
                       pw.Container(), // Columna 2 en blanco
                       pw.Container(
-                        color: PdfColor.fromInt(0xFFb5191f),
+                        color: PdfColor.fromInt(0xFF0D47A1),
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
                           'SUBTOTAL',
@@ -1626,7 +1664,7 @@ class Seccion5 extends StatelessWidget {
                         ),
                       ),
                       pw.Container(
-                        color: PdfColor.fromInt(0xFFb5191f),
+                        color: PdfColor.fromInt(0xFF0D47A1),
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
                           NumberFormat.currency(
@@ -1650,7 +1688,7 @@ class Seccion5 extends StatelessWidget {
                         pw.Container(),
                         pw.Container(),
                         pw.Container(
-                          color: PdfColor.fromInt(0xFFb5191f),
+                          color: PdfColor.fromInt(0xFF0D47A1),
                           padding: const pw.EdgeInsets.all(6),
                           child: pw.Text(
                             'DESCUENTO',
@@ -1663,7 +1701,7 @@ class Seccion5 extends StatelessWidget {
                           ),
                         ),
                         pw.Container(
-                          color: PdfColor.fromInt(0xFFb5191f),
+                          color: PdfColor.fromInt(0xFF0D47A1),
                           padding: const pw.EdgeInsets.all(6),
                           child: pw.Text(
                             NumberFormat.currency(
@@ -1687,7 +1725,7 @@ class Seccion5 extends StatelessWidget {
                         pw.Container(),
                         pw.Container(),
                         pw.Container(
-                          color: PdfColor.fromInt(0xFFb5191f),
+                          color: PdfColor.fromInt(0xFF0D47A1),
                           padding: const pw.EdgeInsets.all(6),
                           child: pw.Text(
                             'S/DESC.',
@@ -1700,7 +1738,7 @@ class Seccion5 extends StatelessWidget {
                           ),
                         ),
                         pw.Container(
-                          color: PdfColor.fromInt(0xFFb5191f),
+                          color: PdfColor.fromInt(0xFF0D47A1),
                           padding: const pw.EdgeInsets.all(6),
                           child: pw.Text(
                             NumberFormat.currency(
@@ -1722,7 +1760,7 @@ class Seccion5 extends StatelessWidget {
                       pw.Container(),
                       pw.Container(),
                       pw.Container(
-                        color: PdfColor.fromInt(0xFFb5191f),
+                        color: PdfColor.fromInt(0xFF0D47A1),
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
                           'IVA',
@@ -1735,7 +1773,7 @@ class Seccion5 extends StatelessWidget {
                         ),
                       ),
                       pw.Container(
-                        color: PdfColor.fromInt(0xFFb5191f),
+                        color: PdfColor.fromInt(0xFF0D47A1),
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
                           NumberFormat.currency(
@@ -1758,7 +1796,7 @@ class Seccion5 extends StatelessWidget {
                       pw.Container(),
                       pw.Container(),
                       pw.Container(
-                        color: PdfColor.fromInt(0xFFb5191f),
+                        color: PdfColor.fromInt(0xFF0D47A1),
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
                           'TOTAL',
@@ -1771,7 +1809,7 @@ class Seccion5 extends StatelessWidget {
                         ),
                       ),
                       pw.Container(
-                        color: PdfColor.fromInt(0xFFb5191f),
+                        color: PdfColor.fromInt(0xFF0D47A1),
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text(
                           NumberFormat.currency(
@@ -1817,7 +1855,7 @@ class Seccion5 extends StatelessWidget {
                         child: pw.Container(
                           decoration: pw.BoxDecoration(
                             border: pw.Border.all(
-                              color: PdfColor.fromInt(0xFFb5191f),
+                              color: PdfColor.fromInt(0xFF0D47A1),
                               width: 1,
                             ),
                           ),
@@ -1825,7 +1863,7 @@ class Seccion5 extends StatelessWidget {
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Container(
-                                color: PdfColor.fromInt(0xFFb5191f),
+                                color: PdfColor.fromInt(0xFF0D47A1),
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(
                                   'CONDICIONES DE PAGO',
@@ -1862,7 +1900,7 @@ class Seccion5 extends StatelessWidget {
                         child: pw.Container(
                           decoration: pw.BoxDecoration(
                             border: pw.Border.all(
-                              color: PdfColor.fromInt(0xFFb5191f),
+                              color: PdfColor.fromInt(0xFF0D47A1),
                               width: 1,
                             ),
                           ),
@@ -1870,7 +1908,7 @@ class Seccion5 extends StatelessWidget {
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Container(
-                                color: PdfColor.fromInt(0xFFb5191f),
+                                color: PdfColor.fromInt(0xFF0D47A1),
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(
                                   'TIEMPO DE ENTREGA',
@@ -2060,7 +2098,7 @@ class Seccion5 extends StatelessWidget {
   ) {
     // Obtén los excluidos desde cotizacion
     final excludedKeys =
-        cotizacion.excludedFeatures?['Estructura'] ?? <String>{};
+        widget.cotizacion.excludedFeatures?['Estructura'] ?? <String>{};
 
     final rows = estructura.entries
         .where(
@@ -2092,12 +2130,12 @@ class Seccion5 extends StatelessWidget {
         )
         .toList();
 
-    // Agrega el título solo si hay adicionales de línea no excluidos
-    final adicionalesIncluidos = cotizacion.adicionalesDeLinea
+  // Agrega el título solo si hay adicionales de línea no excluidos
+  final adicionalesIncluidos = widget.cotizacion.adicionalesDeLinea
         .where((a) => a['excluido'] != true)
         .toList();
 
-    if (cotizacion.adicionalesDeLinea.isNotEmpty &&
+  if (widget.cotizacion.adicionalesDeLinea.isNotEmpty &&
         adicionalesIncluidos.isEmpty) {
       rows.add(
         TableRow(
@@ -2119,7 +2157,7 @@ class Seccion5 extends StatelessWidget {
       );
     }
 
-    if (adicionalesIncluidos.isNotEmpty) {
+  if (adicionalesIncluidos.isNotEmpty) {
       rows.add(
         TableRow(
           children: [
@@ -2194,6 +2232,8 @@ class Seccion5 extends StatelessWidget {
   //metodo con pasos:
   //Método que nos permite finalizar la cotización
   Future<void> finalizarCotizacionEnMonday(BuildContext context) async {
+    final cotizacion = widget.cotizacion;
+    final usuario = widget.usuario;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -2205,14 +2245,14 @@ class Seccion5 extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_upload, size: 48, color: Color(0xFFb5191f)),
+              Icon(Icons.cloud_upload, size: 48, color: Color(0xFF0D47A1)),
               const SizedBox(height: 16),
               const Text(
                 'Subiendo cotización...',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 16),
-              CircularProgressIndicator(color: Color(0xFFb5191f)),
+              CircularProgressIndicator(color: Color(0xFF0D47A1)),
             ],
           ),
         ),
@@ -2267,7 +2307,7 @@ class Seccion5 extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFFb5191f),
+                      backgroundColor: Color(0xFF0D47A1),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),

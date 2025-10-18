@@ -86,7 +86,7 @@ class _Seccion3State extends State<Seccion3> {
   // Opciones de entrega (solo etiquetas). Los precios se manejan en
   // `entregaDefaultPrices` para que el dropdown muestre solo nombres.
   final List<String> entregaOptions = [
-    'Planta Titanium (El Carmen Tequexquitla)',
+    'Planta Titanium (El Carmen Tequexquitla, Tlaxcala)',
     'Planta LightWeight (Puebla)',
     'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816',
     'Instalaciones del Cliente',
@@ -94,7 +94,7 @@ class _Seccion3State extends State<Seccion3> {
 
   // Precios por defecto para opciones con monto fijo. Null significa "por acordar".
   final Map<String, double?> entregaDefaultPrices = {
-    'Planta Titanium (El Carmen Tequexquitla)': 0,
+    'Planta Titanium (El Carmen Tequexquitla, Tlaxcala)': 0,
     'Planta LightWeight (Puebla)': 3000,
     'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816': 4000,
     'Instalaciones del Cliente': null,
@@ -155,6 +155,16 @@ class _Seccion3State extends State<Seccion3> {
     // Rellenar monto de entrega si viene en la cotización
     if (widget.cotizacion.costoEntrega != null) {
       entregaMontoController.text = widget.cotizacion.costoEntrega!.toStringAsFixed(0);
+    }
+    // Si ya hay una opción de entrega seleccionada pero no hay monto guardado, usa precio por defecto
+    if (entregaEn != null && (widget.cotizacion.costoEntrega == null || entregaMontoController.text.isEmpty)) {
+      final def = entregaDefaultPrices[entregaEn!];
+      if (def != null) {
+        entregaMontoController.text = def.toStringAsFixed(0);
+        try {
+          widget.cotizacion.costoEntrega = def;
+        } catch (_) {}
+      }
     }
     // Rellenar descuento si viene en la cotización
     if (widget.cotizacion.descuento != null) {
@@ -369,20 +379,39 @@ class _Seccion3State extends State<Seccion3> {
 
   @override
   Widget build(BuildContext context) {
+    const brandBlue = Color(0xFF1565C0);
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: Colors.blue[800],
+      // ignore: deprecated_member_use
+      child: WillPopScope(
+        onWillPop: () async {
+          // Al regresar con back/gesto, devolvemos la cotización actualizada
+          Navigator.pop(context, {
+            'cotizacion': _buildCotizacionSnapshot(),
+          });
+          return false;
+        },
+        child: Scaffold(
+  backgroundColor: Color(0xFF1565C0),
         appBar: AppBar(
           backgroundColor: Colors.white,
           iconTheme: const IconThemeData(color: Colors.black),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            color: Colors.black,
+            onPressed: () {
+              Navigator.pop(context, {
+                'cotizacion': _buildCotizacionSnapshot(),
+              });
+            },
+          ),
           title: const Text(
             'Datos de Pago y Entrega',
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
-        ),
-        body: SafeArea(
+  ),
+  body: SafeArea(
           child: Column(
             children: [
               // Progress bar personalizado
@@ -403,7 +432,7 @@ class _Seccion3State extends State<Seccion3> {
               ),
               Container(
                 width: double.infinity,
-                color: Colors.blue[800],
+                color: Color(0xFF1565C0),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: const Center(
                   child: Text(
@@ -481,17 +510,24 @@ class _Seccion3State extends State<Seccion3> {
                                     width: 60,
                                     child: TextFormField(
                                       controller: unidadesController,
+                                      cursorColor: brandBlue,
                                       keyboardType: TextInputType.number,
                                       textAlign: TextAlign.center,
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly,
                                       ],
-                                      decoration: const InputDecoration(
+                                      decoration: InputDecoration(
                                         hintText: '0',
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(12),
-                                          ),
+                                        border: const OutlineInputBorder(
+                                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                                          borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                                          borderSide: BorderSide(color: brandBlue, width: 2),
                                         ),
                                         contentPadding: EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -674,10 +710,11 @@ class _Seccion3State extends State<Seccion3> {
                                 ),
                                 child: TextFormField(
                                   controller: otroMetodoController,
+                                  cursorColor: brandBlue,
                                   decoration: InputDecoration(
                                     labelText: 'Especifique el método de pago',
-                                    labelStyle: const TextStyle(
-                                      color: Color(0xFF1565C0),
+                                    labelStyle: TextStyle(
+                                      color: brandBlue,
                                       fontWeight: FontWeight.bold,
                                     ),
                                     border: InputBorder.none,
@@ -741,6 +778,7 @@ class _Seccion3State extends State<Seccion3> {
                                 children: [
                                   TextFormField(
                                     controller: anticipoController,
+                                    cursorColor: brandBlue,
                                     decoration: InputDecoration(
                                       labelText: 'Anticipo (%)',
                                       labelStyle: TextStyle(
@@ -844,6 +882,7 @@ class _Seccion3State extends State<Seccion3> {
                                 children: [
                                   TextFormField(
                                     controller: descuentoController,
+                                    cursorColor: brandBlue,
                                     decoration: InputDecoration(
                                       labelText: 'Descuento',
                                       labelStyle: TextStyle(
@@ -1232,6 +1271,7 @@ class _Seccion3State extends State<Seccion3> {
                               ),
                               child: TextFormField(
                                 controller: entregaMontoController,
+                                cursorColor: brandBlue,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Monto de entrega',
@@ -1514,6 +1554,39 @@ class _Seccion3State extends State<Seccion3> {
           ),
         ),
       ),
+    ),
+  );
+  }
+
+  // Construye un snapshot de la cotización con los valores actuales de la UI
+  Cotizacion _buildCotizacionSnapshot() {
+    return widget.cotizacion.copyWith(
+      numeroUnidades: int.tryParse(unidadesController.text),
+      costoEntrega: entregaMontoController.text.isNotEmpty
+          ? double.tryParse(entregaMontoController.text)
+          : null,
+      formaPago: formaPago,
+      metodoPago: metodoPago,
+      moneda: moneda,
+      entregaEn: entregaEn,
+      cuentaSeleccionada: cuentaSeleccionada,
+      otroMetodoPago: otroMetodoController.text.isNotEmpty
+          ? otroMetodoController.text
+          : null,
+      fechaInicioEntrega: fechaInicio,
+      fechaFinEntrega: fechaFin,
+      semanasEntrega: semanasEntrega,
+      anticipoSeleccionado: anticipoSeleccionado,
+      descuento: descuentoController.text.isNotEmpty
+          ? double.tryParse(descuentoController.text.replaceAll(',', ''))
+          : null,
+      proteccion: agregarProteccion,
+      proteccionMonto: proteccionSeleccionada != null
+          ? double.tryParse(proteccionSeleccionada!)
+          : null,
+      // Conserva banderas calculadas previamente
+      excludedFeatures: widget.cotizacion.excludedFeatures,
+      adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,
     );
   }
 
@@ -1594,10 +1667,12 @@ class _Seccion3State extends State<Seccion3> {
       child: DropdownButtonFormField<String>(
         value: value,
         isExpanded: true,
+  iconEnabledColor: const Color(0xFF1565C0),
+  iconDisabledColor: const Color(0xFF1565C0),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
-            color: error ? Colors.red : Colors.blue[800],
+            color: error ? Colors.red : const Color(0xFF1565C0),
             fontWeight: FontWeight.bold,
           ),
           border: InputBorder.none,

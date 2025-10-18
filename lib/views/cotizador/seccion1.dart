@@ -83,6 +83,209 @@ class _Seccion1 extends State<Seccion1> {
 
   bool _mostroAdvertenciaFaltantes = false;
 
+  // Clientes
+  List<Map<String, String>> _clientes = [];
+  Map<String, String>? _clienteSeleccionado; // guarda el map completo
+
+  Future<void> _cargarClientes() async {
+    try {
+      final lista = await QuoteController.consultaClientes(
+        vendedor: _usuario?.fullname,
+      );
+      if (!mounted) return;
+      setState(() {
+        _clientes = lista;
+      });
+    } catch (_) {
+      // Silencioso por ahora; se podría mostrar snackbar
+    }
+  }
+
+  Future<void> _crearNuevoClienteDialog() async {
+    final nombreNuevoCtrl = TextEditingController();
+    final empresaNuevaCtrl = TextEditingController();
+    final telefonoNuevoCtrl = TextEditingController();
+    final correoNuevoCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        bool saving = false;
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            // ignore: no_leading_underscores_for_local_identifiers
+            Future<void> _guardar() async {
+              if (saving) return;
+              if (formKey.currentState?.validate() != true) return;
+              setLocalState(() => saving = true);
+              try {
+                final id = await QuoteController.crearCliente(
+                  nombre: nombreNuevoCtrl.text.trim(),
+                  empresa: empresaNuevaCtrl.text.trim(),
+                  telefono: telefonoNuevoCtrl.text.trim(),
+                  correo: correoNuevoCtrl.text.trim(),
+                  vendedor: _usuario?.fullname ?? '',
+                );
+                if (!mounted) return;
+                setState(() {
+                  final nuevo = {
+                    'id': id.toString(),
+                    'name': nombreNuevoCtrl.text.trim(),
+                    // texto6 = Empresa (compañía)
+                    'texto6': empresaNuevaCtrl.text.trim(),
+                    'tel_fono': telefonoNuevoCtrl.text.trim(),
+                    // texto8 = Correo (email)
+                    'texto8': correoNuevoCtrl.text.trim(),
+                  };
+                  _clientes.insert(0, nuevo);
+                  _clienteSeleccionado = nuevo;
+                  nombreCtrl.text = nuevo['name'] ?? '';
+                  // Empresa desde texto8
+                  empresaCtrl.text = nuevo['texto6'] ?? '';
+                  telefonoCtrl.text = nuevo['tel_fono'] ?? '';
+                  // Correo desde texto6
+                  correoCtrl.text = nuevo['texto8'] ?? '';
+                });
+                // ignore: use_build_context_synchronously
+                if (mounted) Navigator.pop(context, true);
+              } catch (e) {
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error creando cliente: $e')),
+                );
+                setLocalState(() => saving = false);
+              }
+            }
+
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              backgroundColor: const Color(0xFFF8F8FF),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.person_add_alt_1, color: Color(0xFF1565C0), size: 28),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Nuevo Cliente',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1565C0),
+                                letterSpacing: .5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Form(
+                        key: formKey,
+                        child: Column(
+                          children: [
+                            _InputField(
+                              controller: nombreNuevoCtrl,
+                              label: 'Nombre Completo',
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                            ),
+                            _InputField(
+                              controller: empresaNuevaCtrl,
+                              label: 'Empresa',
+                            ),
+                            _InputField(
+                              controller: telefonoNuevoCtrl,
+                              label: 'Teléfono (10 dígitos)',
+                              keyboard: TextInputType.phone,
+                              maxLength: 10,
+                              validator: (v) => (v == null || v.length != 10) ? '10 dígitos' : null,
+                            ),
+                            _InputField(
+                              controller: correoNuevoCtrl,
+                              label: 'Correo',
+                              keyboard: TextInputType.emailAddress,
+                              validator: (v) {
+                                final val = v?.trim() ?? '';
+                                if (val.isEmpty) return null; // opcional
+                                // Patrón clásico: user@dominio.tld (2+ letras en TLD)
+                                final regex = RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+                                return regex.hasMatch(val) ? null : 'Correo inválido';
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: saving
+                            ? Column(
+                                key: const ValueKey('saving'),
+                                children: const [
+                                  SizedBox(height: 6),
+                                  CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF1565C0))),
+                                  SizedBox(height: 10),
+                                  Text('Guardando Cliente en Monday', style: TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.w600)),
+                                ],
+                              )
+                            : Row(
+                                key: const ValueKey('actions'),
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF1565C0),
+                                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: _guardar,
+                                    icon: const Icon(Icons.save_outlined, size: 18),
+                                    label: const Text('Guardar'),
+                                    style: ElevatedButton.styleFrom(
+                                      elevation: 0,
+                                      backgroundColor: const Color(0xFF1565C0),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result == true) {
+      // limpiar errores si hubiera
+      setState(() {
+        nombreError = false; nombreErrorText = null;
+        empresaError = false; empresaErrorText = null;
+        telefonoError = false; telefonoErrorText = null;
+        correoError = false; correoErrorText = null;
+      });
+    }
+  }
+
   static const List<String> _colores = [
     'NEGRO BRILLANTE',
     'NEGRO MATE',
@@ -118,7 +321,11 @@ class _Seccion1 extends State<Seccion1> {
   @override
   void initState() {
     super.initState();
-    _cargarUsuario();
+    // Cargar usuario y luego clientes para que aplique el filtro por vendedor
+    Future.microtask(() async {
+      await _cargarUsuario();
+      await _cargarClientes();
+    });
     fechaCtrl.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
     _cargarGruposMonday(); //llamada automática al abrir
 
@@ -135,46 +342,7 @@ class _Seccion1 extends State<Seccion1> {
         });
       }
     });
-    empresaFocusNode.addListener(() {
-      if (!empresaFocusNode.hasFocus && empresaCtrl.text.trim().isEmpty) {
-        setState(() {
-          empresaError = true;
-          empresaErrorText = 'Favor de rellenar la empresa';
-        });
-      } else if (empresaFocusNode.hasFocus) {
-        setState(() {
-          empresaError = false;
-          empresaErrorText = null;
-        });
-      }
-    });
-    telefonoFocusNode.addListener(() {
-      if (!telefonoFocusNode.hasFocus && telefonoCtrl.text.trim().isEmpty) {
-        setState(() {
-          telefonoError = true;
-          telefonoErrorText = 'Favor de rellenar el número de celular';
-        });
-      } else if (telefonoFocusNode.hasFocus) {
-        setState(() {
-          telefonoError = false;
-          telefonoErrorText = null;
-        });
-      }
-    });
-    // Validación del correo electrónico
-    correoFocusNode.addListener(() {
-      if (!correoFocusNode.hasFocus && correoCtrl.text.trim().isEmpty) {
-        setState(() {
-          correoError = true;
-          correoErrorText = 'Favor de rellenar el correo electrónico';
-        });
-      } else if (correoFocusNode.hasFocus) {
-        setState(() {
-          correoError = false;
-          correoErrorText = null;
-        });
-      }
-    });
+    // Listeners de empresa/telefono/correo removidos porque ya no son editables ni obligatorios
   }
 
   @override
@@ -215,18 +383,7 @@ class _Seccion1 extends State<Seccion1> {
           ? 'Favor de rellenar el nombre completo'
           : null;
 
-      empresaError = empresaCtrl.text.trim().isEmpty;
-      empresaErrorText = empresaError ? 'Favor de rellenar la empresa' : null;
-
-      telefonoError = telefonoCtrl.text.trim().isEmpty;
-      telefonoErrorText = telefonoError
-          ? 'Favor de rellenar el número de celular'
-          : null;
-
-      correoError = correoCtrl.text.trim().isEmpty;
-      correoErrorText = correoError
-          ? 'Favor de rellenar el correo electrónico'
-          : null;
+    // Campos empresa/telefono/correo ya no obligatorios
     });
 
     setState(() {
@@ -252,10 +409,7 @@ class _Seccion1 extends State<Seccion1> {
         yearError ||
         cotizacionCtrl.text.isEmpty ||
         fechaCtrl.text.isEmpty ||
-        nombreCtrl.text.isEmpty ||
-        empresaCtrl.text.isEmpty ||
-        telefonoCtrl.text.isEmpty ||
-        correoCtrl.text.isEmpty) {
+  nombreCtrl.text.isEmpty) {
       mostrarAlertaError(
         context,
         'Por favor llena todos los campos obligatorios',
@@ -263,25 +417,8 @@ class _Seccion1 extends State<Seccion1> {
       return;
     }
 
-    // Validación de número de celular
-    if (telefonoCtrl.text.length != 10) {
-      mostrarAlertaError(
-        context,
-        'El número de celular debe tener exactamente 10 dígitos',
-      );
-      return;
-    }
-
-    // Validación de correo electrónico
-    final email = correoCtrl.text.trim();
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$');
-    if (!emailRegex.hasMatch(email)) {
-      mostrarAlertaError(
-        context,
-        'Por favor ingresa un correo electrónico válido',
-      );
-      return;
-    } else {
+    // Ya no se valida celular o correo obligatoriamente
+    {
       final modeloSeleccionadoMap = _modelos.firstWhere(
         (modelo) => modelo['value'] == modeloSeleccionado,
       );
@@ -381,7 +518,7 @@ class _Seccion1 extends State<Seccion1> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text(
                 'Aceptar',
-                style: TextStyle(color: Colors.blue),
+                style: TextStyle(color: Color(0xFF1565C0)),
               ),
             ),
           ],
@@ -630,7 +767,7 @@ if (args != null && args['producto'] != null) {
         backgroundColor: Colors.white,
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.blue[900], size: 32),
+            Icon(Icons.warning_amber_rounded, color: Color(0xFF1565C0), size: 32),
             const SizedBox(width: 10),
             const Text('Datos faltantes', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -643,7 +780,7 @@ if (args != null && args['producto'] != null) {
           TextButton(
             style: TextButton.styleFrom(
               foregroundColor: Colors.white,
-              backgroundColor: Colors.blue[900],
+              backgroundColor: Color(0xFF1565C0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             ),
@@ -661,7 +798,7 @@ if (args != null && args['producto'] != null) {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: Colors.blue[800],
+  backgroundColor: Color(0xFF1565C0),
         appBar: AppBar(
           backgroundColor: Colors.white,
           title: const Text(
@@ -693,7 +830,7 @@ if (args != null && args['producto'] != null) {
             // El contenido scrollable
             Expanded(
               child: RefreshIndicator(
-                color: Colors.blue,
+                color: Color(0xFF1565C0),
                 onRefresh: _cargarGruposMonday,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -739,76 +876,64 @@ if (args != null && args['producto'] != null) {
                     _buildSection(
                       title: 'Información del Cliente',
                       children: [
-                        _CustomTextField(
-                          controller: nombreCtrl,
-                          hint: 'Nombre Completo',
-                          keyboardType: TextInputType.text,
-                          inputFormatters: const [],
-                          focusNode: nombreFocusNode,
+                        _ClienteDropdown(
+                          clientes: _clientes,
+                          valueId: _clienteSeleccionado?['id'],
                           error: nombreError,
                           errorText: nombreErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
-                              setState(() {
-                                nombreError = false;
-                                nombreErrorText = null;
-                              });
-                            }
+                          onChanged: (cliente) {
+                            setState(() {
+                              _clienteSeleccionado = cliente;
+                              if (cliente != null) {
+                                nombreCtrl.text = cliente['name'] ?? '';
+                                // Empresa proviene de texto8
+                                empresaCtrl.text = cliente['texto6'] ?? '';
+                                telefonoCtrl.text = cliente['tel_fono'] ?? '';
+                                // Correo proviene de texto6
+                                correoCtrl.text = cliente['texto8'] ?? '';
+                                nombreError = false; nombreErrorText = null;
+                                empresaError = false; empresaErrorText = null;
+                                telefonoError = false; telefonoErrorText = null;
+                                correoError = false; correoErrorText = null;
+                              } else {
+                                nombreCtrl.clear();
+                                empresaCtrl.clear();
+                                telefonoCtrl.clear();
+                                correoCtrl.clear();
+                              }
+                            });
                           },
+                          onCreateRequested: _crearNuevoClienteDialog,
                         ),
                         _CustomTextField(
                           controller: empresaCtrl,
                           hint: 'Empresa',
                           keyboardType: TextInputType.text,
                           inputFormatters: const [],
+                          enabled: false,
                           focusNode: empresaFocusNode,
-                          error: empresaError,
-                          errorText: empresaErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
-                              setState(() {
-                                empresaError = false;
-                                empresaErrorText = null;
-                              });
-                            }
-                          },
+                          error: false,
+                          errorText: null,
                         ),
                         _CustomTextField(
                           controller: telefonoCtrl,
                           hint: 'Número de Celular',
                           keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(10),
-                          ],
+                          inputFormatters: const [],
+                          enabled: false,
                           focusNode: telefonoFocusNode,
-                          error: telefonoError,
-                          errorText: telefonoErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
-                              setState(() {
-                                telefonoError = false;
-                                telefonoErrorText = null;
-                              });
-                            }
-                          },
+                          error: false,
+                          errorText: null,
                         ),
                         _CustomTextField(
                           controller: correoCtrl,
                           hint: 'Correo Electronico',
                           keyboardType: TextInputType.emailAddress,
                           inputFormatters: const [],
+                          enabled: false,
                           focusNode: correoFocusNode,
-                          error: correoError,
-                          errorText: correoErrorText,
-                          onChanged: (value) {
-                            if (value.trim().isNotEmpty) {
-                              setState(() {
-                                correoError = false;
-                                correoErrorText = null;
-                              });
-                            }
-                          },
+                          error: false,
+                          errorText: null,
                         ),
                       ],
                     ),
@@ -869,8 +994,8 @@ if (args != null && args['producto'] != null) {
                                           SizedBox(
                                             width: 60,
                                             height: 60,
-                                            child: CircularProgressIndicator(
-                                              color: Color(0xFF1565C0),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF1565C0),
                                               strokeWidth: 4,
                                             ),
                                           ),
@@ -1153,6 +1278,331 @@ if (args != null && args['producto'] != null) {
   }
 }
 
+class _ClienteDropdown extends StatefulWidget {
+  final List<Map<String, String>> clientes;
+  final String? valueId; // id seleccionado
+  final bool error;
+  final String? errorText;
+  final void Function(Map<String, String>? cliente) onChanged;
+  final VoidCallback? onCreateRequested;
+
+  const _ClienteDropdown({
+    required this.clientes,
+    required this.valueId,
+    required this.onChanged,
+    this.onCreateRequested,
+    this.error = false,
+    this.errorText,
+  });
+
+  @override
+  State<_ClienteDropdown> createState() => _ClienteDropdownState();
+}
+
+class _ClienteDropdownState extends State<_ClienteDropdown> {
+  late List<Map<String, String>> _filteredClientes;
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredClientes = widget.clientes;
+    final seleccionado = widget.clientes.firstWhere(
+      (c) => c['id'] == widget.valueId,
+      orElse: () => {'name': '', 'id': ''},
+    );
+    _controller.text = seleccionado['name'] ?? '';
+    _focusNode.addListener(_handleFocusChange);
+    _controller.addListener(_handleTextChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ClienteDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.clientes != widget.clientes) {
+      _filteredClientes = widget.clientes;
+    }
+    if (oldWidget.valueId != widget.valueId) {
+      final seleccionado = widget.clientes.firstWhere(
+        (c) => c['id'] == widget.valueId,
+        orElse: () => {'name': '', 'id': ''},
+      );
+      _controller.text = seleccionado['name'] ?? '';
+    }
+  }
+
+  void _handleFocusChange() {
+    if (_focusNode.hasFocus) {
+      _showOverlay();
+    } else {
+      _removeOverlay();
+    }
+  }
+
+  void _handleTextChange() {
+    final query = _controller.text.toLowerCase();
+    setState(() {
+      _filteredClientes = widget.clientes.where((c) {
+        final name = c['name']?.toLowerCase() ?? '';
+        final empresa = c['texto8']?.toLowerCase() ?? '';
+        return name.contains(query) || empresa.contains(query);
+      }).toList();
+    });
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _showOverlay() {
+    _removeOverlay();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox == null || !mounted) return;
+      _overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          width: renderBox.size.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: Offset(0, renderBox.size.height + 5),
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha((0.1 * 255).round()),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                constraints: const BoxConstraints(maxHeight: 240),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                      child: (widget.clientes.isEmpty)
+                          ? Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Center(
+                                child: Text(
+                                  'Sin clientes registrados. Favor de registrar.',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            )
+                          : _filteredClientes.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Center(
+                                    child: Text(
+                                      'No se encontraron coincidencias',
+                                      style: TextStyle(color: Colors.grey[600]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                )
+                              : ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: _filteredClientes.length,
+                              itemBuilder: (context, index) {
+                                final option = _filteredClientes[index];
+                                return InkWell(
+                                  onTap: () {
+                                    _controller.text = option['name'] ?? '';
+                                    widget.onChanged(option);
+                                    _focusNode.unfocus();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _controller.text == option['name']
+                                          ? Theme.of(context)
+                                              .primaryColor
+                                              .withAlpha((0.1 * 255).round())
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          option['name'] ?? '',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: _controller.text == option['name']
+                                                ? Theme.of(context).primaryColor
+                                                : Colors.black,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if ((option['texto8'] ?? '').isNotEmpty)
+                                          Text(
+                                            option['texto8']!,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    if (widget.onCreateRequested != null)
+                      InkWell(
+                        onTap: () {
+                          _focusNode.unfocus();
+                          widget.onCreateRequested?.call();
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                          ),
+                          child: Row(
+                            children: const [
+                              Icon(Icons.add, color: Color(0xFF1565C0)),
+                              SizedBox(width: 8),
+                              Text('Crear nuevo cliente', style: TextStyle(fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      if (mounted) {
+        Overlay.of(context).insert(_overlayEntry!);
+      }
+    });
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    _controller.removeListener(_handleTextChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    _removeOverlay();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (_focusNode.hasFocus) {
+                _focusNode.unfocus();
+              } else {
+                _focusNode.requestFocus();
+              }
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 240, 240, 240),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: widget.error
+                      ? Colors.red
+                      : (_focusNode.hasFocus
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey[300]!),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      decoration: InputDecoration(
+                        hintText: 'Selecciona el cliente',
+                        hintStyle: TextStyle(
+                          color: widget.error ? Colors.red : Colors.black,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
+                        suffixIcon: _controller.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                color: Colors.grey,
+                                onPressed: () {
+                                  _controller.clear();
+                                  widget.onChanged(null);
+                                  setState(() {
+                                    _filteredClientes = widget.clientes;
+                                  });
+                                  _focusNode.requestFocus();
+                                },
+                              )
+                            : null,
+                      ),
+                      style:
+                          const TextStyle(fontSize: 16, color: Colors.black),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: const Color.fromARGB(255, 86, 86, 86),
+                    size: 28,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (widget.error && widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              widget.errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _VigenciaDropdown extends StatelessWidget {
   final String? valorSeleccionado;
   final void Function(String?) onChanged;
@@ -1257,7 +1707,6 @@ class _CustomTextField extends StatelessWidget {
   final bool enabled;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
-  final ValueChanged<String>? onChanged;
   final FocusNode? focusNode;
   final bool error;
   final String? errorText;
@@ -1268,7 +1717,6 @@ class _CustomTextField extends StatelessWidget {
     this.enabled = true,
     this.keyboardType,
     this.inputFormatters,
-    this.onChanged,
     this.focusNode,
     this.error = false,
     this.errorText,
@@ -1282,7 +1730,6 @@ class _CustomTextField extends StatelessWidget {
         controller: controller,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        onChanged: onChanged,
         focusNode: focusNode,
         decoration: InputDecoration(
           labelText: hint,
@@ -2159,6 +2606,46 @@ class _YearPickerField extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+// Reusable styled input for dialogs
+class _InputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final TextInputType? keyboard;
+  final int? maxLength;
+  final String? Function(String?)? validator;
+
+  const _InputField({
+    required this.controller,
+    required this.label,
+    this.keyboard,
+    this.maxLength,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboard,
+        maxLength: maxLength,
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          counterText: '',
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade300)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade300)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF1565C0), width: 2)),
+        ),
+      ),
     );
   }
 }

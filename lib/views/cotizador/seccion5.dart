@@ -210,8 +210,8 @@ class _Seccion5State extends State<Seccion5> {
                                           Text(
                                             NumberFormat.currency(
                                               locale: 'es_MX',
-                                              symbol: '\$',
-                                            ).format(proteccionPorUnidad),
+                                              symbol: '\$')
+                                            .format(proteccionPorUnidad),
                                             textAlign: TextAlign.right,
                                           ),
                                           const SizedBox(height: 2),
@@ -1984,16 +1984,6 @@ class _Seccion5State extends State<Seccion5> {
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 11,
                         ),
-                        textAlign: pw.TextAlign.right,
-                      ),
-                      pw.Text(
-                        'ventas@transtools.com.mx',
-                        style: pw.TextStyle(fontSize: 11),
-                        textAlign: pw.TextAlign.right,
-                      ),
-                      pw.Text(
-                        '735 206 5016',
-                        style: pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.right,
                       ),
                     ],

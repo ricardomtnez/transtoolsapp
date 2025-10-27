@@ -970,9 +970,9 @@ final String columnValuesJson = jsonEncode(columnas).replaceAll('"', r'\"');
     const boardId = 5220765939;
 
     final Map<String, dynamic> columnas = {
-      'texto8': empresa,
+      'texto6': empresa,
       'tel_fono': telefono,
-      'texto6': correo,
+      'texto8': correo,
       'text_mkwqkpsc': vendedor,
     };
     final columnValuesJson = jsonEncode(columnas).replaceAll('"', r'\"');

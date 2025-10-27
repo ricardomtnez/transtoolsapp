@@ -53,7 +53,7 @@ query {
       if (items != null && items.isNotEmpty) {
         final firstItem = items[0];
 
-        final name = firstItem['name'] as String? ?? '';
+    final name = firstItem['name'] as String? ?? '';
         final columnValues = firstItem['column_values'] as List<dynamic>? ?? [];
 
   String departamento = '';
@@ -61,6 +61,8 @@ query {
   String initials = '';
   String rol = '';
   String empresa = '';
+  String telefono = '';
+  String correo = '';
 
         for (var col in columnValues) {
           final title = (col['column']?['title'] ?? '').toString();
@@ -97,6 +99,34 @@ query {
           } else if (colId == 'text_mkvw1k8n' || titleLower.contains('rol')) {
             // Columna de rol (id: text_mkvw1k8n)
             rol = colText;
+          } else if (colId == 'phone_mkx0pcga' ||
+              titleLower.contains('tel') ||
+              titleLower.contains('phone')) {
+            // Teléfono (columna Phone). Preferimos 'text' por formato; si no, intentamos value.phone
+            if (colText.trim().isNotEmpty) {
+              telefono = colText.trim();
+            } else if (col['value'] != null) {
+              try {
+                final decoded = jsonDecode(col['value'].toString());
+                if (decoded is Map && decoded['phone'] != null) {
+                  telefono = decoded['phone'].toString();
+                }
+              } catch (_) {}
+            }
+          } else if (colId == 'email_mkx0jp' ||
+              titleLower.contains('correo') ||
+              titleLower.contains('email')) {
+            // Correo electrónico (columna Email). Preferimos 'text'; si no, value.email
+            if (colText.trim().isNotEmpty) {
+              correo = colText.trim();
+            } else if (col['value'] != null) {
+              try {
+                final decoded = jsonDecode(col['value'].toString());
+                if (decoded is Map && decoded['email'] != null) {
+                  correo = decoded['email'].toString();
+                }
+              } catch (_) {}
+            }
           }
         }
 
@@ -119,6 +149,9 @@ query {
           'password': password,
           'iniciales': initials,
           'rol': rol,
+          // Campos solicitados: usar EXCLUSIVAMENTE los datos de Monday
+          'telefono': telefono,
+          'email': correo.trim(),
         };
       } else {
         // No se encontró usuario

@@ -53,14 +53,17 @@ class LoginState extends State<Login> {
       final storedPassword = userData['password'] ?? '';
       if (storedPassword == inputPassword) {
         // Creamos objeto Usuario
+        // Usar SIEMPRE los datos provenientes de Monday (correo/telefono),
+        // evitando colocar el texto ingresado en el login como correo.
         Usuario usuario = Usuario(
           fullname: userData['fullname'] ?? '',
           departamento: userData['departamento'] ?? '',
           password: storedPassword,
-          email: email,
+          email: (userData['email'] ?? '').toString(),
+          telefono: (userData['telefono'] ?? '').toString(),
           initials: userData['iniciales'] ?? '',
-            rol: userData['rol'] ?? '',
-            empresa: userData['empresa'] ?? '',
+          rol: userData['rol'] ?? '',
+          empresa: userData['empresa'] ?? '',
         );
 
         // Serializamos a json

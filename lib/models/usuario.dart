@@ -5,6 +5,7 @@ class Usuario {
   String departamento;
   String password;
   String email;
+  String telefono;
   String initials;
   String rol;
   String empresa;
@@ -14,6 +15,7 @@ class Usuario {
     required this.departamento, 
     required this.password, 
     required this.email,
+    this.telefono = '',
     required this.initials,
   this.rol = '',
   this.empresa = '',
@@ -25,6 +27,7 @@ class Usuario {
       departamento: map['departamento'] ?? '',
       password: map['password'] ?? '',
       email: map['email'] ?? '',
+      telefono: map['telefono'] ?? map['phone'] ?? '',
       initials: map['iniciales'] ?? '',
   rol: map['rol'] ?? '',
   empresa: map['empresa'] ?? map['company'] ?? '',
@@ -37,6 +40,7 @@ class Usuario {
       'departamento': departamento,
       'password': password,
       'email': email,
+      'telefono': telefono,
       'iniciales': initials,
   'rol': rol,
   'empresa': empresa,

@@ -2021,12 +2021,12 @@ class _Seccion4State extends State<Seccion4> {
                         textAlign: pw.TextAlign.right,
                       ),
                       pw.Text(
-                        'ventas@transtools.com.mx',
+                        usuario.email,
                         style: pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.right,
                       ),
                       pw.Text(
-                        '735 206 5016',
+                        usuario.telefono,
                         style: pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.right,
                       ),

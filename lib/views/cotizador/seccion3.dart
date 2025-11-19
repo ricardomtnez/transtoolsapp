@@ -107,7 +107,9 @@ class _Seccion3State extends State<Seccion3> {
 
   // Protección adicional: si el usuario quiere protección y el monto seleccionado
   bool agregarProteccion = false;
-  String? proteccionSeleccionada; // valores: '5000','10000','15000'
+  final TextEditingController proteccionController = TextEditingController();
+  bool proteccionError = false;
+  String? proteccionErrorText;
 
   bool metodoPagoError = false;
   String? metodoPagoErrorText;
@@ -178,9 +180,9 @@ class _Seccion3State extends State<Seccion3> {
     try {
       if (widget.cotizacion.proteccion != null) {
         agregarProteccion = widget.cotizacion.proteccion == true;
-        proteccionSeleccionada = widget.cotizacion.proteccionMonto != null
+        proteccionController.text = widget.cotizacion.proteccionMonto != null
             ? widget.cotizacion.proteccionMonto!.toStringAsFixed(0)
-            : (agregarProteccion ? '5000' : null);
+            : (agregarProteccion ? '5000' : '');
       }
     } catch (_) {}
     // Restaurar temporales (si existen) para descuento/protección
@@ -221,7 +223,7 @@ class _Seccion3State extends State<Seccion3> {
         final m = prefs.getDouble(protMontoKey);
         if (m != null) {
           widget.cotizacion.proteccionMonto = m;
-          proteccionSeleccionada = m.toStringAsFixed(0);
+          proteccionController.text = m.toStringAsFixed(0);
         }
       }
       setState(() {});
@@ -302,9 +304,9 @@ class _Seccion3State extends State<Seccion3> {
         // Restaurar protección si viene en la cotización
         if (widget.cotizacion.proteccion != null) {
           agregarProteccion = widget.cotizacion.proteccion == true;
-          proteccionSeleccionada = widget.cotizacion.proteccionMonto != null
+          proteccionController.text = widget.cotizacion.proteccionMonto != null
               ? widget.cotizacion.proteccionMonto!.toStringAsFixed(0)
-              : (agregarProteccion ? '5000' : null);
+              : (agregarProteccion ? '5000' : '');
         }
       });
     }
@@ -986,20 +988,25 @@ class _Seccion3State extends State<Seccion3> {
                                         onChanged: (v) {
                                           setState(() {
                                             agregarProteccion = true;
-                                            // default selection cuando se activa
-                                            proteccionSeleccionada = proteccionSeleccionada ?? '5000';
+                                            // Initialize with default value if empty
+                                            if (proteccionController.text.isEmpty) {
+                                              proteccionController.text = '5000';
+                                            }
                                           });
                                           try {
                                             widget.cotizacion.proteccion = true;
-                                            widget.cotizacion.proteccionMonto = proteccionSeleccionada != null ? double.tryParse(proteccionSeleccionada!) : null;
-                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
+                                            final monto = double.tryParse(proteccionController.text);
+                                            widget.cotizacion.proteccionMonto = monto;
+                                            _saveTempProteccion(true, monto);
                                           } catch (_) {}
                                         },
                                       ),
                                       onTap: () {
                                         setState(() {
                                           agregarProteccion = true;
-                                          proteccionSeleccionada = proteccionSeleccionada ?? '5000';
+                                          if (proteccionController.text.isEmpty) {
+                                            proteccionController.text = '5000';
+                                          }
                                         });
                                       },
                                     ),
@@ -1014,7 +1021,7 @@ class _Seccion3State extends State<Seccion3> {
                                         onChanged: (v) {
                                           setState(() {
                                             agregarProteccion = false;
-                                            proteccionSeleccionada = null;
+                                            proteccionController.clear();
                                           });
                                           try {
                                             widget.cotizacion.proteccion = false;
@@ -1026,7 +1033,7 @@ class _Seccion3State extends State<Seccion3> {
                                       onTap: () {
                                         setState(() {
                                           agregarProteccion = false;
-                                          proteccionSeleccionada = null;
+                                          proteccionController.clear();
                                         });
                                       },
                                     ),
@@ -1035,59 +1042,115 @@ class _Seccion3State extends State<Seccion3> {
                               ),
                               if (agregarProteccion)
                                 Container(
-                                  margin: const EdgeInsets.only(top: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color.fromARGB(255, 240, 240, 240),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey[300]!, width: 1.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: proteccionError ? Colors.red : Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        // ignore: deprecated_member_use
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Seleccione monto de protección', style: TextStyle(fontWeight: FontWeight.w600)),
-                                      RadioListTile<String>(
-                                        title: const Text(r'$5,000'),
-                                        value: '5000',
-                                        groupValue: proteccionSeleccionada,
-                                        activeColor: const Color(0xFF1565C0),
-                                        onChanged: (v) {
-                                          setState(() { proteccionSeleccionada = v; });
+                                      TextFormField(
+                                        controller: proteccionController,
+                                        cursorColor: brandBlue,
+                                        decoration: InputDecoration(
+                                          labelText: 'Monto de protección',
+                                          labelStyle: TextStyle(
+                                            color: proteccionError ? Colors.red : const Color(0xFF1565C0),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          border: InputBorder.none,
+                                          prefixText: '\$ ',
+                                          prefixStyle: const TextStyle(
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          suffixIcon: proteccionController.text.isNotEmpty
+                                              ? IconButton(
+                                                  icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                                                  onPressed: () {
+                                                    proteccionController.clear();
+                                                    setState(() {
+                                                      proteccionError = false;
+                                                      proteccionErrorText = null;
+                                                    });
+                                                    try {
+                                                      widget.cotizacion.proteccionMonto = null;
+                                                    } catch (_) {}
+                                                  },
+                                                  splashRadius: 18,
+                                                )
+                                              : null,
+                                        ),
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          // Permite solo dígitos y evita valores mayores a 15000
+                                          TextInputFormatter.withFunction((oldValue, newValue) {
+                                            String cleanNew = newValue.text.replaceAll(',', '');
+                                            if (cleanNew.isEmpty) return newValue.copyWith(text: '');
+                                            // Solo dígitos
+                                            if (!RegExp(r'^\d+$').hasMatch(cleanNew)) {
+                                              return oldValue;
+                                            }
+                                            final parsed = int.tryParse(cleanNew);
+                                            if (parsed == null) return oldValue;
+                                            if (parsed > 15000) {
+                                              // Rechaza la nueva entrada si supera el tope
+                                              return oldValue;
+                                            }
+                                            // Mantener el nuevo valor
+                                            return newValue.copyWith(text: cleanNew, selection: TextSelection.collapsed(offset: cleanNew.length));
+                                          }),
+                                        ],
+                                        onChanged: (value) {
+                                          setState(() {
+                                            proteccionError = false;
+                                            proteccionErrorText = null;
+                                          });
+                                          
+                                          final monto = double.tryParse(value.replaceAll(',', ''));
                                           try {
-                                            widget.cotizacion.proteccion = true;
-                                            widget.cotizacion.proteccionMonto = v != null ? double.tryParse(v) : null;
-                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
+                                            widget.cotizacion.proteccionMonto = monto;
+                                            _saveTempProteccion(true, monto);
                                           } catch (_) {}
                                         },
-                                      ),
-                                      RadioListTile<String>(
-                                        title: const Text(r'$10,000'),
-                                        value: '10000',
-                                        groupValue: proteccionSeleccionada,
-                                        activeColor: const Color(0xFF1565C0),
-                                        onChanged: (v) {
-                                          setState(() { proteccionSeleccionada = v; });
-                                          try {
-                                            widget.cotizacion.proteccion = true;
-                                            widget.cotizacion.proteccionMonto = v != null ? double.tryParse(v) : null;
-                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
-                                          } catch (_) {}
+                                        validator: (value) {
+                                          if (agregarProteccion && (value == null || value.isEmpty)) {
+                                            return 'Ingrese un monto de protección';
+                                          }
+                                          final monto = double.tryParse(value ?? '');
+                                          if (monto != null && monto > 15000) {
+                                            return 'El monto no puede exceder \$15,000';
+                                          }
+                                          if (monto != null && monto <= 0) {
+                                            return 'El monto debe ser mayor a \$0';
+                                          }
+                                          return null;
                                         },
                                       ),
-                                      RadioListTile<String>(
-                                        title: const Text(r'$15,000'),
-                                        value: '15000',
-                                        groupValue: proteccionSeleccionada,
-                                        activeColor: const Color(0xFF1565C0),
-                                        onChanged: (v) {
-                                          setState(() { proteccionSeleccionada = v; });
-                                          try {
-                                            widget.cotizacion.proteccion = true;
-                                            widget.cotizacion.proteccionMonto = v != null ? double.tryParse(v) : null;
-                                            _saveTempProteccion(true, widget.cotizacion.proteccionMonto);
-                                          } catch (_) {}
-                                        },
-                                      ),
+                                      if (proteccionError && proteccionErrorText != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, top: 4),
+                                          child: Text(
+                                            proteccionErrorText!,
+                                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -1346,7 +1409,7 @@ class _Seccion3State extends State<Seccion3> {
                       : null,
                       descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
                                       proteccion: agregarProteccion,
-                                      proteccionMonto: proteccionSeleccionada != null ? double.tryParse(proteccionSeleccionada!) : null,
+                                      proteccionMonto: proteccionController.text.isNotEmpty ? double.tryParse(proteccionController.text) : null,
                                     ),
                                   });
                                 },
@@ -1479,7 +1542,7 @@ class _Seccion3State extends State<Seccion3> {
                                               anticipoSeleccionado,
                                           descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
                                           proteccion: agregarProteccion,
-                                          proteccionMonto: proteccionSeleccionada != null ? double.tryParse(proteccionSeleccionada!) : null,
+                                          proteccionMonto: proteccionController.text.isNotEmpty ? double.tryParse(proteccionController.text) : null,
                                           // preserve previously computed excludedFeatures and adicionalesDeLinea
                                           excludedFeatures: widget.cotizacion.excludedFeatures,
                                           adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,
@@ -1581,8 +1644,8 @@ class _Seccion3State extends State<Seccion3> {
           ? double.tryParse(descuentoController.text.replaceAll(',', ''))
           : null,
       proteccion: agregarProteccion,
-      proteccionMonto: proteccionSeleccionada != null
-          ? double.tryParse(proteccionSeleccionada!)
+      proteccionMonto: proteccionController.text.isNotEmpty
+          ? double.tryParse(proteccionController.text)
           : null,
       // Conserva banderas calculadas previamente
       excludedFeatures: widget.cotizacion.excludedFeatures,

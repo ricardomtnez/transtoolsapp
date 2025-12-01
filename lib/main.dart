@@ -7,7 +7,7 @@ import 'package:transtools/views/cotizador/seccion4.dart';
 import 'package:transtools/views/dashboard.dart';
 import 'package:transtools/views/login.dart';
 import 'package:transtools/views/cotizador/seccion1.dart';
-import 'package:transtools/views/cotizaciones.dart';
+import 'package:transtools/views/cotizaciones_pendientes.dart';
 import 'package:transtools/views/listprices.dart';
 import 'package:transtools/views/equipmentlist.dart';
 import 'package:transtools/views/cotizador/seccion5.dart';

@@ -8,13 +8,13 @@ import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 
-class Seccion5 extends StatefulWidget {
+class Seccion4 extends StatefulWidget {
   final Cotizacion cotizacion;
   final Usuario usuario;
 
   // Recibe la cotización en el constructor
   // ignore: prefer_const_constructors_in_immutables
-  Seccion5({Key? key, required this.cotizacion, required this.usuario})
+  Seccion4({Key? key, required this.cotizacion, required this.usuario})
     : super(key: key);
 
   // Método estático para facilitar crear la ruta con argumentos
@@ -22,16 +22,16 @@ class Seccion5 extends StatefulWidget {
     final args = settings.arguments as Map<String, dynamic>;
     return MaterialPageRoute(
       builder: (_) =>
-          Seccion5(cotizacion: args['cotizacion'], usuario: args['usuario']),
+          Seccion4(cotizacion: args['cotizacion'], usuario: args['usuario']),
     );
   }
 
   @override
-  State<Seccion5> createState() => _Seccion5State();
+  State<Seccion4> createState() => _Seccion4State();
 }
 
-class _Seccion5State extends State<Seccion5> {
-  bool _incluirNormas = true; // controla el mensaje en el PDF
+class _Seccion4State extends State<Seccion4> {
+  bool _incluirNormas = true;
 
   @override
   Widget build(BuildContext context) {
@@ -45,30 +45,28 @@ class _Seccion5State extends State<Seccion5> {
         cotizacion.totalAdicionales ?? 0;
     final int numeroUnidades = cotizacion.numeroUnidades.toInt();
 
-  final double proteccionPorUnidad = cotizacion.proteccionMonto ?? 0.0;
-  final double proteccionTotal = proteccionPorUnidad * numeroUnidades;
-  final double displayUnitPrice = precioProductoConAdicionales + proteccionPorUnidad;
-  final precioProductoTotal = displayUnitPrice * numeroUnidades;
+    final precioProductoTotal = precioProductoConAdicionales * numeroUnidades;
     final precioAdicionalesTotal =
         totalAdicionalesSeleccionados * numeroUnidades;
   final double costoEntrega = cotizacion.costoEntrega ?? 0;
   final double costoEntregaTotal = costoEntrega * numeroUnidades;
-  // precioProductoTotal ya incluye la protección (se cargó en displayUnitPrice)
-  final subTotal = precioProductoTotal + precioAdicionalesTotal + costoEntregaTotal;
-    // Apply discount (if any) before IVA. The stored discount is per unit,
-    // so multiply by the number of units to get the total discount amount.
-    final double descuentoPorUnidad = cotizacion.descuento ?? 0.0;
-    final double descuentoTotal = descuentoPorUnidad * numeroUnidades;
-    final double subTotalConDescuento = (subTotal - descuentoTotal).clamp(0.0, double.infinity);
-      final iva = subTotalConDescuento * 0.16;
-      final totalFinal = subTotalConDescuento + iva;
+  // Incluir protección por unidad (si existe) multiplicada por número de unidades
+  final double proteccionPorUnidad = cotizacion.proteccionMonto ?? 0.0;
+  final double proteccionTotal = proteccionPorUnidad * numeroUnidades;
+  final subTotal = precioProductoTotal + precioAdicionalesTotal + costoEntregaTotal + proteccionTotal;
+  // Descuento por unidad almacenado en cotizacion.descuento -> multiplicar por unidades
+  final double descuentoPorUnidad = cotizacion.descuento ?? 0.0;
+  final double descuentoTotal = descuentoPorUnidad * numeroUnidades;
+  final double subTotalConDescuento = (subTotal - descuentoTotal).clamp(0.0, double.infinity);
+  final iva = subTotalConDescuento * 0.16;
+  final totalFinal = subTotalConDescuento + iva;
 
   final int cantidadAdicionalesSeleccionados = cotizacion
     .adicionalesSeleccionados
     .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
-    return Scaffold(
-  backgroundColor: const Color(0xFF0D47A1),
+  return Scaffold(
+  backgroundColor: const Color(0xFF1565C0),
       appBar: AppBar(
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -93,7 +91,7 @@ class _Seccion5State extends State<Seccion5> {
               // Texto fijo sobre fondo azul
               Container(
                 width: double.infinity,
-                color: const Color(0xFF0D47A1), // Kenworth azul oscuro
+                color: const Color(0xFF1565C0), // Azul
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: const Center(
                   child: Text(
@@ -210,8 +208,8 @@ class _Seccion5State extends State<Seccion5> {
                                           Text(
                                             NumberFormat.currency(
                                               locale: 'es_MX',
-                                              symbol: '\$')
-                                            .format(proteccionPorUnidad),
+                                              symbol: '\$',
+                                            ).format(proteccionPorUnidad),
                                             textAlign: TextAlign.right,
                                           ),
                                           const SizedBox(height: 2),
@@ -258,7 +256,7 @@ class _Seccion5State extends State<Seccion5> {
                               ),
                               _tableRow('Color: ', cotizacion.color),
                               _tableRow(
-                                'Año: ',
+                                'Generación: ',
                                 cotizacion.generacion.toString(),
                               ),
                             ],
@@ -443,12 +441,14 @@ class _Seccion5State extends State<Seccion5> {
                                     locale: 'es_MX',
                                     symbol: '\$',
                                   ).format(
-                                    (precioProductoConAdicionales) * (cotizacion.numeroUnidades),
+                                    (cotizacion.precioProductoConAdicionales ??
+                                            0) *
+                                        (cotizacion.numeroUnidades),
                                   ),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFF0D47A1),
+                                     color: Color(0xFF1565C0),
                                   ),
                                 ),
                               ),
@@ -481,7 +481,7 @@ class _Seccion5State extends State<Seccion5> {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFF0D47A1),
+                                    color: Color(0xFF1565C0),
                                   ),
                                 ),
                               ),
@@ -507,7 +507,7 @@ class _Seccion5State extends State<Seccion5> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF0D47A1),
+                                  color: Color(0xFF1565C0),
                                 ),
                               ),
                             ],
@@ -537,7 +537,7 @@ class _Seccion5State extends State<Seccion5> {
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
-                                        color: Color(0xFF0D47A1),
+                                        color: Color(0xFF1565C0),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -565,7 +565,7 @@ class _Seccion5State extends State<Seccion5> {
                                   color: Colors.black,
                                 ),
                               ),
-                                Text(
+                              Text(
                                 NumberFormat.currency(
                                   locale: 'es_MX',
                                   symbol: '\$',
@@ -573,7 +573,7 @@ class _Seccion5State extends State<Seccion5> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF0D47A1),
+                                  color: Color(0xFF1565C0),
                                 ),
                               ),
                             ],
@@ -602,7 +602,7 @@ class _Seccion5State extends State<Seccion5> {
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
-                                        color: Color(0xFF0D47A1),
+                                        color: Color(0xFF1565C0),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -617,8 +617,7 @@ class _Seccion5State extends State<Seccion5> {
                                 ),
                               ],
                             ),
-                          ],
-                          if (descuentoTotal > 0) ...[
+
                             const SizedBox(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -639,7 +638,7 @@ class _Seccion5State extends State<Seccion5> {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Color(0xFF0D47A1),
+                                    color: Color(0xFF1565C0),
                                   ),
                                 ),
                               ],
@@ -665,7 +664,7 @@ class _Seccion5State extends State<Seccion5> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF0D47A1),
+                                  color: Color(0xFF1565C0),
                                 ),
                               ),
                             ],
@@ -692,7 +691,7 @@ class _Seccion5State extends State<Seccion5> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF0D47A1),
+                                  color: Color(0xFF1565C0),
                                 ),
                               ),
                             ],
@@ -718,29 +717,39 @@ class _Seccion5State extends State<Seccion5> {
                             ],
                           ),
                         ]),
+
                         const SizedBox(height: 24),
                         Center(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await finalizarCotizacionEnMonday(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                              elevation: 2,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    await finalizarCotizacionEnMonday(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 12,
+                                    ), // Menor padding
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15, // Menor tamaño de fuente
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: const Text('Guardar Cotización'),
+                                ),
+                                // Botón de imprimir removido por solicitud
+                              ],
                             ),
-                            child: const Text('Guardar Cotización'),
                           ),
                         ),
                       ],
@@ -756,30 +765,25 @@ class _Seccion5State extends State<Seccion5> {
   }
 
   Future<Uint8List> _generarPDF(BuildContext context) async {
-    try {
-      final pdf = pw.Document();
-      final cotizacion = widget.cotizacion;
-      final usuario = widget.usuario;
+    final pdf = pw.Document();
+    final cotizacion = widget.cotizacion;
+    final usuario = widget.usuario;
 
-  // Carga los logos ANTES de cualquier await que dependa de context
-  final logoBytes = await DefaultAssetBundle.of(context).load('assets/transtools_logo_white.png');
-    // logo Kenworth (puede contener tambien DAF en el mismo asset)
-    Uint8List kenBytesList;
-    try {
+    // Carga los logos ANTES de cualquier await que dependa de context
+    final logoBytes = await DefaultAssetBundle.of(
+      context,
+    ).load('assets/transtools_logo_white.png');
+    // ignore: use_build_context_synchronously
+    final logo10Bytes = await DefaultAssetBundle.of(
       // ignore: use_build_context_synchronously
-      final kenBytes = await DefaultAssetBundle.of(context).load('assets/Kenworth-logo.png');
-      kenBytesList = kenBytes.buffer.asUint8List();
-    } catch (_) {
-      // fallback al logo principal si no existe Kenworth
-      kenBytesList = logoBytes.buffer.asUint8List();
-    }
-  // no usamos logo10 porque el footer fue eliminado
+      context,
+    ).load('assets/10sinfondo.png');
+    final logo10 = pw.MemoryImage(logo10Bytes.buffer.asUint8List());
     final logo = pw.MemoryImage(logoBytes.buffer.asUint8List());
-    final logoKen = pw.MemoryImage(kenBytesList);
 
-  // Calcular totales para el PDF
+    // Calcular totales para el PDF
     final double precioProductoConAdicionales =
-        cotizacion.precioProductoConAdicionales ?? 0;
+  cotizacion.precioProductoConAdicionales ?? 0;
     final int numeroUnidades = cotizacion.numeroUnidades.toInt();
 
   final double costoEntregaPdf = cotizacion.costoEntrega ?? 0;
@@ -789,219 +793,286 @@ class _Seccion5State extends State<Seccion5> {
         .fold(0.0, (double s, a) => s + (a.precioUnitario * a.cantidad));
     final double sumAdicionalesTotal = sumAdicionalesUnit * numeroUnidades;
 
+    // Mover la protección al precio unitario en el PDF para que el unitario refleje el cargo por unidad
     final double proteccionUnitPdf = cotizacion.proteccionMonto ?? 0.0;
-    final double displayUnitPricePdf = precioProductoConAdicionales + proteccionUnitPdf;
+    final double displayUnitPrice = (precioProductoConAdicionales) + proteccionUnitPdf;
 
     final double subTotal =
-      (displayUnitPricePdf * numeroUnidades) +
+      (displayUnitPrice * numeroUnidades) +
       sumAdicionalesTotal +
       costoEntregaTotalPdf;
-  // Aplicar descuento: la cotizacion.descuento viene por unidad, multiplicar por unidades
-  final double descuentoUnitPdf = cotizacion.descuento ?? 0.0;
-  final double descuentoPdf = descuentoUnitPdf * numeroUnidades;
-  final double subTotalConDescuentoPdf = (subTotal - descuentoPdf).clamp(0.0, double.infinity);
+
+    // Descuento por unidad almacenado en cotizacion.descuento -> multiplicar por unidades
+    final double descuentoPorUnidadPdf = cotizacion.descuento ?? 0.0;
+    final double descuentoPdf = descuentoPorUnidadPdf * numeroUnidades;
+    final double subTotalConDescuentoPdf = (subTotal - descuentoPdf).clamp(0.0, double.infinity);
     final double iva = subTotalConDescuentoPdf * 0.16;
     final double totalFinal = subTotalConDescuentoPdf + iva;
 
-    // Valores seguros para evitar Null check operator used on a null value
-  final String folioSafe = cotizacion.folioCotizacion;
-  String fechaCotSafe = '-';
-  int diasVigencia = 0;
-    try {
-      fechaCotSafe = DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion);
-    } catch (_) {
-      fechaCotSafe = '-';
-    }
-    try {
-      fechaCotSafe = DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion);
-    } catch (_) {
-      fechaCotSafe = '-';
-    }
-    try {
-      diasVigencia = cotizacion.fechaVigencia.difference(cotizacion.fechaCotizacion).inDays;
-    } catch (_) {
-      diasVigencia = 0;
-    }
+  final int diasVigencia = cotizacion.fechaVigencia
+        .difference(cotizacion.fechaCotizacion)
+        .inDays;
 
-    // Si la entrega fue seleccionada en Planta Titanium (El Carmen Tequexquitla)
-    // no debemos imprimir la línea "Entrega en" en el PDF.
-  final bool hideEntregaPlanta = (cotizacion.entregaEn != null && cotizacion.entregaEn!.trim() == 'Planta Titanium (El Carmen Tequexquitla)');
+  // Determina si la entrega es en la Planta Titanium para ocultar datos en el PDF
+  final String entregaNormalized = (cotizacion.entregaEn ?? '').toLowerCase();
+  final bool isPlantaTitanium = entregaNormalized.contains('planta titanium');
 
   // cantidadAdicionalesSeleccionados no se necesita en el PDF (se muestra numeroUnidades en el resumen)
 
-      pdf.addPage(
-        pw.MultiPage(
+    pdf.addPage(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.letter,
         margin: pw.EdgeInsets.zero,
         header: (pw.Context context) {
-          // Barra superior azul a todo lo ancho, sin bordes redondeados
-          return pw.Container(
-            color: PdfColor.fromInt(0xFF0D47A1),
-            padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            child: pw.Row(
+          if (context.pageNumber == 1) {
+            return pw.Container(
+              color: PdfColor.fromInt(0xFF0D47A1),
+              height: 100,
+              padding: pw.EdgeInsets.only(
+                right: 28.35,
+                left: 0,
+                top: 0,
+                bottom: 0,
+              ),
+              child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
-                  // Logo izquierdo
                   pw.Container(
-                    width: 260,
+                    width: 200,
                     alignment: pw.Alignment.centerLeft,
-                    child: pw.Image(logo, height: 58, fit: pw.BoxFit.contain),
+                    padding: const pw.EdgeInsets.only(top: 0, left: 50),
+                    child: pw.Image(logo, height: 90, fit: pw.BoxFit.contain),
                   ),
-
-                  pw.Spacer(),
-
-                  // Bloque derecho: logo Kenworth arriba, título y datos a la derecha
-                  pw.Container(
-                    width: 260,
-                    alignment: pw.Alignment.centerRight,
+                  pw.Expanded(
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      mainAxisSize: pw.MainAxisSize.min,
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
                       children: [
-                        pw.Image(logoKen, height: 36, fit: pw.BoxFit.contain),
-                        pw.SizedBox(height: 6),
-                        // Mostrar número de página usando el contexto del header (pagesCount será correcto aquí)
+                        pw.SizedBox(height: 12),
                         pw.Text(
-                          'Página ${context.pageNumber} de ${context.pagesCount}',
-                          style: pw.TextStyle(fontSize: 10, color: PdfColors.white),
+                          ' COTIZACIÓN',
+                          style: pw.TextStyle(
+                            fontSize: 18,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text(
+                          'Página ${context.pageNumber}-${context.pagesCount}',
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text(
+                          'No. de Cotización: ${cotizacion.folioCotizacion}',
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                          ),
+                        ),
+                        pw.SizedBox(height: 3),
+                        pw.Text(
+                          'Fecha de Cotización: ${DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion)}',
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ],
-            ),
-          );
+              ),
+            );
+          } else {
+            // Encabezado simple para otras páginas
+            return pw.Container(
+              color: PdfColor.fromInt(0xFF0D47A1),
+              height: 60,
+              padding: const pw.EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Image(logo, height: 40),
+                  pw.Spacer(),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Text(
+                        'COTIZACIÓN',
+                        style: pw.TextStyle(
+                          fontSize: 18,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.white,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      pw.Text(
+                        'Página ${context.pageNumber}-${context.pagesCount}',
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }
         },
-        
+        footer: (pw.Context context) => pw.Container(
+          width: double.infinity,
+          height: 80,
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Container(
+                width: 160,
+                height: 80,
+                color: PdfColors.white,
+                alignment: pw.Alignment.center,
+                child: pw.Image(logo10, fit: pw.BoxFit.contain, height: 60),
+              ),
+              pw.Expanded(
+                child: pw.Container(
+                  width: double.infinity,
+                  height: 80,
+                  color: PdfColor.fromInt(0xFF0D47A1),
+                  alignment: pw.Alignment.center,
+                  child: pw.Column(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      pw.Text(
+                        'www.transtools.com.mx',
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 17,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        '"TU REGRESO SEGURO, NUESTRO MAYOR ÉXITO"',
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontStyle: pw.FontStyle.italic,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         build: (pw.Context context) => [
-          
           // Datos del cliente
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.SizedBox(height: 12),
-                // Dos columnas: izquierda = datos del cliente, derecha = datos de cotización
-                pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    // Izquierda: datos del cliente
-                    pw.Expanded(
-                      flex: 2,
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.RichText(
-                            text: pw.TextSpan(
-                              children: [
-                                pw.TextSpan(
-                                  text: 'ATENCIÓN: ',
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                pw.TextSpan(
-                                  text: cotizacion.cliente,
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.normal,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          pw.SizedBox(height: 5),
-                          pw.RichText(
-                            text: pw.TextSpan(
-                              children: [
-                                pw.TextSpan(
-                                  text: 'EMPRESA: ',
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                pw.TextSpan(
-                                  text: cotizacion.empresa,
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.normal,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          pw.SizedBox(height: 5),
-                          pw.RichText(
-                            text: pw.TextSpan(
-                              children: [
-                                pw.TextSpan(
-                                  text: 'CORREO: ',
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                pw.TextSpan(
-                                  text: cotizacion.correo,
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.normal,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          pw.SizedBox(height: 5),
-                          pw.RichText(
-                            text: pw.TextSpan(
-                              children: [
-                                pw.TextSpan(
-                                  text: 'TELÉFONO: ',
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                pw.TextSpan(
-                                  text: cotizacion.telefono,
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.normal,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Derecha: bloque de cotización (Página, No., Fecha)
-                    pw.Expanded(
-                        flex: 1,
-                        child: pw.Container(
-                          alignment: pw.Alignment.topRight,
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.end,
-                            children: [
-                              pw.Text('COTIZACIÓN', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                              pw.SizedBox(height: 6),
-                              // El número de página con total se muestra ahora en el footer
-                              pw.SizedBox(height: 0),
-                              pw.SizedBox(height: 6),
-                              pw.Text('No. de Cotización: $folioSafe', style: pw.TextStyle(fontSize: 10)),
-                              pw.SizedBox(height: 6),
-                              pw.Text('Fecha de Cotización: $fechaCotSafe', style: pw.TextStyle(fontSize: 10)),
-                            ],
-                          ),
+                pw.SizedBox(height: 15),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'ATENCIÓN: ',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
-                  ],
+                      pw.TextSpan(
+                        text: cotizacion.cliente,
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                pw.SizedBox(height: 12),
+                pw.SizedBox(height: 5),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'EMPRESA: ',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                      pw.TextSpan(
+                        text: cotizacion.empresa,
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 5),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'CORREO: ',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      pw.TextSpan(
+                        text: cotizacion.correo,
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.normal,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 5),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'TELÉFONO: ',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      pw.TextSpan(
+                        text: cotizacion.telefono,
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.normal,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 5),
+                pw.SizedBox(height: 15),
                 pw.Center(
                   child: pw.Text(
                     '${cotizacion.producto.toUpperCase()} ${cotizacion.linea}',
@@ -1060,7 +1131,7 @@ class _Seccion5State extends State<Seccion5> {
                         crossAxisAlignment: pw.CrossAxisAlignment.center,
                         children: [
                           pw.Text(
-                            'AÑO:',
+                            'GENERACION:',
                             style: pw.TextStyle(
                               fontWeight: pw.FontWeight.bold,
                               fontSize: 12,
@@ -1108,7 +1179,7 @@ class _Seccion5State extends State<Seccion5> {
                 textAlign: pw.TextAlign.justify,
               ),
             ),
-          pw.SizedBox(height: 8),
+          pw.SizedBox(height: 16),
           // Sección estructura específica
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24),
@@ -1135,7 +1206,7 @@ class _Seccion5State extends State<Seccion5> {
                 1: pw.FlexColumnWidth(220),
               },
               children: [
-                // Estructura en ORDEN ORIGINAL (inserción del mapa), filtrando excluidos
+                // Estructura en el ORDEN ORIGINAL de Monday (inserción del mapa), filtrando excluidos
                 for (final entry in cotizacion.estructura.entries)
                   if (!(cotizacion.excludedFeatures?['Estructura'] ?? <String>{}).contains(entry.key))
                     pw.TableRow(
@@ -1209,9 +1280,180 @@ class _Seccion5State extends State<Seccion5> {
               ],
             ),
           ),
-          // FORZAR NUEVA PÁGINA PARA LA TABLA - SIEMPRE VA A LA TERCERA HOJA
-          pw.NewPage(),
-          // Tabla de resumen de compra
+          if (cotizacion.adicionalesSeleccionados.isNotEmpty) ...[
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 8,
+              ),
+              child: pw.Table(
+                columnWidths: const {
+                  0: pw.FixedColumnWidth(160),
+                  1: pw.FixedColumnWidth(60),
+                  2: pw.FixedColumnWidth(80),
+                  3: pw.FixedColumnWidth(80),
+                },
+                border: pw.TableBorder(
+                  horizontalInside: pw.BorderSide(
+                    width: 0.5,
+                    color: PdfColor.fromInt(0xFF0D47A1),
+                  ),
+                ),
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                    ),
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'EQUIPAMIENTO PERSONALIZADO',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            'CANTIDAD',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.white,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'PRECIO UNITARIO',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            'TOTAL',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.white,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  for (final adicional in cotizacion.adicionalesSeleccionados)
+                    pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            adicional.nombre,
+                            style: pw.TextStyle(
+                              fontSize: 11,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            '${adicional.cantidad}',
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(adicional.precioUnitario),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(
+                              adicional.precioUnitario * adicional.cantidad,
+                            ),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  // Resumen: total de adicionales (por unidad y total general)
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(top: pw.BorderSide(width: 0.8, color: PdfColors.grey300)),
+                    ),
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'TOTAL EQUIPAMIENTOS',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            '$numeroUnidades',
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(sumAdicionalesUnit),
+                          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(sumAdicionalesTotal),
+                          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          // Tabla de totales
+          // No forzar salto de página: dejar que el contenido (equipamiento + resumen)
+          // fluya y quede en la misma hoja si cabe. Añadimos un espaciamiento pequeño.
+          pw.SizedBox(height: 12),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Table(
@@ -1229,7 +1471,7 @@ class _Seccion5State extends State<Seccion5> {
               ),
               children: [
                 pw.TableRow(
-                  decoration: pw.BoxDecoration(color: PdfColor.fromInt(0xFF0D47A1)),
+                  decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0D47A1)),
                   children: [
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
@@ -1310,7 +1552,7 @@ class _Seccion5State extends State<Seccion5> {
                         NumberFormat.currency(
                           locale: 'es_MX',
                           symbol: '\$',
-                        ).format(displayUnitPricePdf),
+                        ).format(displayUnitPrice),
                         style: pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.center,
                       ),
@@ -1322,7 +1564,8 @@ class _Seccion5State extends State<Seccion5> {
                           locale: 'es_MX',
                           symbol: '\$',
                         ).format(
-                          (displayUnitPricePdf) * (cotizacion.numeroUnidades),
+                          (displayUnitPrice) *
+                              (cotizacion.numeroUnidades),
                         ),
                         style: pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.center,
@@ -1330,55 +1573,67 @@ class _Seccion5State extends State<Seccion5> {
                     ),
                   ],
                 ),
-                // Agregar cada accesorio individual con cantidad > 0 como fila separada
-                for (final adicional in cotizacion.adicionalesSeleccionados)
-                  if (adicional.cantidad > 0)
-                    pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
+                // Mostrar la fila de equipamiento solo si hay adicionales (totalAdicionales > 0)
+                if ((cotizacion.totalAdicionales ?? 0) > 0)
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'EQUIPAMIENTO PERSONALIZADO',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
                           child: pw.Text(
-                            adicional.nombre,
-                            style: pw.TextStyle(
-                              fontSize: 11,
-                              fontWeight: pw.FontWeight.bold,
+                            '$numeroUnidades', // Mostrar número de unidades aquí
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(cotizacion.totalAdicionales ?? 0),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            NumberFormat.currency(
+                              locale: 'es_MX',
+                              symbol: '\$',
+                            ).format(
+                              (cotizacion.totalAdicionales ?? 0) *
+                                  (cotizacion.numeroUnidades),
                             ),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            '${adicional.cantidad}',
                             style: pw.TextStyle(fontSize: 11),
                             textAlign: pw.TextAlign.center,
                           ),
                         ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            NumberFormat.currency(
-                              locale: 'es_MX',
-                              symbol: '\$',
-                            ).format(adicional.precioUnitario),
-                            style: pw.TextStyle(fontSize: 11),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            NumberFormat.currency(
-                              locale: 'es_MX',
-                              symbol: '\$',
-                            ).format(adicional.precioUnitario * adicional.cantidad),
-                            style: pw.TextStyle(fontSize: 11),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 // Fila para Costo de entrega como ítem (cantidad = unidades)
-                if (!hideEntregaPlanta)
+                // Ocultar esta fila si la entrega es en Planta Titanium
+                if (!(isPlantaTitanium))
                   pw.TableRow(
                     children: [
                       pw.Padding(
@@ -1424,368 +1679,201 @@ class _Seccion5State extends State<Seccion5> {
                       ),
                     ],
                   ),
-                // PROTECCIÓN: cargo interno por unidad — no se imprime en la cotización al cliente
               ],
             ),
           ),
 
-          // Totales (envuelto en LayoutBuilder para evitar que la tabla se divida)
-          pw.LayoutBuilder(builder: (ctxLayout, constraints) {
-            // Estimación conservadora (aumentada) de la altura que ocupará la tabla de totales
-            // Incrementamos para cubrir cualquier padding extra y el bloque 'TOTAL' grande
-            // Estimate rows dynamically: SUBTOTAL, optional DESCUENTO, optional S/DESC, IVA, TOTAL + margin
-            int estimatedRows = 5; // SUBTOTAL, IVA, TOTAL + margins
-            if (descuentoPdf > 0) {
-              // DESCUENTO and S/DESC rows will be present
-              estimatedRows = 7;
-            }
-            const double rowHeight = 36.0; // altura estimada por fila (más conservadora)
-            const double extraPadding = 40.0; // padding interno y márgenes
-            final estimatedTableHeight = estimatedRows * rowHeight + extraPadding;
-
-            // Definimos el widget de la tabla exactamente como antes (sin cambios estructurales)
-          final totalsTable = pw.Column(
-            children: [
-              pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: pw.Table(
-                  columnWidths: const {
-                    0: pw.FixedColumnWidth(160),
-                    1: pw.FixedColumnWidth(60),
-                    2: pw.FixedColumnWidth(80),
-                    3: pw.FixedColumnWidth(80),
-                  },
-                  border: null, // Sin bordes
+          // Totales (considerando descuento por unidad)
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: pw.Table(
+              columnWidths: const {
+                0: pw.FixedColumnWidth(160),
+                1: pw.FixedColumnWidth(60),
+                2: pw.FixedColumnWidth(80),
+                3: pw.FixedColumnWidth(80),
+              },
+              border: null, // Sin bordes
+              children: [
+                pw.TableRow(
                   children: [
-                    // Mostrar Subtotal original
-                    pw.TableRow(
-                      children: [
-                        pw.Container(), // Columna 1 en blanco
-                        pw.Container(), // Columna 2 en blanco
-                        pw.Container(
-                          color: PdfColor.fromInt(0xFF0D47A1),
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'SUBTOTAL',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 12,
-                              color: PdfColors.white,
-                            ),
-                            textAlign: pw.TextAlign.center,
-                          ),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()), // Columna 1 en blanco centrada
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()), // Columna 2 en blanco centrada
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'SUBTOTAL',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
                         ),
-                        pw.Container(
-                          color: PdfColor.fromInt(0xFF0D47A1),
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            NumberFormat.currency(
-                              locale: 'es_MX',
-                              symbol: '\$',
-                            ).format(subTotal),
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 12,
-                              color: PdfColors.white,
-                            ),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Descuento (si aplica)
-                    if (descuentoPdf > 0)
-                      pw.TableRow(
-                        children: [
-                          pw.Container(),
-                          pw.Container(),
-                          pw.Container(
-                            color: PdfColor.fromInt(0xFF0D47A1),
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              'DESCUENTO',
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                fontSize: 12,
-                                color: PdfColors.white,
-                              ),
-                              textAlign: pw.TextAlign.center,
-                            ),
-                          ),
-                          pw.Container(
-                            color: PdfColor.fromInt(0xFF0D47A1),
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              NumberFormat.currency(
-                                locale: 'es_MX',
-                                symbol: '\$',
-                              ).format(descuentoPdf),
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                fontSize: 12,
-                                color: PdfColors.white,
-                              ),
-                              textAlign: pw.TextAlign.center,
-                            ),
-                          ),
-                        ],
+                        textAlign: pw.TextAlign.center,
                       ),
-                    // Subtotal luego del descuento (solo si hubo descuento)
-                    if (descuentoPdf > 0)
-                      pw.TableRow(
-                        children: [
-                          pw.Container(),
-                          pw.Container(),
-                          pw.Container(
-                            color: PdfColor.fromInt(0xFF0D47A1),
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              'S/DESC.',
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                fontSize: 12,
-                                color: PdfColors.white,
-                              ),
-                              textAlign: pw.TextAlign.center,
-                            ),
-                          ),
-                          pw.Container(
-                            color: PdfColor.fromInt(0xFF0D47A1),
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              NumberFormat.currency(
-                                locale: 'es_MX',
-                                symbol: '\$',
-                              ).format(subTotalConDescuentoPdf),
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                fontSize: 12,
-                                color: PdfColors.white,
-                              ),
-                              textAlign: pw.TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-                    pw.TableRow(
-                      children: [
-                        pw.Container(),
-                        pw.Container(),
-                        pw.Container(
-                          color: PdfColor.fromInt(0xFF0D47A1),
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'IVA',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 12,
-                              color: PdfColors.white,
-                            ),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Container(
-                          color: PdfColor.fromInt(0xFF0D47A1),
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            NumberFormat.currency(
-                              locale: 'es_MX',
-                              symbol: '\$',
-                            ).format(iva),
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 12,
-                              color: PdfColors.white,
-                            ),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                      ],
                     ),
-                    // COSTO ENTREGA ya se incluye en el detalle como fila con cantidad y importe
-                    pw.TableRow(
-                      children: [
-                        pw.Container(),
-                        pw.Container(),
-                        pw.Container(
-                          color: PdfColor.fromInt(0xFF0D47A1),
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'TOTAL',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 12,
-                              color: PdfColors.white,
-                            ),
-                            textAlign: pw.TextAlign.center,
-                          ),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(subTotal),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
                         ),
-                        pw.Container(
-                          color: PdfColor.fromInt(0xFF0D47A1),
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            NumberFormat.currency(
-                              locale: 'es_MX',
-                              symbol: '\$',
-                            ).format(totalFinal),
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 12,
-                              color: PdfColors.white,
-                            ),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                      ],
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              // Solo mostrar tabla detallada de accesorios si hay algunos con cantidad 0
-              if (cotizacion.adicionalesSeleccionados.any((a) => a.cantidad == 0))
-                pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  child: pw.Table(
-                    columnWidths: const {
-                      0: pw.FixedColumnWidth(160),
-                      1: pw.FixedColumnWidth(60),
-                      2: pw.FixedColumnWidth(80),
-                      3: pw.FixedColumnWidth(80),
-                    },
-                    border: pw.TableBorder(
-                      horizontalInside: pw.BorderSide(
-                        width: 0.5,
-                        color: PdfColor.fromInt(0xFF0D47A1),
+                if (descuentoPdf > 0) pw.TableRow(
+                  children: [
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'DESCUENTO',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
                       ),
                     ),
-                    children: [
-                      pw.TableRow(
-                        decoration: const pw.BoxDecoration(
-                          color: PdfColor.fromInt(0xFF0D47A1),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(descuentoPdf),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
                         ),
-                        children: [
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              'ACCESORIOS/EQUIPO OPCIONAL',
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Container(
-                              alignment: pw.Alignment.center,
-                              child: pw.Text(
-                                'CANTIDAD',
-                                style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.white,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              'PRECIO UNITARIO',
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Container(
-                              alignment: pw.Alignment.center,
-                              child: pw.Text(
-                                'TOTAL',
-                                style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.white,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        textAlign: pw.TextAlign.center,
                       ),
-                      // Solo mostrar accesorios con cantidad 0
-                      for (final adicional in cotizacion.adicionalesSeleccionados)
-                        if (adicional.cantidad == 0)
-                          pw.TableRow(
-                          children: [
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                adicional.nombre,
-                                style: pw.TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                '${adicional.cantidad}',
-                                style: pw.TextStyle(fontSize: 11),
-                                textAlign: pw.TextAlign.center,
-                              ),
-                            ),
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                NumberFormat.currency(
-                                  locale: 'es_MX',
-                                  symbol: '\$',
-                                ).format(adicional.precioUnitario),
-                                style: pw.TextStyle(fontSize: 11),
-                                textAlign: pw.TextAlign.center,
-                              ),
-                            ),
-                            pw.Padding(
-                              padding: const pw.EdgeInsets.all(6),
-                              child: pw.Text(
-                                NumberFormat.currency(
-                                  locale: 'es_MX',
-                                  symbol: '\$',
-                                ).format(
-                                  adicional.precioUnitario * adicional.cantidad,
-                                ),
-                                style: pw.TextStyle(fontSize: 11),
-                                textAlign: pw.TextAlign.center,
-                              ),
-                            ),
-                          ],
+                    ),
+                  ],
+                ),
+                if (descuentoPdf > 0) pw.TableRow(
+                  children: [
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'S/DESC',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
                         ),
-
-                    ],
-                  ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(subTotalConDescuentoPdf),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.TableRow(
+                  children: [
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'IVA',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(iva),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+                // COSTO ENTREGA ya se incluye en el detalle como fila con cantidad y importe
+                pw.TableRow(
+                  children: [
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(alignment: pw.Alignment.center, child: pw.SizedBox()),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'TOTAL',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      color: PdfColor.fromInt(0xFF0D47A1),
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        NumberFormat.currency(
+                          locale: 'es_MX',
+                          symbol: '\$',
+                        ).format(totalFinal),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          color: PdfColors.white,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            );
-            
-            // Si no hay suficiente espacio en la página actual, movemos la tabla entera a la siguiente
-            final available = (constraints?.maxHeight) ?? 0.0;
-            if (available < estimatedTableHeight) {
-              // No hay espacio suficiente: rellenamos con un spacer mayor que
-              // el espacio disponible para forzar que el `totalsTable` se coloque
-              // en la siguiente página. Evita depender de pw.PageBreak().
-              return pw.Column(children: [pw.SizedBox(height: available + estimatedTableHeight), totalsTable]);
-            }
-
-            return totalsTable;
-          }),
+            ),
+          ),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Column(
@@ -1871,6 +1959,7 @@ class _Seccion5State extends State<Seccion5> {
                                   style: pw.TextStyle(fontSize: 11),
                                 ),
                               ),
+                              // Mostrar 'Entrega en' siempre
                               pw.Padding(
                                 padding: const pw.EdgeInsets.all(6),
                                 child: pw.Text(
@@ -1893,7 +1982,7 @@ class _Seccion5State extends State<Seccion5> {
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: pw.Text(
-              '*Nota: Esta cotización tiene una vigencia de $diasVigencia días a partir del $fechaCotSafe. Después de ese periodo, necesita solicitar una nueva cotización.',
+              '*Nota: Esta cotización tiene una vigencia de $diasVigencia días a partir del ${DateFormat('dd/MM/yyyy').format(cotizacion.fechaCotizacion)}. Después de ese periodo, necesita solicitar una nueva cotización.',
               style: pw.TextStyle(fontSize: 9),
             ),
           ),
@@ -1924,11 +2013,21 @@ class _Seccion5State extends State<Seccion5> {
                         textAlign: pw.TextAlign.right,
                       ),
                       pw.Text(
-                        'Gerente de Ventas de Equipo Aliado',
+                        'Área de Ventas',
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 11,
                         ),
+                        textAlign: pw.TextAlign.right,
+                      ),
+                      pw.Text(
+                        usuario.email,
+                        style: pw.TextStyle(fontSize: 11),
+                        textAlign: pw.TextAlign.right,
+                      ),
+                      pw.Text(
+                        usuario.telefono,
+                        style: pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.right,
                       ),
                     ],
@@ -1939,34 +2038,9 @@ class _Seccion5State extends State<Seccion5> {
           ),
         ], //
       ),
-      ); //
+    ); //
 
-      return await pdf.save();
-    } catch (e, st) {
-      // Si algo falla, genera un PDF con el error para que el usuario lo vea en preview
-      final errPdf = pw.Document();
-      errPdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.letter,
-          build: (pw.Context c) => pw.Padding(
-            padding: const pw.EdgeInsets.all(24),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('Error generando PDF:', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 12),
-                pw.Text(e.toString(), style: pw.TextStyle(fontSize: 12)),
-                pw.SizedBox(height: 12),
-                pw.Text('Stack trace (truncado):', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 6),
-                pw.Text(st.toString().split('\n').take(6).join('\n'), style: pw.TextStyle(fontSize: 9)),
-              ],
-            ),
-          ),
-        ),
-      );
-      return await errPdf.save();
-    }
+    return await pdf.save();
   }
 
   Widget _buildTitulo(String titulo) {
@@ -2065,7 +2139,7 @@ class _Seccion5State extends State<Seccion5> {
         )
         .toList();
 
-  // Agrega el título solo si hay adicionales de línea no excluidos
+    // Agrega el título solo si hay adicionales de línea no excluidos
   final adicionalesIncluidos = widget.cotizacion.adicionalesDeLinea
         .where((a) => a['excluido'] != true)
         .toList();
@@ -2092,7 +2166,7 @@ class _Seccion5State extends State<Seccion5> {
       );
     }
 
-  if (adicionalesIncluidos.isNotEmpty) {
+    if (adicionalesIncluidos.isNotEmpty) {
       rows.add(
         TableRow(
           children: [
@@ -2180,14 +2254,14 @@ class _Seccion5State extends State<Seccion5> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_upload, size: 48, color: Color(0xFF0D47A1)),
+              Icon(Icons.cloud_upload, size: 48, color: Colors.blue[900]),
               const SizedBox(height: 16),
               const Text(
                 'Subiendo cotización...',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 16),
-              CircularProgressIndicator(color: Color(0xFF0D47A1)),
+              CircularProgressIndicator(color: Colors.blue[900]),
             ],
           ),
         ),
@@ -2242,7 +2316,7 @@ class _Seccion5State extends State<Seccion5> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0D47A1),
+                      backgroundColor: Colors.blue[900],
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),

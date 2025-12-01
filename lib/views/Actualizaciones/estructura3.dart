@@ -1,0 +1,1786 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:transtools/models/cotizacion.dart';
+import 'package:transtools/models/usuario.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class Seccion3 extends StatefulWidget {
+  final String? unidades;
+  final String? formaPago;
+  final Cotizacion cotizacion;
+
+  const Seccion3({
+    super.key,
+    this.unidades,
+    this.formaPago,
+    required this.cotizacion,
+  });
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _Seccion3State createState() => _Seccion3State();
+}
+
+class _Seccion3State extends State<Seccion3> {
+  final _formKey = GlobalKey<FormState>();
+
+  // Provide a primary scroll controller so widgets like date pickers that
+  // internally use a Scrollbar with thumbVisibility=true can find a
+  // PrimaryScrollController in the widget tree and avoid the exception.
+  final ScrollController _primaryScrollController = ScrollController();
+
+  Usuario? _usuario;
+  // Controllers
+  final TextEditingController direccionEntregaController =
+      TextEditingController();
+  final TextEditingController receptorController = TextEditingController();
+  final TextEditingController telefonoController = TextEditingController();
+  final TextEditingController correoController = TextEditingController();
+  final TextEditingController unidadesController = TextEditingController();
+  final TextEditingController otroMetodoController = TextEditingController();
+  final TextEditingController anticipoController = TextEditingController();
+  final TextEditingController descuentoController = TextEditingController();
+
+  String? formaPago;
+  String? metodoPago;
+  String? plazoPago;
+  String? moneda;
+  String? entregaEn;
+  String? tiempoEntrega;
+  String? cuentaSeleccionada;
+
+  DateTime? fechaInicio;
+  DateTime? fechaFin;
+  String? semanasEntrega;
+
+  final List<String> formasPago = ['Contado'];
+  final List<String> metodosPago = ['Transferencia'];
+  final List<String> monedas = ['MXN', 'USD'];
+  final List<String> tiemposEntrega = [
+    '4 semanas a partir de su anticipo',
+    '6 semanas a partir de su anticipo',
+    '8 semanas a partir de su anticipo',
+  ];
+
+  final List<String> anticipos = ['10%', '20%', '30%', '50%'];
+
+  String anticipoSeleccionado = '';
+
+  // Cuentas MXN separadas por empresa
+  final List<String> cuentasMXNKenworth = [
+    'BANCOMER: 0150549584 Clabe: 012650001505495845',
+  ];
+
+  final List<String> cuentasMXNTranstools = [
+    'BBVA Bancomer: 0172940930 Clabe: 012830001729409301',
+  ];
+
+  // NOTA: ya no usamos una lista por defecto para cuentas MXN.
+  // Cuentas USD asignadas a Transtools
+  final List<String> cuentasUSDTranstools = [
+    'BBVA Bancomer USD: 0117396880  Clabe: 012830001173968809',
+  ];
+  // Lista USD por defecto (vacía si no se identifica usuario)
+  final List<String> cuentasUSDDefault = [];
+
+  // Opciones de entrega (solo etiquetas). Los precios se manejan en
+  // `entregaDefaultPrices` para que el dropdown muestre solo nombres.
+  final List<String> entregaOptions = [
+    'Planta Titanium (El Carmen Tequexquitla, Tlaxcala)',
+    'Planta LightWeight (Puebla)',
+    'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816',
+    'Instalaciones del Cliente',
+  ];
+
+  // Precios por defecto para opciones con monto fijo. Null significa "por acordar".
+  final Map<String, double?> entregaDefaultPrices = {
+    'Planta Titanium (El Carmen Tequexquitla, Tlaxcala)': 0,
+    'Planta LightWeight (Puebla)': 3000,
+    'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816': 4000,
+    'Instalaciones del Cliente': null,
+  };
+
+  // Controller para monto cuando la entrega es "Instalaciones del Cliente"
+  final TextEditingController entregaMontoController = TextEditingController();
+  bool entregaMontoError = false;
+  String? entregaMontoErrorText;
+
+  // Protección adicional: si el usuario quiere protección y el monto seleccionado
+  bool agregarProteccion = false;
+  final TextEditingController proteccionController = TextEditingController();
+  bool proteccionError = false;
+  String? proteccionErrorText;
+
+  bool metodoPagoError = false;
+  String? metodoPagoErrorText;
+
+  bool monedaError = false;
+  String? monedaErrorText;
+
+  bool cuentaError = false;
+  String? cuentaErrorText;
+
+  bool entregaEnError = false;
+  String? entregaEnErrorText;
+
+  bool rangoEntregaError = false;
+  String? rangoEntregaErrorText;
+
+  bool unidadesError = false;
+  String? unidadesErrorText;
+
+  bool anticipoError = false;
+  String? anticipoErrorText;
+  bool descuentoError = false;
+  String? descuentoErrorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarUsuario();
+    formaPago = widget.cotizacion.formaPago ?? 'Contado';
+    metodoPago = widget.cotizacion.metodoPago;
+    moneda = widget.cotizacion.moneda;
+  // Map any existing entregaEn value (possibly without price suffix)
+  // to the labeled option present in entregaOptions to avoid Dropdown errors.
+  entregaEn = _matchEntregaOption(widget.cotizacion.entregaEn);
+    cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada;
+    otroMetodoController.text = widget.cotizacion.otroMetodoPago ?? '';
+    anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? '';
+    anticipoController.text = anticipoSeleccionado.isNotEmpty
+        ? '$anticipoSeleccionado%'
+        : '';
+    semanasEntrega = widget.cotizacion.semanasEntrega;
+    fechaInicio = widget.cotizacion.fechaInicioEntrega;
+    fechaFin = widget.cotizacion.fechaFinEntrega;
+    unidadesController.text = widget.cotizacion.numeroUnidades.toString();
+    // Rellenar monto de entrega si viene en la cotización
+    if (widget.cotizacion.costoEntrega != null) {
+      entregaMontoController.text = widget.cotizacion.costoEntrega!.toStringAsFixed(0);
+    }
+    // Si ya hay una opción de entrega seleccionada pero no hay monto guardado, usa precio por defecto
+    if (entregaEn != null && (widget.cotizacion.costoEntrega == null || entregaMontoController.text.isEmpty)) {
+      final def = entregaDefaultPrices[entregaEn!];
+      if (def != null) {
+        entregaMontoController.text = def.toStringAsFixed(0);
+        try {
+          widget.cotizacion.costoEntrega = def;
+        } catch (_) {}
+      }
+    }
+    // Rellenar descuento si viene en la cotización
+    if (widget.cotizacion.descuento != null) {
+      try {
+        descuentoController.text = widget.cotizacion.descuento!.toStringAsFixed(0);
+      } catch (_) {
+        descuentoController.text = widget.cotizacion.descuento.toString();
+      }
+    }
+    // Cargar datos de protección si vienen en la cotización (asumimos campos nuevos)
+    try {
+      if (widget.cotizacion.proteccion != null) {
+        agregarProteccion = widget.cotizacion.proteccion == true;
+        proteccionController.text = widget.cotizacion.proteccionMonto != null
+            ? widget.cotizacion.proteccionMonto!.toStringAsFixed(0)
+            : (agregarProteccion ? '5000' : '');
+      }
+    } catch (_) {}
+    // Restaurar temporales (si existen) para descuento/protección
+    _restoreTemporaryFields();
+  }
+
+  Future<void> _restoreTemporaryFields() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final prefix = 'cot_${widget.cotizacion.folioCotizacion}_';
+      // ignore: prefer_interpolation_to_compose_strings
+      final descKey = prefix + 'descuento';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protKey = prefix + 'proteccion';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protMontoKey = prefix + 'proteccion_monto';
+
+      if ((widget.cotizacion.descuento == null || widget.cotizacion.descuento == 0) && prefs.containsKey(descKey)) {
+        final d = prefs.getDouble(descKey);
+        if (d != null) {
+          widget.cotizacion.descuento = d;
+          try {
+            descuentoController.text = d.toStringAsFixed(0);
+          } catch (_) {
+            descuentoController.text = d.toString();
+          }
+        }
+      }
+
+      if ((widget.cotizacion.proteccion == null || widget.cotizacion.proteccion == false) && prefs.containsKey(protKey)) {
+        final b = prefs.getBool(protKey);
+        if (b != null) {
+          widget.cotizacion.proteccion = b;
+          agregarProteccion = b;
+        }
+      }
+      if ((widget.cotizacion.proteccionMonto == null || widget.cotizacion.proteccionMonto == 0) && prefs.containsKey(protMontoKey)) {
+        final m = prefs.getDouble(protMontoKey);
+        if (m != null) {
+          widget.cotizacion.proteccionMonto = m;
+          proteccionController.text = m.toStringAsFixed(0);
+        }
+      }
+      setState(() {});
+    } catch (_) {}
+  }
+
+  Future<void> _saveTempDescuento(double? value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cot_${widget.cotizacion.folioCotizacion}_descuento';
+      if (value == null) {
+        await prefs.remove(key);
+      } else {
+        await prefs.setDouble(key, value);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveTempProteccion(bool? enabled, double? monto) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final base = 'cot_${widget.cotizacion.folioCotizacion}_';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protKey = base + 'proteccion';
+      // ignore: prefer_interpolation_to_compose_strings
+      final protMontoKey = base + 'proteccion_monto';
+      if (enabled == null) {
+        await prefs.remove(protKey);
+      } else {
+        await prefs.setBool(protKey, enabled);
+      }
+      if (monto == null) {
+        await prefs.remove(protMontoKey);
+      } else {
+        await prefs.setDouble(protMontoKey, monto);
+      }
+    } catch (_) {}
+  }
+
+
+  @override
+  void didUpdateWidget(covariant Seccion3 oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the cotizacion instance changed (for example when returning from
+    // another section that updated it), refresh our controllers/state so the
+    // UI reflects the latest cotizacion. We try to avoid clearing user input
+    // unnecessarily by only updating fields when the new cotizacion has
+    // non-null values.
+    if (widget.cotizacion != oldWidget.cotizacion) {
+      setState(() {
+        formaPago = widget.cotizacion.formaPago ?? formaPago;
+        metodoPago = widget.cotizacion.metodoPago ?? metodoPago;
+        moneda = widget.cotizacion.moneda ?? moneda;
+  entregaEn = _matchEntregaOption(widget.cotizacion.entregaEn) ?? entregaEn;
+        cuentaSeleccionada = widget.cotizacion.cuentaSeleccionada ?? cuentaSeleccionada;
+        if (widget.cotizacion.otroMetodoPago != null && widget.cotizacion.otroMetodoPago!.isNotEmpty) {
+          otroMetodoController.text = widget.cotizacion.otroMetodoPago!;
+        }
+        anticipoSeleccionado = widget.cotizacion.anticipoSeleccionado ?? (anticipoSeleccionado.isNotEmpty ? anticipoSeleccionado : '');
+        if (anticipoSeleccionado.isNotEmpty) {
+          anticipoController.text = '$anticipoSeleccionado%';
+        }
+        semanasEntrega = widget.cotizacion.semanasEntrega ?? semanasEntrega;
+        fechaInicio = widget.cotizacion.fechaInicioEntrega ?? fechaInicio;
+        fechaFin = widget.cotizacion.fechaFinEntrega ?? fechaFin;
+  unidadesController.text = widget.cotizacion.numeroUnidades.toString();
+        if (widget.cotizacion.costoEntrega != null) {
+          entregaMontoController.text = widget.cotizacion.costoEntrega!.toStringAsFixed(0);
+        }
+        // Restaurar descuento si viene en la cotización
+        if (widget.cotizacion.descuento != null) {
+          try {
+            descuentoController.text = widget.cotizacion.descuento!.toStringAsFixed(0);
+          } catch (_) {
+            descuentoController.text = widget.cotizacion.descuento.toString();
+          }
+        }
+        // Restaurar protección si viene en la cotización
+        if (widget.cotizacion.proteccion != null) {
+          agregarProteccion = widget.cotizacion.proteccion == true;
+          proteccionController.text = widget.cotizacion.proteccionMonto != null
+              ? widget.cotizacion.proteccionMonto!.toStringAsFixed(0)
+              : (agregarProteccion ? '5000' : '');
+        }
+      });
+    }
+  }
+
+  // Intenta mapear valores legados (p. ej. con sufijo de precio) al nombre de
+  // opción actual en `entregaOptions`. Devuelve el nombre de la opción si
+  // encuentra coincidencia, o null.
+  String? _matchEntregaOption(String? raw) {
+    if (raw == null) return null;
+    final r = raw.trim();
+    for (final opt in entregaOptions) {
+      final base = opt.trim();
+      if (base == r || r == base || r.contains(base) || base.contains(r)) {
+        return base;
+      }
+    }
+    // Si no coincide exactamente, intentar detectar por prefijos comunes
+    for (final opt in entregaOptions) {
+      if (r.contains(opt.split('(').first.trim()) || opt.contains(r)) {
+        return opt;
+      }
+    }
+    return null;
+  }
+
+  // Devuelve true solo si la empresa del usuario contiene la palabra
+  // 'kenworth' como palabra completa (evita coincidencias parciales).
+  bool _usuarioEsKenworth(Usuario? u) {
+    final empresa = (u?.empresa ?? '').toLowerCase();
+    if (empresa.isEmpty) return false;
+    final reg = RegExp(r'\bkenworth\b', caseSensitive: false);
+    return reg.hasMatch(empresa);
+  }
+
+  // Devuelve true solo si la empresa del usuario contiene la palabra
+  // 'transtools' como palabra completa.
+  bool _usuarioEsTranstools(Usuario? u) {
+    final empresa = (u?.empresa ?? '').toLowerCase();
+    if (empresa.isEmpty) return false;
+    final reg = RegExp(r'\btranstools\b', caseSensitive: false);
+    return reg.hasMatch(empresa);
+  }
+
+  // Selecciona la lista de cuentas MXN según la empresa del usuario.
+  List<String> _cuentasMXNSegunUsuario([Usuario? u]) {
+    final usuarioLocal = u ?? _usuario;
+    if (_usuarioEsKenworth(usuarioLocal)) return cuentasMXNKenworth;
+    if (_usuarioEsTranstools(usuarioLocal)) return cuentasMXNTranstools;
+    // Si no se identifica al usuario, no mostrar cuentas MXN por defecto
+    return <String>[];
+  }
+
+  // Selecciona la lista de cuentas USD según la empresa del usuario.
+  List<String> _cuentasUSDSegunUsuario([Usuario? u]) {
+    final usuarioLocal = u ?? _usuario;
+    if (_usuarioEsTranstools(usuarioLocal)) return cuentasUSDTranstools;
+    return cuentasUSDDefault;
+  }
+
+  Future<void> _cargarUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString('usuario');
+    if (jsonString != null) {
+      setState(() {
+        _usuario = Usuario.fromJson(
+          jsonString,
+        ); // Ya devuelve un objeto Usuario
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const brandBlue = Color(0xFF1565C0);
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      // ignore: deprecated_member_use
+      child: WillPopScope(
+        onWillPop: () async {
+          // Al regresar con back/gesto, devolvemos la cotización actualizada
+          Navigator.pop(context, {
+            'cotizacion': _buildCotizacionSnapshot(),
+          });
+          return false;
+        },
+        child: Scaffold(
+  backgroundColor: Color(0xFF1565C0),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.black),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            color: Colors.black,
+            onPressed: () {
+              Navigator.pop(context, {
+                'cotizacion': _buildCotizacionSnapshot(),
+              });
+            },
+          ),
+          title: const Text(
+            'Datos de Pago y Entrega',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+  ),
+  body: SafeArea(
+          child: Column(
+            children: [
+              // Progress bar personalizado
+              Stack(
+                children: [
+                  Container(
+                    height: 8,
+                    color: const Color.fromARGB(255, 0, 0, 0),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: 0.75,
+                    child: Container(
+                      height: 8,
+                      color: const Color(0xFFD9CF6A), // Barra de progreso
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                width: double.infinity,
+                color: Color(0xFF1565C0),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: const Center(
+                  child: Text(
+                    'Paso 3 de 4', // Cambia el número según el paso
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              // El resto de tu contenido:
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _primaryScrollController,
+                  padding: const EdgeInsets.all(16),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        // Panel de número de unidades
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: unidadesError
+                                  ? Colors.red
+                                  : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Número de unidades',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.remove_circle_outline,
+                                    ),
+                                    onPressed: () {
+                                      final current =
+                                          int.tryParse(
+                                            unidadesController.text,
+                                          ) ??
+                                          0;
+                                      if (current > 1) {
+                                        unidadesController.text = (current - 1)
+                                            .toString();
+                                        setState(() {
+                                          unidadesError = false;
+                                          unidadesErrorText = null;
+                                        });
+                                        try {
+                                          widget.cotizacion.numeroUnidades = int.tryParse(unidadesController.text) ?? 0;
+                                        } catch (_) {}
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(
+                                    width: 60,
+                                    child: TextFormField(
+                                      controller: unidadesController,
+                                      cursorColor: brandBlue,
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      decoration: InputDecoration(
+                                        hintText: '0',
+                                        border: const OutlineInputBorder(
+                                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                                          borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                                          borderSide: BorderSide(color: brandBlue, width: 2),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 0,
+                                        ),
+                                      ),
+                                      onChanged: (_) {
+                                        setState(() {
+                                          unidadesError = false;
+                                          unidadesErrorText = null;
+                                        });
+                                        try {
+                                          widget.cotizacion.numeroUnidades = int.tryParse(unidadesController.text) ?? 0;
+                                        } catch (_) {}
+                                      },
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    onPressed: () {
+                                      final current =
+                                          int.tryParse(
+                                            unidadesController.text,
+                                          ) ??
+                                          0;
+                                      unidadesController.text = (current + 1)
+                                          .toString();
+                                      setState(() {
+                                        unidadesError = false;
+                                        unidadesErrorText = null;
+                                      });
+                                      try {
+                                        widget.cotizacion.numeroUnidades = int.tryParse(unidadesController.text) ?? 0;
+                                      } catch (_) {}
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (unidadesError && unidadesErrorText != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 4,
+                                    top: 4,
+                                  ),
+                                  child: Text(
+                                    unidadesErrorText!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        _buildSection(
+                          title: "Información de Pago",
+                          children: [
+                            _styledDropdown(
+                              label: 'Método de Pago',
+                              value: metodoPago,
+                              items: metodosPago,
+                              onChanged: (value) {
+                                setState(() {
+                                  metodoPago = value;
+                                  metodoPagoError = false;
+                                  metodoPagoErrorText = null;
+                                  moneda = null;
+                                  cuentaSeleccionada = null;
+                                  otroMetodoController.clear();
+                                });
+                                try {
+                                  widget.cotizacion.metodoPago = value;
+                                  widget.cotizacion.moneda = null;
+                                  widget.cotizacion.cuentaSeleccionada = null;
+                                  widget.cotizacion.otroMetodoPago = null;
+                                } catch (_) {}
+                              },
+                              error: metodoPagoError,
+                              errorText: metodoPagoErrorText,
+                              showClear: metodoPago != null,
+                              onClear: () {
+                                setState(() {
+                                  metodoPago = null;
+                                  metodoPagoError = false;
+                                  metodoPagoErrorText = null;
+                                  moneda = null;
+                                  cuentaSeleccionada = null;
+                                  otroMetodoController.clear();
+                                });
+                              },
+                            ),
+                            if (metodoPago == 'Transferencia' ||
+                                metodoPago == 'Cheque')
+                              _styledDropdown(
+                                label: 'Moneda',
+                                value: moneda,
+                                items: monedas,
+                                onChanged: (value) {
+                                  setState(() {
+                                    moneda = value;
+                                    monedaError = false;
+                                    monedaErrorText = null;
+                                    cuentaSeleccionada = null;
+                                  });
+                                  try {
+                                    widget.cotizacion.moneda = value;
+                                    widget.cotizacion.cuentaSeleccionada = null;
+                                  } catch (_) {}
+                                },
+                                error: monedaError,
+                                errorText: monedaErrorText,
+                                showClear: moneda != null,
+                                onClear: () {
+                                  setState(() {
+                                    moneda = null;
+                                    monedaError = false;
+                                    monedaErrorText = null;
+                                    cuentaSeleccionada = null;
+                                  });
+                                },
+                              ),
+                            if (metodoPago == 'Transferencia' && moneda != null)
+                              _styledDropdown(
+                                label: 'Cuenta para Transferencia',
+                                value: cuentaSeleccionada,
+                items: moneda == 'MXN'
+                  ? _cuentasMXNSegunUsuario()
+                  : _cuentasUSDSegunUsuario(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    cuentaSeleccionada = value;
+                                    cuentaError = false;
+                                    cuentaErrorText = null;
+                                  });
+                                  try {
+                                    widget.cotizacion.cuentaSeleccionada = value;
+                                  } catch (_) {}
+                                },
+                                error: cuentaError,
+                                errorText: cuentaErrorText,
+                                showClear: cuentaSeleccionada != null,
+                                onClear: () {
+                                  setState(() {
+                                    cuentaSeleccionada = null;
+                                    cuentaError = false;
+                                    cuentaErrorText = null;
+                                  });
+                                },
+                                validator: (value) => value == null
+                                    ? 'Seleccione una cuenta'
+                                    : null,
+                              ),
+                            if (metodoPago == 'Otro')
+                              Container(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    240,
+                                    240,
+                                    240,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.grey[300]!,
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      // ignore: deprecated_member_use
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: TextFormField(
+                                  controller: otroMetodoController,
+                                  cursorColor: brandBlue,
+                                  decoration: InputDecoration(
+                                    labelText: 'Especifique el método de pago',
+                                    labelStyle: TextStyle(
+                                      color: brandBlue,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    border: InputBorder.none,
+                                    suffixIcon:
+                                          otroMetodoController.text.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(
+                                                Icons.clear,
+                                                size: 22,
+                                                color: Colors.grey,
+                                              ),
+                                              onPressed: () {
+                                                otroMetodoController.clear();
+                                                setState(() {});
+                                                try {
+                                                  widget.cotizacion.otroMetodoPago = null;
+                                                } catch (_) {}
+                                              },
+                                              splashRadius: 18,
+                                            )
+                                          : null,
+                                  ),
+                                  onChanged: (v) {
+                                    setState(() {});
+                                    try {
+                                      widget.cotizacion.otroMetodoPago = v.isNotEmpty ? v : null;
+                                    } catch (_) {}
+                                  },
+                                  validator: (value) {
+                                    if (metodoPago == 'Otro' &&
+                                        (value == null || value.isEmpty)) {
+                                      return 'Ingrese el método de pago';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: anticipoError ? Colors.red : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    // ignore: deprecated_member_use
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller: anticipoController,
+                                    cursorColor: brandBlue,
+                                    decoration: InputDecoration(
+                                      labelText: 'Anticipo (%)',
+                                      labelStyle: TextStyle(
+                                        color: anticipoError ? Colors.red : const Color(0xFF1565C0),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      border: InputBorder.none,
+                                      suffixIcon: anticipoController.text.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                                              onPressed: () {
+                                                anticipoController.clear();
+                                                setState(() {
+                                                  anticipoSeleccionado = '';
+                                                });
+                                                try {
+                                                  widget.cotizacion.anticipoSeleccionado = null;
+                                                } catch (_) {}
+                                              },
+                                              splashRadius: 18,
+                                            )
+                                          : null,
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(RegExp(r'\d+%?')),
+                                      TextInputFormatter.withFunction((
+                                        oldValue,
+                                        newValue,
+                                      ) {
+                                        // Permite solo números y máximo 3 dígitos antes del %
+                                        String clean = newValue.text.replaceAll(
+                                          '%',
+                                          '',
+                                        );
+                                        if (clean.isEmpty) {
+                                          return newValue.copyWith(text: '');
+                                        }
+                                        final value = int.tryParse(clean);
+                                        if (value == null ||
+                                            value < 0 ||
+                                            value > 100) {
+                                          return oldValue;
+                                        }
+                                        // Siempre termina en %
+                                        return TextEditingValue(
+                                          text: '$value%',
+                                          selection: TextSelection.collapsed(
+                                            offset: '$value%'.length - 1,
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                    onChanged: (value) {
+                                      String clean = value.replaceAll('%', '');
+                                      setState(() {
+                                        anticipoSeleccionado = clean;
+                                        anticipoError = false;
+                                        anticipoErrorText = null;
+                                      });
+                                      try {
+                                        widget.cotizacion.anticipoSeleccionado = clean.isNotEmpty ? clean : null;
+                                      } catch (_) {}
+                                    },
+                                  ),
+                                  if (anticipoError && anticipoErrorText != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 4, top: 4),
+                                      child: Text(
+                                        anticipoErrorText!,
+                                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            // Nuevo campo: Descuento (monto en pesos)
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: descuentoError ? Colors.red : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    // ignore: deprecated_member_use
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller: descuentoController,
+                                    cursorColor: brandBlue,
+                                    decoration: InputDecoration(
+                                      labelText: 'Descuento',
+                                      labelStyle: TextStyle(
+                                        color: descuentoError ? Colors.red : const Color(0xFF1565C0),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      border: InputBorder.none,
+                                      prefixText: '\$ ',
+                                      prefixStyle: const TextStyle(
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      suffixIcon: descuentoController.text.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                                              onPressed: () {
+                                                descuentoController.clear();
+                                                setState(() {
+                                                  descuentoError = false;
+                                                });
+                                              },
+                                              splashRadius: 18,
+                                            )
+                                          : null,
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      // Permite solo dígitos (y opcionalmente comas), y evita valores mayores a 15000
+                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                        String cleanNew = newValue.text.replaceAll(',', '');
+                                        if (cleanNew.isEmpty) return newValue.copyWith(text: '');
+                                        // Solo dígitos
+                                        if (!RegExp(r'^\d+$').hasMatch(cleanNew)) {
+                                          return oldValue;
+                                        }
+                                        final parsed = int.tryParse(cleanNew);
+                                        if (parsed == null) return oldValue;
+                                        if (parsed > 15000) {
+                                          // Rechaza la nueva entrada si supera el tope
+                                          return oldValue;
+                                        }
+                                        // Mantener el nuevo valor (sin formateo de comas para evitar complicar el cursor)
+                                        return newValue.copyWith(text: cleanNew, selection: TextSelection.collapsed(offset: cleanNew.length));
+                                      }),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        descuentoError = false;
+                                        descuentoErrorText = null;
+                                      });
+                                      // Persist discount into the cotizacion model as a double (without commas)
+                                      final parsed = double.tryParse(value.replaceAll(',', ''));
+                                      try {
+                                        widget.cotizacion.descuento = parsed;
+                                        _saveTempDescuento(parsed);
+                                      } catch (_) {}
+                                    },
+                                  ),
+                                  if (descuentoError && descuentoErrorText != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 4, top: 4),
+                                      child: Text(
+                                        descuentoErrorText!,
+                                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Nuevo panel: Protección
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Center(
+                                child: Text(
+                                  '¿Agregar Protección?',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ListTile(
+                                      title: const Text('Sí', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      leading: Radio<bool>(
+                                        value: true,
+                                        groupValue: agregarProteccion,
+                                        activeColor: const Color(0xFF1565C0),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            agregarProteccion = true;
+                                            // Initialize with default value if empty
+                                            if (proteccionController.text.isEmpty) {
+                                              proteccionController.text = '5000';
+                                            }
+                                          });
+                                          try {
+                                            widget.cotizacion.proteccion = true;
+                                            final monto = double.tryParse(proteccionController.text);
+                                            widget.cotizacion.proteccionMonto = monto;
+                                            _saveTempProteccion(true, monto);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          agregarProteccion = true;
+                                          if (proteccionController.text.isEmpty) {
+                                            proteccionController.text = '5000';
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: ListTile(
+                                      title: const Text('No', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      leading: Radio<bool>(
+                                        value: false,
+                                        groupValue: agregarProteccion,
+                                        activeColor: const Color(0xFF1565C0),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            agregarProteccion = false;
+                                            proteccionController.clear();
+                                          });
+                                          try {
+                                            widget.cotizacion.proteccion = false;
+                                            widget.cotizacion.proteccionMonto = null;
+                                            _saveTempProteccion(false, null);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          agregarProteccion = false;
+                                          proteccionController.clear();
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (agregarProteccion)
+                                Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color.fromARGB(255, 240, 240, 240),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: proteccionError ? Colors.red : Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        // ignore: deprecated_member_use
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      TextFormField(
+                                        controller: proteccionController,
+                                        cursorColor: brandBlue,
+                                        decoration: InputDecoration(
+                                          labelText: 'Monto de protección',
+                                          labelStyle: TextStyle(
+                                            color: proteccionError ? Colors.red : const Color(0xFF1565C0),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          border: InputBorder.none,
+                                          prefixText: '\$ ',
+                                          prefixStyle: const TextStyle(
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          suffixIcon: proteccionController.text.isNotEmpty
+                                              ? IconButton(
+                                                  icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                                                  onPressed: () {
+                                                    proteccionController.clear();
+                                                    setState(() {
+                                                      proteccionError = false;
+                                                      proteccionErrorText = null;
+                                                    });
+                                                    try {
+                                                      widget.cotizacion.proteccionMonto = null;
+                                                    } catch (_) {}
+                                                  },
+                                                  splashRadius: 18,
+                                                )
+                                              : null,
+                                        ),
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          // Permite solo dígitos y evita valores mayores a 15000
+                                          TextInputFormatter.withFunction((oldValue, newValue) {
+                                            String cleanNew = newValue.text.replaceAll(',', '');
+                                            if (cleanNew.isEmpty) return newValue.copyWith(text: '');
+                                            // Solo dígitos
+                                            if (!RegExp(r'^\d+$').hasMatch(cleanNew)) {
+                                              return oldValue;
+                                            }
+                                            final parsed = int.tryParse(cleanNew);
+                                            if (parsed == null) return oldValue;
+                                            if (parsed > 15000) {
+                                              // Rechaza la nueva entrada si supera el tope
+                                              return oldValue;
+                                            }
+                                            // Mantener el nuevo valor
+                                            return newValue.copyWith(text: cleanNew, selection: TextSelection.collapsed(offset: cleanNew.length));
+                                          }),
+                                        ],
+                                        onChanged: (value) {
+                                          setState(() {
+                                            proteccionError = false;
+                                            proteccionErrorText = null;
+                                          });
+                                          
+                                          final monto = double.tryParse(value.replaceAll(',', ''));
+                                          try {
+                                            widget.cotizacion.proteccionMonto = monto;
+                                            _saveTempProteccion(true, monto);
+                                          } catch (_) {}
+                                        },
+                                        validator: (value) {
+                                          if (agregarProteccion && (value == null || value.isEmpty)) {
+                                            return 'Ingrese un monto de protección';
+                                          }
+                                          final monto = double.tryParse(value ?? '');
+                                          if (monto != null && monto > 15000) {
+                                            return 'El monto no puede exceder \$15,000';
+                                          }
+                                          if (monto != null && monto <= 0) {
+                                            return 'El monto debe ser mayor a \$0';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      if (proteccionError && proteccionErrorText != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, top: 4),
+                                          child: Text(
+                                            proteccionErrorText!,
+                                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        _buildSection(
+                          title: "Información de Entrega",
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: rangoEntregaError
+                                      ? Colors.red
+                                      : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(
+                                      'Seleccionar rango de entrega',
+                                      style: TextStyle(
+                                        color:
+                                            (semanasEntrega != null &&
+                                                fechaInicio != null &&
+                                                fechaFin != null)
+                                            ? const Color(0xFF1565C0) // Azul
+                                            : Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle:
+                                        (semanasEntrega != null &&
+                                            fechaInicio != null &&
+                                            fechaFin != null)
+                                        ? Text(
+                                            'Tiempo de entrega: $semanasEntrega semanas a partir de su anticipo',
+                                            style: const TextStyle(
+                                              color: Color.fromARGB(
+                                                255,
+                                                0,
+                                                0,
+                                                0,
+                                              ), // Azul
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'No se ha seleccionado un rango',
+                                            style: TextStyle(
+                                              color: Color(0xFF1565C0),
+                                            ),
+                                          ),
+                                    trailing: const Icon(Icons.calendar_today),
+                                    onTap: () async {
+                                      final rango = await showDateRangePicker(
+                                        context: context,
+                                        firstDate: DateTime.now(),
+                                        lastDate: DateTime.now().add(
+                                          const Duration(days: 365),
+                                        ),
+                                      );
+                                      if (rango != null) {
+                                        setState(() {
+                                          fechaInicio = rango.start;
+                                          fechaFin = rango.end;
+                                          final dias = fechaFin!
+                                              .difference(fechaInicio!)
+                                              .inDays;
+                                          semanasEntrega = (dias / 7)
+                                              .ceil()
+                                              .toString();
+                                          rangoEntregaError = false;
+                                          rangoEntregaErrorText = null;
+                                        });
+                                        try {
+                                          widget.cotizacion.fechaInicioEntrega = fechaInicio;
+                                          widget.cotizacion.fechaFinEntrega = fechaFin;
+                                          widget.cotizacion.semanasEntrega = semanasEntrega;
+                                        } catch (_) {}
+                                      }
+                                    },
+                                  ),
+                                  if (rangoEntregaError &&
+                                      rangoEntregaErrorText != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 12,
+                                        top: 2,
+                                      ),
+                                      child: Text(
+                                        rangoEntregaErrorText!,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            // Use the mapped display value (with price suffix) so the
+                            // Dropdown's `value` always matches one of the `items`.
+                            _styledDropdown(
+                              label: 'Entrega en',
+                              value: entregaEn,
+                              items: entregaOptions,
+                              onChanged: (value) {
+                                setState(() {
+                                  entregaEn = value;
+                                  entregaEnError = false;
+                                  entregaEnErrorText = null;
+
+                                  // Autocompletar monto desde el mapa de precios por defecto
+                                  final defaultPrice =
+                                      value != null ? entregaDefaultPrices[value] : null;
+                                  if (defaultPrice != null) {
+                                    entregaMontoController.text = defaultPrice.toStringAsFixed(0);
+                                    // Persist into cotizacion so navigation keeps the value
+                                    try {
+                                      widget.cotizacion.costoEntrega = defaultPrice;
+                                    } catch (_) {}
+                                  } else {
+                                    // Por acordar -> dejar vacío para que el usuario ingrese el monto
+                                    entregaMontoController.text = '';
+                                    try {
+                                      widget.cotizacion.costoEntrega = null;
+                                    } catch (_) {}
+                                  }
+                                });
+                                try {
+                                  widget.cotizacion.entregaEn = value;
+                                } catch (_) {}
+                              },
+                              error: entregaEnError,
+                              errorText: entregaEnErrorText,
+                              showClear: entregaEn != null,
+                              onClear: () {
+                                setState(() {
+                                  entregaEn = null;
+                                  entregaEnError = false;
+                                  entregaEnErrorText = null;
+                                  entregaMontoController.clear();
+                                  try {
+                                    widget.cotizacion.costoEntrega = null;
+                                    widget.cotizacion.entregaEn = null;
+                                  } catch (_) {}
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? 'Seleccione una opción'
+                                  : null,
+                            ),
+
+                            // Mostrar siempre el campo de monto; si la opción seleccionada
+                            // no es 'Instalaciones del Cliente' el campo se auto-llena y
+                            // queda en solo lectura, permitiendo edición solo cuando el
+                            // usuario elige la opción de cliente.
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 240, 240, 240),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: entregaMontoError ? Colors.red : Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: TextFormField(
+                                controller: entregaMontoController,
+                                cursorColor: brandBlue,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Monto de entrega',
+                                  labelStyle: TextStyle(
+                                    color: entregaMontoError ? Colors.red : const Color(0xFF1565C0),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  prefixText: '\$ ',
+                                  prefixStyle: const TextStyle(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  border: InputBorder.none,
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    entregaMontoError = false;
+                                    entregaMontoErrorText = null;
+                                    // Persist current entrega monto into the cotizacion model
+                                    final parsed = value.isNotEmpty ? double.tryParse(value) : null;
+                                    try {
+                                      widget.cotizacion.costoEntrega = parsed;
+                                    } catch (_) {}
+                                  });
+                                },
+                                validator: (value) {
+                                  // Si la opción es cliente, el monto es obligatorio y editable
+                                  if ((_matchEntregaOption(entregaEn) ?? entregaEn) == entregaOptions[3]) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Ingrese el monto de entrega';
+                                    }
+                                    final v = double.tryParse(value);
+                                    if (v == null || v < 0) {
+                                      return 'Ingrese un monto válido';
+                                    }
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            SizedBox(
+                              width: 140,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  Navigator.pop(context, {
+                                    'cotizacion': widget.cotizacion.copyWith(
+                                      formaPago: formaPago,
+                                      metodoPago: metodoPago,
+                                      moneda: moneda,
+                                      entregaEn: entregaEn,
+                                      cuentaSeleccionada: cuentaSeleccionada,
+                                      otroMetodoPago:
+                                          otroMetodoController.text.isNotEmpty
+                                          ? otroMetodoController.text
+                                          : null,
+                                      fechaInicioEntrega: fechaInicio,
+                                      fechaFinEntrega: fechaFin,
+                                      semanasEntrega: semanasEntrega,
+                                      anticipoSeleccionado:
+                                          anticipoSeleccionado,
+                                      numeroUnidades: int.tryParse(
+                                        unidadesController.text,
+                                      ),
+                    costoEntrega: entregaMontoController.text.isNotEmpty
+                      ? double.tryParse(entregaMontoController.text)
+                      : null,
+                      descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
+                                      proteccion: agregarProteccion,
+                                      proteccionMonto: proteccionController.text.isNotEmpty ? double.tryParse(proteccionController.text) : null,
+                                    ),
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: const Text('Atras'),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 140,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  setState(() {
+                                    metodoPagoError = metodoPago == null;
+                                    metodoPagoErrorText = metodoPagoError
+                                        ? 'Seleccione un método de pago'
+                                        : null;
+
+                                    monedaError = moneda == null;
+                                    monedaErrorText = monedaError
+                                        ? 'Seleccione una moneda'
+                                        : null;
+
+                                    cuentaError =
+                                        (metodoPago == 'Transferencia' &&
+                                        cuentaSeleccionada == null);
+                                    cuentaErrorText = cuentaError
+                                        ? 'Seleccione una cuenta'
+                                        : null;
+
+                                    entregaEnError = entregaEn == null;
+                                    entregaEnErrorText = entregaEnError
+                                        ? 'Seleccione una opción'
+                                        : null;
+
+                                    rangoEntregaError =
+                                        (fechaInicio == null ||
+                                        fechaFin == null);
+                                    rangoEntregaErrorText = rangoEntregaError
+                                        ? 'Seleccione un rango de entrega'
+                                        : null;
+
+                                    unidadesError =
+                                        unidadesController.text.isEmpty ||
+                                        int.tryParse(unidadesController.text) ==
+                                            null ||
+                                        int.parse(unidadesController.text) <= 0;
+                                    unidadesErrorText = unidadesError
+                                        ? 'Ingrese un número válido de unidades'
+                                        : null;
+
+                                    anticipoError = anticipoController.text.isEmpty;
+                                    anticipoErrorText = anticipoError
+                                        ? 'Ingrese un anticipo'
+                                        : null;
+
+                                    String clean = anticipoController.text.replaceAll('%', '');
+                                    final numValue = int.tryParse(clean);
+                                    anticipoError = clean.isEmpty || numValue == null || numValue < 0 || numValue > 100;
+                                    anticipoErrorText = clean.isEmpty
+                                        ? 'Ingrese el porcentaje de anticipo'
+                                        : (numValue == null || numValue < 0 || numValue > 100
+                                            ? 'Ingrese un valor entre 0 y 100'
+                                            : null);
+                                    // Validar descuento (si se ingresó)
+                                    descuentoError = false;
+                                    descuentoErrorText = null;
+                                    if (descuentoController.text.isNotEmpty) {
+                                      final d = double.tryParse(descuentoController.text.replaceAll(',', ''));
+                                      if (d == null || d < 0) {
+                                        descuentoError = true;
+                                        descuentoErrorText = 'Ingrese un descuento válido';
+                                      } else if (d > 15000) {
+                                        descuentoError = true;
+                                        descuentoErrorText = 'El descuento máximo es de \$15,000';
+                                      }
+                                    }
+                                  });
+
+                                  if (unidadesError ||
+                                      metodoPagoError ||
+                                      monedaError ||
+                                      cuentaError ||
+                                      entregaEnError ||
+                                      rangoEntregaError ||
+                                      anticipoError ||
+                                      descuentoError) {
+                                    // Mostrar alerta o scroll al primer error
+                                    return;
+                                  }
+
+                                  if (_formKey.currentState!.validate()) {
+                                    // Siguiente paso
+                                    // Actualiza el objeto cotización con los datos ingresados en esta sección:
+                                    final cotizacionActualizada = widget.cotizacion.copyWith(
+                                          numeroUnidades: int.tryParse(
+                                            unidadesController.text,
+                                          ),
+                      costoEntrega: entregaMontoController.text.isNotEmpty
+                        ? double.tryParse(entregaMontoController.text)
+                        : null,
+                                          formaPago: formaPago,
+                                          metodoPago: metodoPago,
+                                          moneda: moneda,
+                                          entregaEn: entregaEn,
+                                          cuentaSeleccionada:
+                                              cuentaSeleccionada,
+                                          otroMetodoPago:
+                                              otroMetodoController
+                                                  .text
+                                                  .isNotEmpty
+                                              ? otroMetodoController.text
+                                              : null,
+                                          fechaInicioEntrega: fechaInicio,
+                                          fechaFinEntrega: fechaFin,
+                                          semanasEntrega: semanasEntrega,
+                                          anticipoSeleccionado:
+                                              anticipoSeleccionado,
+                                          descuento: descuentoController.text.isNotEmpty ? double.tryParse(descuentoController.text.replaceAll(',', '')) : null,
+                                          proteccion: agregarProteccion,
+                                          proteccionMonto: proteccionController.text.isNotEmpty ? double.tryParse(proteccionController.text) : null,
+                                          // preserve previously computed excludedFeatures and adicionalesDeLinea
+                                          excludedFeatures: widget.cotizacion.excludedFeatures,
+                                          adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,
+                                        );
+
+                                    // Antes de navegar, asegurar que tenemos el usuario y su empresa
+                                    Usuario? usuarioParaEnviar = _usuario;
+                                    if (usuarioParaEnviar == null) {
+                                      final prefs = await SharedPreferences.getInstance();
+                                      final jsonString = prefs.getString('usuario');
+                                      if (jsonString != null && jsonString.isNotEmpty) {
+                                        try {
+                                          usuarioParaEnviar = Usuario.fromJson(jsonString);
+                                        } catch (_) {
+                                          usuarioParaEnviar = null;
+                                        }
+                                      }
+                                    }
+
+                                    // DEBUG: imprimir el valor de empresa que vamos a usar
+                                    try {
+                                    } catch (_) {}
+                                    // Si la empresa indica Kenworth, enviar a Seccion5 (diseño Kenworth)
+                                    if (_usuarioEsKenworth(usuarioParaEnviar)) {
+                                      Navigator.pushNamed(
+                                        // ignore: use_build_context_synchronously
+                                        context,
+                                        '/seccion5',
+                                        arguments: {
+                                          'cotizacion': cotizacionActualizada,
+                                          'usuario': usuarioParaEnviar,
+                                        },
+                                      );
+                                    } else {
+                                      Navigator.pushNamed(
+                                        // ignore: use_build_context_synchronously
+                                        context,
+                                        '/seccion4',
+                                        arguments: {
+                                          'cotizacion': cotizacionActualizada,
+                                          'usuario': usuarioParaEnviar,
+                                        },
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: const Text('Siguiente'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  }
+
+  // Construye un snapshot de la cotización con los valores actuales de la UI
+  Cotizacion _buildCotizacionSnapshot() {
+    return widget.cotizacion.copyWith(
+      numeroUnidades: int.tryParse(unidadesController.text),
+      costoEntrega: entregaMontoController.text.isNotEmpty
+          ? double.tryParse(entregaMontoController.text)
+          : null,
+      formaPago: formaPago,
+      metodoPago: metodoPago,
+      moneda: moneda,
+      entregaEn: entregaEn,
+      cuentaSeleccionada: cuentaSeleccionada,
+      otroMetodoPago: otroMetodoController.text.isNotEmpty
+          ? otroMetodoController.text
+          : null,
+      fechaInicioEntrega: fechaInicio,
+      fechaFinEntrega: fechaFin,
+      semanasEntrega: semanasEntrega,
+      anticipoSeleccionado: anticipoSeleccionado,
+      descuento: descuentoController.text.isNotEmpty
+          ? double.tryParse(descuentoController.text.replaceAll(',', ''))
+          : null,
+      proteccion: agregarProteccion,
+      proteccionMonto: proteccionController.text.isNotEmpty
+          ? double.tryParse(proteccionController.text)
+          : null,
+      // Conserva banderas calculadas previamente
+      excludedFeatures: widget.cotizacion.excludedFeatures,
+      adicionalesDeLinea: widget.cotizacion.adicionalesDeLinea,
+    );
+  }
+
+  @override
+  void dispose() {
+    direccionEntregaController.dispose();
+    receptorController.dispose();
+    telefonoController.dispose();
+    correoController.dispose();
+    unidadesController.dispose();
+    otroMetodoController.dispose();
+    anticipoController.dispose();
+    descuentoController.dispose();
+  entregaMontoController.dispose();
+    _primaryScrollController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _styledDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    void Function(String?)? onChanged,
+    FormFieldValidator<String>? validator,
+    bool error = false,
+    String? errorText,
+    bool showClear = false,
+    VoidCallback? onClear,
+  }) {
+    final bool isCuentas = label.contains('Cuenta');
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 240, 240, 240),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: error ? Colors.red : Colors.grey[300]!,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            // ignore: deprecated_member_use
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        isExpanded: true,
+  iconEnabledColor: const Color(0xFF1565C0),
+  iconDisabledColor: const Color(0xFF1565C0),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: error ? Colors.red : const Color(0xFF1565C0),
+            fontWeight: FontWeight.bold,
+          ),
+          border: InputBorder.none,
+          errorText: error ? errorText : null,
+          errorStyle: const TextStyle(color: Colors.red, fontSize: 13),
+          suffixIcon: showClear && value != null
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 22, color: Colors.grey),
+                  onPressed: onClear,
+                  splashRadius: 18,
+                )
+              : null,
+        ),
+        selectedItemBuilder: (context) => items.map((item) {
+          return Tooltip(
+            message: item,
+            child: Container(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                item,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: const TextStyle(color: Colors.black),
+              ),
+            ),
+          );
+        }).toList(),
+        items: items
+            .map(
+              (item) => DropdownMenuItem(
+                value: item,
+                child: Padding(
+                  padding: isCuentas
+                      ? const EdgeInsets.symmetric(vertical: 10.0)
+                      : EdgeInsets.zero,
+                  child: Text(item),
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+        validator: validator,
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+}

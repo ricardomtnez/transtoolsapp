@@ -24,6 +24,25 @@ class LoginState extends State<Login> {
   final TextEditingController passwordController = TextEditingController();
 
   bool _obscureText = true;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email');
+    final savedPassword = prefs.getString('saved_password');
+    final remember = prefs.getBool('remember_me') ?? false;
+    if (savedEmail != null) emailController.text = savedEmail;
+    if (savedPassword != null) passwordController.text = savedPassword;
+    setState(() {
+      _rememberMe = remember;
+    });
+  }
   // AQUÍ VA el método _handleLogin
   // En tu método _handleLogin en la vista
   Future<void> _handleLogin() async {
@@ -69,6 +88,16 @@ class LoginState extends State<Login> {
         // Serializamos a json
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('usuario', usuario.toJson());
+        // Guardar credenciales si el usuario marcó "Recuérdame"
+        if (_rememberMe) {
+          await prefs.setString('saved_email', email);
+          await prefs.setString('saved_password', inputPassword);
+          await prefs.setBool('remember_me', true);
+        } else {
+          await prefs.remove('saved_email');
+          await prefs.remove('saved_password');
+          await prefs.setBool('remember_me', false);
+        }
         // DEBUG - imprimir el json guardado y los datos crudos recibidos
         try {
           // ignore: unused_local_variable
@@ -208,7 +237,23 @@ class LoginState extends State<Login> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    activeColor: Colors.blue[800],
+                    onChanged: (v) {
+                      setState(() {
+                        _rememberMe = v ?? false;
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  Text('Recuérdame', style: TextStyle(color: Colors.blue[800])),
+                ],
+              ),
+              const SizedBox(height: 12),
               // Botón
               SizedBox(
                 width: double.infinity,
@@ -230,6 +275,7 @@ class LoginState extends State<Login> {
                   ),
                 ),
               ),
+              
             ],
           ),
         ),

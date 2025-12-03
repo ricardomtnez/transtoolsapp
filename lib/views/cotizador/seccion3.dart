@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:transtools/models/cotizacion.dart';
@@ -30,6 +31,7 @@ class _Seccion3State extends State<Seccion3> {
   final ScrollController _primaryScrollController = ScrollController();
 
   Usuario? _usuario;
+  bool mostrarSeccion6 = false;
   // Controllers
   final TextEditingController direccionEntregaController =
       TextEditingController();
@@ -71,6 +73,13 @@ class _Seccion3State extends State<Seccion3> {
     'BANCOMER: 0150549584 Clabe: 012650001505495845',
   ];
 
+   // Cuentas MXN Kenworth del Este
+  final List<String> cuentasMXNKenworthEste = [
+    'BANCOMER: 0174870956 Clabe: 012855001748709562',
+  ];
+
+  
+
   final List<String> cuentasMXNTranstools = [
     'BBVA Bancomer: 0172940930 Clabe: 012830001729409301',
   ];
@@ -89,6 +98,7 @@ class _Seccion3State extends State<Seccion3> {
     'Planta Titanium (El Carmen Tequexquitla, Tlaxcala)',
     'Planta LightWeight (Puebla)',
     'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816',
+    'Kenworth del Este, S.A. de C.V.',
     'Instalaciones del Cliente',
   ];
 
@@ -97,6 +107,7 @@ class _Seccion3State extends State<Seccion3> {
     'Planta Titanium (El Carmen Tequexquitla, Tlaxcala)': 0,
     'Planta LightWeight (Puebla)': 3000,
     'Kenworth del Sur S.A. DE C.V Plaza Puebla, Sucursal: 0816': 4000,
+    'Kenworth del Este, S.A. de C.V.': 4000,
     'Instalaciones del Cliente': null,
   };
 
@@ -354,10 +365,28 @@ class _Seccion3State extends State<Seccion3> {
   // Selecciona la lista de cuentas MXN según la empresa del usuario.
   List<String> _cuentasMXNSegunUsuario([Usuario? u]) {
     final usuarioLocal = u ?? _usuario;
+    // Prioriza KenworthEste (del tablero) si aplica
+    if (_usuarioEsKenworthEste(usuarioLocal)) return cuentasMXNKenworthEste;
     if (_usuarioEsKenworth(usuarioLocal)) return cuentasMXNKenworth;
     if (_usuarioEsTranstools(usuarioLocal)) return cuentasMXNTranstools;
     // Si no se identifica al usuario, no mostrar cuentas MXN por defecto
     return <String>[];
+  }
+
+  // Detecta si la empresa del usuario es específicamente 'KenworthEste'
+  bool _usuarioEsKenworthEste(Usuario? u) {
+    final empresa = (u?.empresa ?? '').toLowerCase();
+    if (empresa.isEmpty) return false;
+    final normalized = empresa.replaceAll(RegExp(r'\s+'), '');
+    return normalized.contains('kenwortheste');
+  }
+
+  // Comprueba si el usuario o la cotización pertenecen a KenworthEste
+  bool _isKenworthEsteFromUsuarioOrCotizacion([Usuario? u]) {
+    final usuarioLocal = u ?? _usuario;
+    if (_usuarioEsKenworthEste(usuarioLocal)) return true;
+    final empresaCot = (widget.cotizacion.empresa).toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    return empresaCot.contains('kenwortheste');
   }
 
   // Selecciona la lista de cuentas USD según la empresa del usuario.
@@ -375,6 +404,13 @@ class _Seccion3State extends State<Seccion3> {
         _usuario = Usuario.fromJson(
           jsonString,
         ); // Ya devuelve un objeto Usuario
+        // Determina si debemos mostrar la Sección 6
+        mostrarSeccion6 = _isKenworthEsteFromUsuarioOrCotizacion(_usuario);
+      });
+    } else {
+      // Si no hay usuario, decidimos solo con la cotización
+      setState(() {
+        mostrarSeccion6 = _isKenworthEsteFromUsuarioOrCotizacion();
       });
     }
   }
@@ -448,6 +484,7 @@ class _Seccion3State extends State<Seccion3> {
                   ),
                 ),
               ),
+              // navegación condicional será manejada al presionar 'Siguiente'
               // El resto de tu contenido:
               Expanded(
                 child: SingleChildScrollView(
@@ -1565,8 +1602,21 @@ class _Seccion3State extends State<Seccion3> {
                                     // DEBUG: imprimir el valor de empresa que vamos a usar
                                     try {
                                     } catch (_) {}
-                                    // Si la empresa indica Kenworth, enviar a Seccion5 (diseño Kenworth)
-                                    if (_usuarioEsKenworth(usuarioParaEnviar)) {
+                                    // Navegación según la empresa:
+                                    // - KenworthEste -> seccion6
+                                    // - Kenworth (genérico) -> seccion5
+                                    // - Otro -> seccion4
+                                    if (_isKenworthEsteFromUsuarioOrCotizacion(usuarioParaEnviar)) {
+                                      Navigator.pushNamed(
+                                        // ignore: use_build_context_synchronously
+                                        context,
+                                        '/seccion6',
+                                        arguments: {
+                                          'cotizacion': cotizacionActualizada,
+                                          'usuario': usuarioParaEnviar,
+                                        },
+                                      );
+                                    } else if (_usuarioEsKenworth(usuarioParaEnviar)) {
                                       Navigator.pushNamed(
                                         // ignore: use_build_context_synchronously
                                         context,

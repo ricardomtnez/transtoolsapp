@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:transtools/api/quote_controller.dart';
 import 'package:transtools/models/cotizacion.dart';
@@ -9,13 +8,13 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
-class Seccion5 extends StatefulWidget {
+class Seccion6 extends StatefulWidget {
   final Cotizacion cotizacion;
   final Usuario usuario;
 
   // Recibe la cotización en el constructor
   // ignore: prefer_const_constructors_in_immutables
-  Seccion5({Key? key, required this.cotizacion, required this.usuario})
+  Seccion6({Key? key, required this.cotizacion, required this.usuario})
     : super(key: key);
 
   // Método estático para facilitar crear la ruta con argumentos
@@ -23,15 +22,15 @@ class Seccion5 extends StatefulWidget {
     final args = settings.arguments as Map<String, dynamic>;
     return MaterialPageRoute(
       builder: (_) =>
-          Seccion5(cotizacion: args['cotizacion'], usuario: args['usuario']),
+          Seccion6(cotizacion: args['cotizacion'], usuario: args['usuario']),
     );
   }
 
   @override
-  State<Seccion5> createState() => _Seccion5State();
+  State<Seccion6> createState() => _Seccion6State();
 }
 
-class _Seccion5State extends State<Seccion5> {
+class _Seccion6State extends State<Seccion6> {
   bool _incluirNormas = true; // controla el mensaje en el PDF
 
   @override
@@ -69,7 +68,7 @@ class _Seccion5State extends State<Seccion5> {
     .fold(0, (sum, adicional) => sum + (adicional.cantidad));
 
     return Scaffold(
-  backgroundColor: const Color(0xFF0D47A1),
+  backgroundColor: const Color.fromARGB(255, 48, 80, 129),
       appBar: AppBar(
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -94,7 +93,7 @@ class _Seccion5State extends State<Seccion5> {
               // Texto fijo sobre fondo azul
               Container(
                 width: double.infinity,
-                color: const Color(0xFF0D47A1), // Kenworth azul oscuro
+                color: const Color.fromARGB(255, 48, 80, 129), // Kenworth azul oscuro
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: const Center(
                   child: Text(
@@ -777,10 +776,10 @@ class _Seccion5State extends State<Seccion5> {
     Uint8List kenBytesList;
     try {
       // ignore: use_build_context_synchronously
-      final kenBytes = await DefaultAssetBundle.of(context).load('assets/Kenworth-logo.png');
+      final kenBytes = await DefaultAssetBundle.of(context).load('assets/KenworthEste.png');
       kenBytesList = kenBytes.buffer.asUint8List();
     } catch (_) {
-      // fallback al logo principal si no existe Kenworth
+      // fallback al logo principal si no existe KenworthEste
       kenBytesList = logoBytes.buffer.asUint8List();
     }
   // no usamos logo10 porque el footer fue eliminado
@@ -1941,6 +1940,24 @@ class _Seccion5State extends State<Seccion5> {
                         ),
                         textAlign: pw.TextAlign.right,
                       ),
+                      // Mostrar teléfono y correo si están disponibles (valores provenientes de Monday)
+                      
+                      if ((usuario.email ?? '').trim().isNotEmpty) ...[
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          usuario.email,
+                          style: pw.TextStyle(fontSize: 10),
+                          textAlign: pw.TextAlign.right,
+                        ),
+                      ],
+                      if ((usuario.telefono ?? '').trim().isNotEmpty) ...[
+                        pw.SizedBox(height: 4),
+                        pw.Text(
+                          usuario.telefono,
+                          style: pw.TextStyle(fontSize: 10),
+                          textAlign: pw.TextAlign.right,
+                        ),
+                      ],
                     ],
                   ),
                 ),

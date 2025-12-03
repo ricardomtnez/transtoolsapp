@@ -11,6 +11,7 @@ import 'package:transtools/views/cotizaciones.dart';
 import 'package:transtools/views/listprices.dart';
 import 'package:transtools/views/equipmentlist.dart';
 import 'package:transtools/views/cotizador/seccion5.dart';
+import 'package:transtools/views/cotizador/seccion6.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,6 +91,14 @@ class _MyAppState extends State<MyApp> {
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
               builder: (_) => Seccion5(
+                cotizacion: args['cotizacion'],
+                usuario: args['usuario'],
+              ),
+            );
+            case "/seccion6":
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => Seccion6(
                 cotizacion: args['cotizacion'],
                 usuario: args['usuario'],
               ),
